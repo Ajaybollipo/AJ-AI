@@ -1054,76 +1054,11 @@ input:focus {
 }
 
 
-
-/* ============================================================
-   AJAY SIGNATURE
-============================================================ */
-
-.creator-signature {
-    position: fixed;
-
-    right: 24px;
-    bottom: 24px;
-
-    width: 150px;
-    height: auto;
-
-    opacity: .72;
-
-    z-index: 25;
-
-    pointer-events: none;
-
-    filter:
-        drop-shadow(0 0 5px rgba(0,217,255,.35))
-        drop-shadow(0 0 9px rgba(255,23,68,.18));
-
-    transition:
-        opacity .25s,
-        transform .25s;
-}
-
-.creator-signature:hover {
-    opacity: .95;
-    transform: scale(1.03);
-}
-
-.creator-signature-label {
-    position: fixed;
-
-    right: 28px;
-    bottom: 10px;
-
-    color: #57899b;
-
-    font-size: 7px;
-    letter-spacing: 2px;
-
-    z-index: 25;
-
-    pointer-events: none;
-
-    text-transform: uppercase;
-}
-
 /* ============================================================
    MOBILE
 ============================================================ */
 
 @media (max-width: 700px) {
-
-
-    .creator-signature {
-        right: 12px;
-        bottom: 72px;
-        width: 105px;
-    }
-
-    .creator-signature-label {
-        right: 14px;
-        bottom: 58px;
-        font-size: 6px;
-    }
 
     .topbar {
         height: 62px;
@@ -1179,15 +1114,6 @@ input:focus {
 <div class="grid"></div>
 <div class="scanlines"></div>
 
-<img
-    class="creator-signature"
-    src="/static/images/ajay_signature_transparent.png"
-    alt="Ajay Bollipo signature"
->
-
-<div class="creator-signature-label">
-    CREATED BY AJAY BOLLIPO
-</div>
 
 <div class="app">
 
@@ -2093,13 +2019,19 @@ sendButton.onclick =
    VOICE RECOGNITION
 ============================================================ */
 
-if (
-    "webkitSpeechRecognition"
-    in window
-) {
+/*
+ * Use the standard SpeechRecognition name when available,
+ * with the Chrome/WebKit fallback used by desktop Chrome.
+ */
+const SpeechRecognitionAPI =
+    window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+
+if (SpeechRecognitionAPI) {
 
     recognition =
-        new webkitSpeechRecognition();
+        new SpeechRecognitionAPI();
 
 
     recognition.lang =
@@ -2114,17 +2046,18 @@ if (
         false;
 
 
+    recognition.maxAlternatives =
+        1;
+
+
     recognition.onstart =
         function() {
 
-            listening =
-                true;
-
+            listening = true;
 
             micButton.classList.add(
                 "listening"
             );
-
 
             setStatus(
                 "LISTENING"
@@ -2136,21 +2069,37 @@ if (
     recognition.onresult =
         function(event) {
 
-            if (!listening) {
+            let transcript = "";
+
+            for (
+                let i = event.resultIndex;
+                i < event.results.length;
+                i++
+            ) {
+
+                if (
+                    event.results[i].isFinal
+                ) {
+
+                    transcript +=
+                        event.results[i][0].transcript;
+
+                }
+
+            }
+
+            transcript =
+                transcript.trim();
+
+
+            if (!transcript) {
                 return;
             }
 
-            const text =
-                event
-                .results[0][0]
-                .transcript;
-
 
             input.value =
-                text;
+                transcript;
 
-
-            recognition.stop();
 
             listening = false;
 
@@ -2162,20 +2111,80 @@ if (
                 "THINKING"
             );
 
+
+            /*
+             * Stop recognition first, then send the exact same
+             * message through /api/command used by typed input.
+             */
+            try {
+                recognition.stop();
+            }
+            catch (error) {
+                console.log(
+                    "Recognition stop:",
+                    error
+                );
+            }
+
+
             sendMessage();
 
         };
 
 
     recognition.onerror =
-        function() {
+        function(event) {
 
-            listening =
-                false;
-
+            listening = false;
 
             micButton.classList.remove(
                 "listening"
+            );
+
+            console.error(
+                "AJ voice error:",
+                event.error
+            );
+
+
+            let message =
+                "Voice input failed. Please try again.";
+
+
+            if (
+                event.error ===
+                "not-allowed"
+            ) {
+
+                message =
+                    "Microphone permission is blocked. Please allow microphone access for AJ and try again.";
+
+            }
+
+            else if (
+                event.error ===
+                "audio-capture"
+            ) {
+
+                message =
+                    "No microphone was detected. Please check your microphone and try again.";
+
+            }
+
+            else if (
+                event.error ===
+                "no-speech"
+            ) {
+
+                message =
+                    "I didn't hear anything. Please try again.";
+
+            }
+
+
+            addMessage(
+                "aj",
+                message
             );
 
 
@@ -2186,13 +2195,9 @@ if (
 
             setTimeout(
                 function() {
-
-                    setStatus(
-                        "ONLINE"
-                    );
-
+                    setStatus("ONLINE");
                 },
-                1200
+                1500
             );
 
         };
@@ -2201,13 +2206,22 @@ if (
     recognition.onend =
         function() {
 
-            listening =
-                false;
-
+            listening = false;
 
             micButton.classList.remove(
                 "listening"
             );
+
+
+            if (
+                !speechSynthesis.speaking
+            ) {
+
+                setStatus(
+                    "ONLINE"
+                );
+
+            }
 
         };
 
@@ -2221,11 +2235,11 @@ if (
 micButton.onclick =
     function() {
 
-        if (!recognition) {
+        if (!SpeechRecognitionAPI) {
 
             addMessage(
                 "aj",
-                "Voice input is not supported by this browser."
+                "Voice input is not supported by this browser. Please use Google Chrome or Microsoft Edge."
             );
 
             return;
@@ -2241,6 +2255,25 @@ micButton.onclick =
         }
 
 
+        /*
+         * Speech recognition requires a secure context on deployed
+         * websites. Render provides HTTPS, so this is normally true.
+         */
+        if (
+            !window.isSecureContext &&
+            location.hostname !== "localhost" &&
+            location.hostname !== "127.0.0.1"
+        ) {
+
+            addMessage(
+                "aj",
+                "Voice input requires a secure HTTPS connection."
+            );
+
+            return;
+        }
+
+
         try {
 
             recognition.start();
@@ -2249,9 +2282,26 @@ micButton.onclick =
 
         catch (error) {
 
-            console.log(
+            console.error(
+                "AJ voice start error:",
                 error
             );
+
+            /*
+             * Chrome can throw InvalidStateError when start() is
+             * called twice before the previous session ends.
+             */
+            if (
+                error.name !==
+                "InvalidStateError"
+            ) {
+
+                addMessage(
+                    "aj",
+                    "I couldn't start voice input. Please try again."
+                );
+
+            }
 
         }
 
@@ -2266,20 +2316,26 @@ function stopListening() {
 
     listening = false;
 
+
     if (recognition) {
 
         try {
             recognition.abort();
         }
         catch (error) {
-            console.log(error);
+            console.log(
+                "Recognition abort:",
+                error
+            );
         }
 
     }
 
+
     micButton.classList.remove(
         "listening"
     );
+
 
     setStatus(
         "ONLINE"
