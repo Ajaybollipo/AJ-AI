@@ -780,7 +780,7 @@
 
     <img
         class="creator-signature"
-        src="/static/images/ajay_signature_transparent.png"
+        src="/static/images/ajay_signature_transparent.png?v=2"
         alt="Ajay Bollipo signature"
     >
 
@@ -1277,6 +1277,53 @@
        SPEECH RECOGNITION
     ======================================================== */
 
+    async function unlockMicrophone() {
+
+        if (!navigator.mediaDevices ||
+            !navigator.mediaDevices.getUserMedia) {
+
+            return true;
+
+        }
+
+        try {
+
+            const stream =
+                await navigator.mediaDevices.getUserMedia({
+                    audio: true
+                });
+
+            stream.getTracks().forEach(
+                function (track) {
+                    track.stop();
+                }
+            );
+
+            return true;
+
+        } catch (error) {
+
+            console.error(
+                "Microphone permission:",
+                error
+            );
+
+            setVoiceStatus(
+                "ALLOW MICROPHONE",
+                "error"
+            );
+
+            setCoreStatus(
+                "MIC PERMISSION"
+            );
+
+            return false;
+
+        }
+
+    }
+
+
     function setupRecognition() {
 
         const SpeechRecognition =
@@ -1289,6 +1336,10 @@
             setVoiceStatus(
                 "VOICE INPUT NOT SUPPORTED",
                 "error"
+            );
+
+            setCoreStatus(
+                "VOICE UNAVAILABLE"
             );
 
             return false;
@@ -1304,7 +1355,10 @@
             false;
 
         recognition.interimResults =
-            false;
+            true;
+
+        recognition.maxAlternatives =
+            1;
 
         recognition.lang =
             "en-IN";
@@ -1330,26 +1384,96 @@
         recognition.onresult =
             function (event) {
 
-                const result =
-                    event.results[
-                        event.results.length - 1
-                    ][0].transcript.trim();
+                let transcript = "";
 
+                for (
+                    let i = event.resultIndex;
+                    i < event.results.length;
+                    i++
+                ) {
 
-                if (!result) {
-
-                    return;
+                    transcript +=
+                        event.results[i][0].transcript;
 
                 }
 
 
+                transcript =
+                    transcript.trim();
+
+
+                if (!transcript) {
+                    return;
+                }
+
+
                 commandInput.value =
-                    result;
+                    transcript;
 
 
-                sendMessage(
-                    result
+                /*
+                 * Only send once the browser has finished
+                 * recognizing the sentence.
+                 */
+
+                const lastResult =
+                    event.results[
+                        event.results.length - 1
+                    ];
+
+                if (
+                    lastResult &&
+                    lastResult.isFinal
+                ) {
+
+                    sendMessage(
+                        transcript
+                    );
+
+                }
+
+            };
+
+
+        recognition.onnomatch =
+            function () {
+
+                listening = false;
+
+                setVoiceStatus(
+                    "DIDN'T CATCH THAT"
                 );
+
+                setCoreStatus(
+                    "LISTENING"
+                );
+
+                if (
+                    shouldKeepListening &&
+                    !processing &&
+                    !speaking
+                ) {
+
+                    scheduleListening();
+
+                }
+
+            };
+
+
+        recognition.onspeechend =
+            function () {
+
+                /*
+                 * End the current recognition session
+                 * cleanly after the user stops speaking.
+                 */
+
+                try {
+
+                    recognition.stop();
+
+                } catch (error) {}
 
             };
 
@@ -1357,8 +1481,8 @@
         recognition.onerror =
             function (event) {
 
-                console.log(
-                    "Speech recognition:",
+                console.error(
+                    "Speech recognition error:",
                     event.error
                 );
 
@@ -1366,16 +1490,9 @@
                 listening = false;
 
 
-                /*
-                 * Permission errors cannot be
-                 * fixed by repeatedly restarting.
-                 */
-
                 if (
-                    event.error ===
-                    "not-allowed" ||
-                    event.error ===
-                    "service-not-allowed"
+                    event.error === "not-allowed" ||
+                    event.error === "service-not-allowed"
                 ) {
 
                     setVoiceStatus(
@@ -1388,6 +1505,36 @@
                     );
 
                     return;
+
+                }
+
+
+                if (
+                    event.error === "audio-capture"
+                ) {
+
+                    setVoiceStatus(
+                        "MIC NOT FOUND",
+                        "error"
+                    );
+
+                    setCoreStatus(
+                        "CHECK MIC"
+                    );
+
+                    return;
+
+                }
+
+
+                if (
+                    event.error === "no-speech"
+                ) {
+
+                    setVoiceStatus(
+                        "LISTENING",
+                        "listening"
+                    );
 
                 }
 
@@ -1429,11 +1576,7 @@
     }
 
 
-    /* ========================================================
-       START LISTENING
-    ======================================================== */
-
-    function startListening() {
+    async function startListening() {
 
         if (
             !recognition ||
@@ -1448,30 +1591,46 @@
         }
 
 
+        const micReady =
+            await unlockMicrophone();
+
+
+        if (!micReady) {
+
+            return;
+
+        }
+
+
         try {
 
             recognition.start();
 
         } catch (error) {
 
-            /*
-             * Browser may report that recognition
-             * is already running.
-             */
-
             console.log(
                 "Recognition start:",
                 error
             );
 
+
+            /*
+             * If Chrome says recognition is already
+             * active, wait and let onend restart it.
+             */
+
+            if (
+                error.name !== "InvalidStateError"
+            ) {
+
+                scheduleListening();
+
+            }
+
         }
 
     }
 
-
-    /* ========================================================
-       RESTART LISTENING
-    ======================================================== */
 
     function scheduleListening() {
 
@@ -1487,17 +1646,13 @@
                     startListening();
 
                 },
-                700
+                800
             );
 
     }
 
 
-    /* ========================================================
-       START AJ
-    ======================================================== */
-
-    function initializeAJ() {
+    async function initializeAJ() {
 
         setCoreStatus(
             "INITIALIZING"
@@ -1518,28 +1673,25 @@
 
         }
 
-        setCoreStatus(
-            "LISTENING"
-        );
-
-
-        setVoiceStatus(
-            "LISTENING",
-            "listening"
-        );
-
-
-        /*
-         * Start automatically.
-         *
-         * If the browser blocks automatic microphone
-         * activation, the user will see the microphone
-         * permission message and can allow it.
-         */
 
         shouldKeepListening =
             true;
 
+
+        setCoreStatus(
+            "READY"
+        );
+
+        setVoiceStatus(
+            "VOICE READY"
+        );
+
+
+        /*
+         * Try automatic microphone activation.
+         * Browsers may still require the first user
+         * interaction before speech recognition starts.
+         */
 
         setTimeout(
             function () {
@@ -1557,30 +1709,35 @@
        FIRST USER INTERACTION FALLBACK
     ======================================================== */
 
-    document.addEventListener(
+    [
         "click",
-        function () {
+        "touchstart",
+        "pointerdown",
+        "keydown"
+    ].forEach(
+        function (eventName) {
 
-            /*
-             * Some mobile browsers require a user
-             * interaction before microphone access.
-             */
+            document.addEventListener(
+                eventName,
+                function () {
 
-            if (
-                !listening &&
-                !processing &&
-                !speaking &&
-                shouldKeepListening
-            ) {
+                    if (
+                        !listening &&
+                        !processing &&
+                        !speaking &&
+                        shouldKeepListening
+                    ) {
 
-                startListening();
+                        startListening();
 
-            }
+                    }
 
-        },
-        {
-            once: false,
-            passive: true
+                },
+                {
+                    passive: true
+                }
+            );
+
         }
     );
 
