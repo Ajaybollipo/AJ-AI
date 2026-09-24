@@ -5,10 +5,6 @@ import os
 from aj_brain import ask_aj
 
 
-# ============================================================
-# FLASK APP
-# ============================================================
-
 app = Flask(
     __name__,
     static_folder="static",
@@ -16,9 +12,9 @@ app = Flask(
 )
 
 
-# ============================================================
+# =========================================================
 # AJ STATUS
-# ============================================================
+# =========================================================
 
 AJ_STATUS = {
     "state": "ONLINE",
@@ -27,23 +23,16 @@ AJ_STATUS = {
 }
 
 
-def set_status(
-    state,
-    message
-):
+def set_status(state, message):
 
     AJ_STATUS["state"] = state
-
     AJ_STATUS["message"] = message
-
-    AJ_STATUS["updated"] = (
-        datetime.now().strftime("%H:%M:%S")
-    )
+    AJ_STATUS["updated"] = datetime.now().strftime("%H:%M:%S")
 
 
-# ============================================================
+# =========================================================
 # HOME
-# ============================================================
+# =========================================================
 
 @app.route("/")
 def home():
@@ -58,13 +47,11 @@ def home():
     )
 
 
-# ============================================================
-# SIGNATURE / STATIC FILES
-# ============================================================
+# =========================================================
+# SIGNATURE / STATIC IMAGES
+# =========================================================
 
-@app.route(
-    "/static/images/<path:filename>"
-)
+@app.route("/static/images/<path:filename>")
 def signature(filename):
 
     static_directory = os.path.join(
@@ -81,33 +68,24 @@ def signature(filename):
     )
 
 
-# ============================================================
-# STATUS
-# ============================================================
+# =========================================================
+# STATUS API
+# =========================================================
 
 @app.route("/api/status")
 def status():
 
     return jsonify({
-
-        "assistant":
-            "AJ",
-
-        "state":
-            AJ_STATUS["state"],
-
-        "message":
-            AJ_STATUS["message"],
-
-        "time":
-            AJ_STATUS["updated"]
-
+        "assistant": "AJ",
+        "state": AJ_STATUS["state"],
+        "message": AJ_STATUS["message"],
+        "time": AJ_STATUS["updated"]
     })
 
 
-# ============================================================
-# COMMAND
-# ============================================================
+# =========================================================
+# COMMAND API
+# =========================================================
 
 @app.route(
     "/api/command",
@@ -119,12 +97,12 @@ def command():
         silent=True
     ) or {}
 
-
-    message = data.get(
-        "message",
-        ""
+    message = str(
+        data.get(
+            "message",
+            ""
+        )
     ).strip()
-
 
     history = data.get(
         "history",
@@ -132,27 +110,43 @@ def command():
     )
 
 
+    # =====================================================
+    # EMPTY MESSAGE
+    # =====================================================
+
     if not message:
 
         return jsonify({
+            "assistant": "AJ",
+            "response": "Please say something.",
+            "state": "ONLINE"
+        }), 400
 
-            "assistant":
-                "AJ",
 
-            "response":
-                "Please say something.",
+    # =====================================================
+    # MESSAGE LIMIT
+    # =====================================================
 
-            "state":
-                "ONLINE"
+    if len(message) > 6000:
 
+        return jsonify({
+            "assistant": "AJ",
+            "response": (
+                "Your message is too long. "
+                "Please shorten it."
+            ),
+            "state": "ERROR"
         }), 400
 
 
     try:
 
-        # ====================================================
+        lower = message.lower()
+
+
+        # =================================================
         # THINKING
-        # ====================================================
+        # =================================================
 
         set_status(
             "THINKING",
@@ -160,12 +154,9 @@ def command():
         )
 
 
-        # ====================================================
-        # SEARCH DETECTION
-        # ====================================================
-
-        lower = message.lower()
-
+        # =================================================
+        # SEARCHING
+        # =================================================
 
         if any(
             word in lower
@@ -173,28 +164,35 @@ def command():
                 "search",
                 "look up",
                 "find information",
-                "find info"
+                "find info",
+                "google",
+                "latest",
+                "current",
+                "news"
             ]
         ):
 
             set_status(
                 "SEARCHING",
-                "Searching the web..."
+                "Searching..."
             )
 
 
-        # ====================================================
-        # ACTION DETECTION
-        # ====================================================
+        # =================================================
+        # EXECUTING
+        # =================================================
 
-        if any(
+        elif any(
             word in lower
             for word in [
                 "open",
                 "launch",
                 "start",
+                "play",
                 "go to",
-                "take me"
+                "take me",
+                "calculate",
+                "weather"
             ]
         ):
 
@@ -204,9 +202,9 @@ def command():
             )
 
 
-        # ====================================================
-        # AI
-        # ====================================================
+        # =================================================
+        # AI BRAIN
+        # =================================================
 
         response = ask_aj(
             message,
@@ -214,9 +212,9 @@ def command():
         )
 
 
-        # ====================================================
-        # READY
-        # ====================================================
+        # =================================================
+        # BACK ONLINE
+        # =================================================
 
         set_status(
             "ONLINE",
@@ -225,16 +223,9 @@ def command():
 
 
         return jsonify({
-
-            "assistant":
-                "AJ",
-
-            "response":
-                response,
-
-            "state":
-                "ONLINE"
-
+            "assistant": "AJ",
+            "response": response,
+            "state": "ONLINE"
         })
 
 
@@ -253,23 +244,36 @@ def command():
 
 
         return jsonify({
-
-            "assistant":
-                "AJ",
-
-            "response":
-                "I'm having trouble processing "
-                "that right now.",
-
-            "state":
-                "ERROR"
-
+            "assistant": "AJ",
+            "response": (
+                "I'm having trouble "
+                "processing that right now."
+            ),
+            "state": "ERROR"
         }), 500
 
 
-# ============================================================
-# RUN SERVER
-# ============================================================
+# =========================================================
+# HEALTH CHECK
+# =========================================================
+
+@app.route("/health")
+def health():
+
+    return jsonify({
+        "status": "AJ is running",
+        "assistant": "AJ",
+        "ai_provider": "OpenRouter",
+        "command_center": True,
+        "memory": True,
+        "web_search": True,
+        "voice": True
+    })
+
+
+# =========================================================
+# START SERVER
+# =========================================================
 
 if __name__ == "__main__":
 
@@ -290,15 +294,19 @@ if __name__ == "__main__":
     )
 
     print(
-        "Static files: ON"
+        "AI Provider: OpenRouter"
     )
 
     print(
-        "Signature: ON"
+        "Command Center: ON"
     )
 
     print(
-        "Server: http://0.0.0.0:5000"
+        "Memory: ON"
+    )
+
+    print(
+        "Web Search: ON"
     )
 
     print(
@@ -306,12 +314,16 @@ if __name__ == "__main__":
     )
 
 
+    port = int(
+        os.environ.get(
+            "PORT",
+            5000
+        )
+    )
+
+
     app.run(
-
         host="0.0.0.0",
-
-        port=5000,
-
+        port=port,
         debug=True
-
     )
