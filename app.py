@@ -1,8 +1,10 @@
 from flask import Flask, jsonify, request, send_file, send_from_directory
 from datetime import datetime
 import os
+import tempfile
 
 from aj_brain import ask_aj
+from aj_files import prepare_file_for_ai
 
 
 app = Flask(
@@ -254,6 +256,213 @@ def command():
 
 
 # =========================================================
+# FILE INTELLIGENCE
+# =========================================================
+
+@app.route(
+    "/api/upload",
+    methods=["POST"]
+)
+def upload_file():
+
+    if "file" not in request.files:
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": "No file was uploaded.",
+            "state": "ERROR"
+        }), 400
+
+
+    uploaded_file = request.files["file"]
+
+
+    if not uploaded_file.filename:
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": "Please select a file.",
+            "state": "ERROR"
+        }), 400
+
+
+    try:
+
+        set_status(
+            "READING",
+            "Reading your file..."
+        )
+
+
+        # =================================================
+        # TEMPORARY FILE
+        # =================================================
+
+        suffix = os.path.splitext(
+            uploaded_file.filename
+        )[1]
+
+
+        with tempfile.NamedTemporaryFile(
+            delete=False,
+            suffix=suffix
+        ) as temporary_file:
+
+            uploaded_file.save(
+                temporary_file.name
+            )
+
+            temporary_path = temporary_file.name
+
+
+        # =================================================
+        # READ FILE
+        # =================================================
+
+        result = prepare_file_for_ai(
+            temporary_path
+        )
+
+
+        # =================================================
+        # REMOVE TEMP FILE
+        # =================================================
+
+        try:
+
+            os.remove(
+                temporary_path
+            )
+
+        except Exception:
+
+            pass
+
+
+        if not result.get("success"):
+
+            set_status(
+                "ONLINE",
+                "AJ is ready."
+            )
+
+            return jsonify({
+                "assistant": "AJ",
+                "response": result.get(
+                    "error",
+                    "AJ could not read the file."
+                ),
+                "state": "ERROR"
+            }), 400
+
+
+        # =================================================
+        # FILE CONTENT
+        # =================================================
+
+        file_name = result.get(
+            "name",
+            uploaded_file.filename
+        )
+
+        content = result.get(
+            "content",
+            ""
+        )
+
+
+        truncated = result.get(
+            "truncated",
+            False
+        )
+
+
+        # =================================================
+        # ASK AJ TO ANALYZE FILE
+        # =================================================
+
+        analysis_prompt = f"""
+You are AJ, a personal AI assistant.
+
+The user uploaded this file:
+
+FILE NAME:
+{file_name}
+
+FILE CONTENT:
+{content}
+
+Analyze the uploaded file carefully.
+
+If it is code:
+- Explain what it does.
+- Identify important sections.
+- Point out obvious errors if present.
+- Suggest useful improvements.
+
+If it is a document:
+- Summarize the important information.
+- Identify key points.
+- Answer questions using the document.
+
+Do not invent information that is not present in the file.
+"""
+
+
+        response = ask_aj(
+            analysis_prompt,
+            []
+        )
+
+
+        if truncated:
+
+            response += (
+                "\n\nNote: The file was large, "
+                "so AJ analyzed the first "
+                "50,000 characters."
+            )
+
+
+        set_status(
+            "ONLINE",
+            "AJ is ready."
+        )
+
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": response,
+            "filename": file_name,
+            "state": "ONLINE"
+        })
+
+
+    except Exception as error:
+
+        print(
+            "FILE UPLOAD ERROR:",
+            error
+        )
+
+
+        set_status(
+            "ERROR",
+            "AJ could not read the file."
+        )
+
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": (
+                "AJ could not process "
+                "that file."
+            ),
+            "state": "ERROR"
+        }), 500
+
+
+# =========================================================
 # HEALTH CHECK
 # =========================================================
 
@@ -267,6 +476,7 @@ def health():
         "command_center": True,
         "memory": True,
         "web_search": True,
+        "file_intelligence": True,
         "voice": True
     })
 
@@ -307,6 +517,10 @@ if __name__ == "__main__":
 
     print(
         "Web Search: ON"
+    )
+
+    print(
+        "File Intelligence: ON"
     )
 
     print(
