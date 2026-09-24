@@ -362,6 +362,119 @@
         }
 
         /* =====================================================
+           CHAT HISTORY PANEL
+        ===================================================== */
+
+        .chat-history {
+            position: fixed;
+            top: 0;
+            right: -360px;
+            width: 340px;
+            height: 100vh;
+            z-index: 100;
+            padding: 22px 18px;
+            background: rgba(2, 8, 12, 0.97);
+            border-left: 1px solid rgba(0, 234, 255, 0.45);
+            box-shadow: -12px 0 35px rgba(0, 0, 0, 0.45);
+            backdrop-filter: blur(12px);
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .chat-history.open {
+            right: 0;
+        }
+
+        .history-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(0, 234, 255, 0.18);
+        }
+
+        .history-title {
+            color: #00eaff;
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            text-shadow: 0 0 10px rgba(0, 234, 255, 0.4);
+        }
+
+        #closeHistory {
+            width: 34px;
+            height: 34px;
+            padding: 0;
+            border-color: rgba(255, 48, 48, 0.65);
+            color: #ff3030;
+        }
+
+        #clearHistory {
+            width: 100%;
+            height: 38px;
+            margin: 15px 0;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .history-empty {
+            color: #777;
+            text-align: center;
+            padding: 35px 10px;
+            font-size: 11px;
+            letter-spacing: 1px;
+        }
+
+        .history-item {
+            padding: 11px 12px;
+            border-left: 2px solid #00eaff;
+            background: rgba(0, 234, 255, 0.035);
+        }
+
+        .history-item.user {
+            border-left-color: #ff3030;
+        }
+
+        .history-role {
+            color: #00eaff;
+            font-size: 8px;
+            letter-spacing: 2px;
+            margin-bottom: 5px;
+        }
+
+        .history-item.user .history-role {
+            color: #ff3030;
+        }
+
+        .history-text {
+            color: #ddd;
+            font-size: 12px;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+
+        .history-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 90;
+            background: rgba(0, 0, 0, 0.35);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.25s ease;
+        }
+
+        .history-backdrop.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* =====================================================
            CHAT
         ===================================================== */
 
@@ -677,6 +790,15 @@
                 font-size: 10px;
             }
 
+            .chat-history {
+                width: min(320px, 88vw);
+                right: -88vw;
+            }
+
+            .chat-history.open {
+                right: 0;
+            }
+
             .chat-area {
                 width: calc(100% - 20px);
                 bottom: 10px;
@@ -782,6 +904,49 @@
          CHAT
     ====================================================== -->
 
+    <div
+        id="historyBackdrop"
+        class="history-backdrop"
+    ></div>
+
+
+    <aside
+        id="chatHistory"
+        class="chat-history"
+        aria-label="Chat history"
+    >
+
+        <div class="history-header">
+
+            <div class="history-title">
+                CHAT HISTORY
+            </div>
+
+            <button
+                id="closeHistory"
+                type="button"
+                aria-label="Close chat history"
+            >
+                ✕
+            </button>
+
+        </div>
+
+        <button
+            id="clearHistory"
+            type="button"
+        >
+            CLEAR HISTORY
+        </button>
+
+        <div
+            id="historyList"
+            class="history-list"
+        ></div>
+
+    </aside>
+
+
     <button
         id="chatToggle"
         type="button"
@@ -862,6 +1027,21 @@
 
     const chatToggle =
         document.getElementById("chatToggle");
+
+    const chatHistory =
+        document.getElementById("chatHistory");
+
+    const historyBackdrop =
+        document.getElementById("historyBackdrop");
+
+    const closeHistory =
+        document.getElementById("closeHistory");
+
+    const clearHistory =
+        document.getElementById("clearHistory");
+
+    const historyList =
+        document.getElementById("historyList");
 
     const chatArea =
         document.querySelector(".chat-area");
@@ -1203,6 +1383,8 @@
 
             }
 
+            renderChatHistory();
+
 
             addMessage(
                 reply,
@@ -1249,34 +1431,143 @@
 
 
     /* ========================================================
-       CHAT BUTTON
+       CHAT HISTORY
     ======================================================== */
+
+    function renderChatHistory() {
+
+        historyList.innerHTML = "";
+
+        if (!history.length) {
+
+            const empty =
+                document.createElement("div");
+
+            empty.className =
+                "history-empty";
+
+            empty.textContent =
+                "NO CHAT HISTORY YET";
+
+            historyList.appendChild(empty);
+
+            return;
+
+        }
+
+        history.forEach(
+            function (item) {
+
+                const row =
+                    document.createElement("div");
+
+                const isUser =
+                    item.role === "user";
+
+                row.className =
+                    "history-item " +
+                    (isUser ? "user" : "ai");
+
+                const role =
+                    document.createElement("div");
+
+                role.className =
+                    "history-role";
+
+                role.textContent =
+                    isUser ? "YOU" : "AJ";
+
+                const message =
+                    document.createElement("div");
+
+                message.className =
+                    "history-text";
+
+                message.textContent =
+                    item.content || "";
+
+                row.appendChild(role);
+                row.appendChild(message);
+
+                historyList.appendChild(row);
+
+            }
+        );
+
+    }
+
+
+    function openChatHistory() {
+
+        renderChatHistory();
+
+        chatHistory.classList.add("open");
+        historyBackdrop.classList.add("open");
+
+        chatToggle.classList.add("active");
+
+    }
+
+
+    function closeChatHistory() {
+
+        chatHistory.classList.remove("open");
+        historyBackdrop.classList.remove("open");
+
+        chatToggle.classList.remove("active");
+
+    }
+
 
     chatToggle.addEventListener(
         "click",
         function () {
 
-            chatArea.classList.toggle(
-                "chat-focused"
-            );
-
-            chatToggle.classList.toggle(
-                "active"
-            );
-
             if (
-                chatArea.classList.contains(
-                    "chat-focused"
-                )
+                chatHistory.classList.contains("open")
             ) {
 
-                commandInput.focus();
+                closeChatHistory();
+
+            } else {
+
+                openChatHistory();
 
             }
 
         }
     );
 
+
+    closeHistory.addEventListener(
+        "click",
+        closeChatHistory
+    );
+
+
+    historyBackdrop.addEventListener(
+        "click",
+        closeChatHistory
+    );
+
+
+    clearHistory.addEventListener(
+        "click",
+        function () {
+
+            history = [];
+
+            renderChatHistory();
+
+            closeChatHistory();
+
+        }
+    );
+
+
+    /* ========================================================
+       CHAT BUTTON
+    ========================================================
 
     /* ========================================================
        VOICE BUTTON
