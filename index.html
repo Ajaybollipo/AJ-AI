@@ -552,176 +552,71 @@ button,input{font:inherit}
 @keyframes innerPulse{0%,100%{opacity:.4;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
 @keyframes voicePulse{50%{transform:scale(1.04)}}
 
-/* MOBILE — AJ PHONE HUD */
+/* MOBILE */
 @media(max-width:800px){
-    html,body{width:100%;height:100%;overflow:hidden}
-    .app{height:100dvh;min-height:100dvh}
-
-    .topbar{
-        height:58px;
-        padding:0 12px;
-    }
-    .brand{gap:8px}
-    .brand-mark{width:34px;height:34px;font-size:12px}
+    .topbar{height:58px;padding:0 12px}
     .brand-title{font-size:13px;letter-spacing:3px}
-    .brand-sub{font-size:6px;letter-spacing:1.5px}
-    .system-status{padding:6px 8px;font-size:7px;letter-spacing:2px}
+    .brand-sub{font-size:6px}
+    .brand-mark{width:34px;height:34px}
+    .system-status{font-size:7px;padding:6px 8px}
 
-    .hud{
-        inset:58px 0 0 0;
-        height:calc(100dvh - 58px);
-    }
+    .hud{inset:58px 0 0}
 
-    /* VOICE LABEL */
-    .voice-status{
-        left:50%;
-        top:4.5%;
-        width:90%;
-        text-align:center;
-        font-size:7px;
-        letter-spacing:2.4px;
-        white-space:nowrap;
-        overflow:hidden;
-        text-overflow:ellipsis;
-    }
-
-    /* MAIN AJ CORE */
     .core-system{
         left:50%;
-        top:28%;
-        width:min(220px,56vw);
-    }
-    .core-name{font-size:clamp(24px,9vw,38px);letter-spacing:7px}
-    .core-state{
-        bottom:25%;
-        font-size:7px;
-        letter-spacing:2px;
+        top:29%;
+        width:250px;
     }
 
-    /* CREATOR SIGNATURE */
     .creator{
         left:50%;
-        top:calc(28% + 128px);
-    }
-    .creator img{
-        width:82px;
-        max-width:none;
-    }
-    .creator-label{
-        margin-top:3px;
-        font-size:6px;
-        letter-spacing:1.5px;
+        top:calc(29% + 130px);
     }
 
-    /* COMPACT ANSWER CARD */
+    .creator img{width:95px;max-width:none}
+
+    .voice-status{
+        left:50%;
+        top:7%;
+    }
+
     .response-panel{
-        left:12px;
-        right:12px;
-        top:50%;
-        bottom:72px;
-        width:auto;
-        height:auto;
-        min-height:0;
-        max-height:none;
-    }
-    .response-header{
-        height:38px;
-        padding:0 12px;
-    }
-    .response-title{font-size:8px;letter-spacing:2.5px}
-    .response-state{font-size:7px;letter-spacing:1.5px}
-    .response-content{padding:10px}
-    .response-empty{font-size:8px;letter-spacing:2px}
-    .response-user{font-size:7px;margin-bottom:4px}
-    .response-user-text{font-size:10px;line-height:1.4;margin-bottom:7px}
-    .response-aj{padding:8px 9px;font-size:10.5px;line-height:1.45}
-
-    /* BOTTOM COMMAND DOCK */
-    .command-bar{
-        position:fixed;
         left:10px;
         right:10px;
-        bottom:max(9px,env(safe-area-inset-bottom));
+        top:50%;
+        width:auto;
+        height:31%;
+        min-height:170px;
+    }
+
+    .command-bar{
+        left:10px;
+        right:10px;
+        bottom:10px;
         transform:none;
         width:auto;
-        gap:5px;
-        padding:0;
-        z-index:80;
     }
-    #messageInput{
-        height:44px;
-        padding:0 11px;
-        font-size:11px;
-        min-width:0;
-    }
-    .command-button{
-        width:40px;
-        min-width:40px;
-        height:44px;
-        padding:0;
-    }
-    .command-button.voice{width:58px;min-width:58px}
-    .command-button.history{width:58px;min-width:58px}
 
-    .history-panel{width:min(360px,92vw)}
+    .command-button.voice{width:62px}
+    .command-button.history{width:76px}
+    .command-button{width:42px}
+
+    #messageInput{font-size:11px}
 }
 
 @media(max-width:500px){
     .brand-sub{display:none}
-    .system-status #topStatus{font-size:0}
-    .system-status #topStatus::after{content:"ON";font-size:7px}
-
-    /* More breathing room around the central core */
-    .voice-status{top:4%}
-    .core-system{
-        top:27%;
-        width:min(190px,52vw);
-    }
-    .core-state{bottom:24%}
-
-    .creator{
-        top:calc(27% + 112px);
-    }
-    .creator img{width:72px}
-    .creator-label{font-size:5.5px;letter-spacing:1.2px}
-
-    /* Answer card is intentionally shorter and cleaner */
-    .response-panel{
-        top:50%;
-        bottom:72px;
-        left:10px;
-        right:10px;
-    }
-
+    .response-panel{top:48%;height:34%}
+    .core-system{top:27%;width:215px}
+    .creator{top:calc(27% + 112px)}
     .command-bar{gap:4px}
-    .command-button.voice,
-    .command-button.stop,
-    .command-button.history{font-size:0}
+    .command-button.voice{font-size:0}
     .command-button.voice::after{content:"🎙";font-size:16px}
-    .command-button.stop::after{content:"■";font-size:13px}
+    .command-button.stop{font-size:0}
+    .command-button.stop::after{content:"■";font-size:14px}
+    .command-button.history{font-size:0}
     .command-button.history::after{content:"📜";font-size:15px}
-    .command-button{width:40px;min-width:40px}
-    .command-button.voice{width:46px;min-width:46px}
-    .command-button.history{width:46px;min-width:46px}
 }
-
-@media(max-width:380px){
-    .topbar{padding:0 8px}
-    .brand-mark{width:32px;height:32px}
-    .system-status{padding:5px 6px}
-
-    .core-system{top:26%;width:170px}
-    .creator{top:calc(26% + 102px)}
-    .creator img{width:64px}
-    .creator-label{display:none}
-
-    .response-panel{top:49%;bottom:70px}
-    .command-bar{left:7px;right:7px;gap:3px}
-    .command-button{width:38px;min-width:38px}
-    .command-button.voice{width:43px;min-width:43px}
-    .command-button.history{width:43px;min-width:43px}
-}
-
 </style>
 </head>
 
@@ -903,6 +798,7 @@ let processing = false;
 let shouldKeepListening = false;
 let voiceActive = false;
 let restartTimer = null;
+let microphoneStream = null;
 
 let history = [];
 
@@ -1218,7 +1114,64 @@ function setupRecognition() {
     return true;
 }
 
-function startListening() {
+async function requestMicrophonePermission() {
+
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+
+        setVoiceStatus("MICROPHONE API NOT AVAILABLE", "error");
+        return false;
+    }
+
+    try {
+
+        if (!microphoneStream) {
+
+            microphoneStream =
+                await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+        }
+
+        return true;
+
+    } catch (error) {
+
+        console.error("Microphone permission:", error);
+
+        if (error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError") {
+
+            setVoiceStatus(
+                "ALLOW MICROPHONE IN CHROME",
+                "error"
+            );
+
+        } else if (error.name === "NotFoundError") {
+
+            setVoiceStatus(
+                "NO MICROPHONE FOUND",
+                "error"
+            );
+
+        } else {
+
+            setVoiceStatus(
+                "MICROPHONE ERROR",
+                "error"
+            );
+        }
+
+        setStatus("ONLINE");
+        return false;
+    }
+}
+
+async function startListening() {
 
     if (!recognition) {
         return;
@@ -1228,10 +1181,36 @@ function startListening() {
         return;
     }
 
+    const microphoneReady =
+        await requestMicrophonePermission();
+
+    if (!microphoneReady) {
+        shouldKeepListening = false;
+        voiceActive = false;
+        return;
+    }
+
     try {
+
         recognition.start();
+
     } catch (error) {
+
         console.log("Recognition start:", error);
+
+        if (voiceActive &&
+            shouldKeepListening &&
+            !listening) {
+
+            clearTimeout(restartTimer);
+
+            restartTimer = setTimeout(
+                function() {
+                    startListening();
+                },
+                500
+            );
+        }
     }
 }
 
@@ -1244,6 +1223,17 @@ function stopListening() {
         try {
             recognition.abort();
         } catch (error) {}
+    }
+
+    if (microphoneStream) {
+
+        microphoneStream
+            .getTracks()
+            .forEach(function(track) {
+                track.stop();
+            });
+
+        microphoneStream = null;
     }
 
     micButton.classList.remove("listening");
@@ -1267,20 +1257,35 @@ function scheduleListening() {
     }, 800);
 }
 
-micButton.addEventListener("click", function() {
+micButton.addEventListener("click", async function() {
 
     if (!recognition) {
         setVoiceStatus("USE CHROME FOR VOICE", "error");
         return;
     }
 
-    shouldKeepListening = true;
-    voiceActive = true;
-
     if (listening) {
+        shouldKeepListening = false;
+        voiceActive = false;
         stopListening();
         return;
     }
+
+    shouldKeepListening = true;
+    voiceActive = true;
+
+    setVoiceStatus("CHECKING MICROPHONE...");
+
+    const microphoneReady =
+        await requestMicrophonePermission();
+
+    if (!microphoneReady) {
+        shouldKeepListening = false;
+        voiceActive = false;
+        return;
+    }
+
+    setVoiceStatus("STARTING VOICE...");
 
     startListening();
 });
