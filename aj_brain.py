@@ -13,6 +13,18 @@ from aj_memory import remember, get_all_memory, clear_memory
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 MODEL = "openrouter/free"
+
+# OpenRouter fallback models.
+# OpenRouter tries these in order if a model/provider is
+# rate-limited or temporarily unavailable.
+MODELS = [
+    "openrouter/free",
+    "nvidia/nemotron-3-ultra:free",
+    "nvidia/nemotron-3.5-lightning:free",
+    "google/gemma-4-31b-it:free",
+    "cohere/north-mini-code:free"
+]
+
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # =========================
@@ -236,7 +248,7 @@ Do not use citation markers such as [1], [2], or 【1】.
                 "X-Title": "AJ Personal AI Assistant"
             },
             json={
-                "model": MODEL,
+                "models": MODELS,
                 "messages": [
                     {
                         "role": "user",
@@ -543,7 +555,7 @@ SAVED MEMORY:
                 "X-Title": "AJ Personal AI Assistant"
             },
             json={
-                "model": MODEL,
+                "models": MODELS,
                 "messages": messages
             },
             timeout=60
@@ -565,8 +577,10 @@ SAVED MEMORY:
 
             if response.status_code == 429:
                 return (
-                    "AJ has reached the current OpenRouter "
-                    "request limit. Please try again later."
+                    "AJ could not get a response from the available "
+                    "OpenRouter models right now. The fallback models "
+                    "are also unavailable or rate-limited. Please try "
+                    "again shortly."
                 )
 
             return (
