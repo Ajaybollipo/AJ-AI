@@ -1598,6 +1598,66 @@ stopVoiceButton.addEventListener("click", function() {
 
 
 /* ============================================================
+   DIRECT WEBSITE OPENING
+============================================================ */
+
+function openWebsiteDirectly(message) {
+
+    const text = String(message || "")
+        .toLowerCase()
+        .trim()
+        .replace(/[.!?]+$/g, "");
+
+    const sites = {
+        "youtube": "https://www.youtube.com/",
+        "google": "https://www.google.com/",
+        "gmail": "https://mail.google.com/",
+        "instagram": "https://www.instagram.com/",
+        "facebook": "https://www.facebook.com/",
+        "whatsapp": "https://web.whatsapp.com/",
+        "github": "https://github.com/",
+        "linkedin": "https://www.linkedin.com/",
+        "twitter": "https://x.com/",
+        "x": "https://x.com/",
+        "spotify": "https://open.spotify.com/",
+        "netflix": "https://www.netflix.com/",
+        "amazon": "https://www.amazon.in/",
+        "chatgpt": "https://chatgpt.com/",
+        "gemini": "https://gemini.google.com/"
+    };
+
+    let siteName = null;
+
+    const match = text.match(
+        /^(?:open|launch|start|go to|take me to|visit)\s+(.+)$/
+    );
+
+    if (!match) {
+        return false;
+    }
+
+    siteName = match[1]
+        .trim()
+        .replace(/\bwebsite\b/g, "")
+        .trim();
+
+    const url = sites[siteName];
+
+    if (!url) {
+        return false;
+    }
+
+    /*
+       Use the same browser tab for a direct command.
+       This avoids showing "Opening YouTube..." as an AJ answer.
+    */
+    window.location.href = url;
+
+    return true;
+}
+
+
+/* ============================================================
    SEND MESSAGE
 ============================================================ */
 
@@ -1606,6 +1666,18 @@ async function sendMessage() {
     const message = input.value.trim();
 
     if (!message || processing) {
+        return;
+    }
+
+    /* Open supported websites directly instead of sending the
+       command to AJ's AI backend. */
+    if (openWebsiteDirectly(message)) {
+        input.value = "";
+        shouldKeepListening = false;
+        voiceActive = false;
+        stopListening();
+        setStatus("ONLINE");
+        setVoiceStatus("OPENING WEBSITE...");
         return;
     }
 
