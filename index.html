@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>AJ</title>
+<title>AJ — Personal Intelligence System</title>
 
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -274,10 +274,10 @@ button,input{font:inherit}
     min-height:250px;
     display:flex;
     flex-direction:column;
-    border:1px solid rgba(0,217,255,.25);
-    background:rgba(0,7,13,.82);
-    box-shadow:0 0 30px rgba(0,0,0,.5),inset 0 0 25px rgba(0,217,255,.025);
-    backdrop-filter:blur(12px);
+    border:none;
+    background:transparent;
+    box-shadow:none;
+    backdrop-filter:none;
     z-index:10;
 }
 
@@ -288,7 +288,7 @@ button,input{font:inherit}
     align-items:center;
     justify-content:space-between;
     padding:0 14px;
-    border-bottom:1px solid rgba(0,217,255,.18);
+    border-bottom:none;
 }
 
 .response-title{
@@ -340,15 +340,17 @@ button,input{font:inherit}
 }
 
 .response-aj{
-    border-left:2px solid var(--cyan);
-    padding:10px 12px;
-    background:rgba(0,40,58,.38);
+    border-left:none;
+    padding:10px 0;
+    background:transparent;
     color:#effcff;
     font-size:12px;
     line-height:1.6;
     white-space:pre-wrap;
     overflow-wrap:anywhere;
-    box-shadow:inset 12px 0 25px rgba(0,217,255,.025);
+    box-shadow:none;
+    border-left:none;
+    padding-left:0;
 }
 
 /* INPUT */
@@ -665,7 +667,9 @@ button,input{font:inherit}
         height:27%;
         min-height:145px;
         max-height:220px;
-        border-color:rgba(0,217,255,.28);
+        border:none;
+        background:transparent;
+        box-shadow:none;
     }
 
     .response-header{
@@ -959,7 +963,7 @@ button,input{font:inherit}
             </div>
 
             <div class="core-state" id="coreState">
-                ONLINE
+                LISTENING
             </div>
         </div>
 
@@ -967,7 +971,7 @@ button,input{font:inherit}
         <div class="creator">
             <img src="/static/images/ajay_signature_transparent.png"
                  alt="Ajay Bollipo signature">
-            <div class="creator-label">AJAY BOLLIPO</div>
+            <div class="creator-label">CREATED BY AJAY BOLLIPO</div>
         </div>
 
         <!-- RIGHT-SIDE ANSWERS ONLY -->
@@ -1001,7 +1005,7 @@ button,input{font:inherit}
                 id="micButton"
                 type="button"
                 title="Voice input">
-                🎙 
+                🎙 VOICE
             </button>
 
             <button
@@ -1316,19 +1320,7 @@ function setupRecognition() {
 
     if (!SpeechRecognition) {
         recognition = null;
-        setVoiceStatus(
-            "VOICE NOT SUPPORTED — USE CHROME",
-            "error"
-        );
-        return false;
-    }
-
-    if (!window.isSecureContext) {
-        recognition = null;
-        setVoiceStatus(
-            "VOICE NEEDS HTTPS",
-            "error"
-        );
+        setVoiceStatus("USE CHROME FOR VOICE", "error");
         return false;
     }
 
@@ -1340,16 +1332,9 @@ function setupRecognition() {
     recognition.maxAlternatives = 1;
 
     recognition.onstart = function() {
-
         listening = true;
-
         micButton.classList.add("listening");
-
-        setVoiceStatus(
-            "LISTENING...",
-            "listening"
-        );
-
+        setVoiceStatus("LISTENING...", "listening");
         setStatus("LISTENING");
     };
 
@@ -1357,33 +1342,15 @@ function setupRecognition() {
 
         let transcript = "";
 
-        for (
-            let i = event.resultIndex;
-            i < event.results.length;
-            i++
-        ) {
-            transcript +=
-                event.results[i][0].transcript;
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
         }
 
         transcript = transcript.trim();
+        input.value = transcript;
 
-        if (transcript) {
-            input.value = transcript;
-        }
-
-        const lastResult =
-            event.results[event.results.length - 1];
-
-        if (!lastResult.isFinal) {
-
-            if (transcript) {
-                setVoiceStatus(
-                    "HEARING: " + transcript,
-                    "listening"
-                );
-            }
-
+        if (!event.results[event.results.length - 1].isFinal) {
+            setVoiceStatus("HEARING: " + transcript, "listening");
             return;
         }
 
@@ -1403,62 +1370,24 @@ function setupRecognition() {
     recognition.onerror = function(event) {
 
         listening = false;
-
         micButton.classList.remove("listening");
-
-        console.log(
-            "AJ voice error:",
-            event.error
-        );
 
         if (event.error === "not-allowed" ||
             event.error === "service-not-allowed") {
 
             shouldKeepListening = false;
-            voiceActive = false;
-
             setVoiceStatus(
-                "ALLOW MICROPHONE IN BROWSER",
+                "MICROPHONE PERMISSION REQUIRED",
                 "error"
             );
-
-            setStatus("ONLINE");
-            return;
-        }
-
-        if (event.error === "audio-capture") {
-
-            setVoiceStatus(
-                "MICROPHONE NOT AVAILABLE",
-                "error"
-            );
-
-            setStatus("ONLINE");
-            return;
-        }
-
-        if (event.error === "network") {
-
-            setVoiceStatus(
-                "VOICE SERVICE UNAVAILABLE",
-                "error"
-            );
-
             setStatus("ONLINE");
             return;
         }
 
         if (event.error === "no-speech") {
-
-            setVoiceStatus(
-                "NO SPEECH — TRY AGAIN"
-            );
-
+            setVoiceStatus("NO SPEECH — LISTENING AGAIN");
         } else {
-
-            setVoiceStatus(
-                "VOICE READY"
-            );
+            setVoiceStatus("VOICE READY");
         }
 
         if (shouldKeepListening &&
@@ -1472,7 +1401,6 @@ function setupRecognition() {
     recognition.onend = function() {
 
         listening = false;
-
         micButton.classList.remove("listening");
 
         if (shouldKeepListening &&
@@ -1480,63 +1408,105 @@ function setupRecognition() {
             !speaking) {
 
             scheduleListening();
-
-        } else if (!processing && !speaking) {
-
-            setStatus("ONLINE");
-            setVoiceStatus("VOICE READY");
         }
     };
 
     return true;
 }
 
+async function requestMicrophonePermission() {
 
-function startListening() {
+    if (!navigator.mediaDevices ||
+        !navigator.mediaDevices.getUserMedia) {
+
+        setVoiceStatus("MICROPHONE API NOT AVAILABLE", "error");
+        return false;
+    }
+
+    try {
+
+        if (!microphoneStream) {
+
+            microphoneStream =
+                await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+        }
+
+        return true;
+
+    } catch (error) {
+
+        console.error("Microphone permission:", error);
+
+        if (error.name === "NotAllowedError" ||
+            error.name === "PermissionDeniedError") {
+
+            setVoiceStatus(
+                "ALLOW MICROPHONE IN CHROME",
+                "error"
+            );
+
+        } else if (error.name === "NotFoundError") {
+
+            setVoiceStatus(
+                "NO MICROPHONE FOUND",
+                "error"
+            );
+
+        } else {
+
+            setVoiceStatus(
+                "MICROPHONE ERROR",
+                "error"
+            );
+        }
+
+        setStatus("ONLINE");
+        return false;
+    }
+}
+
+async function startListening() {
 
     if (!recognition) {
         return;
     }
 
-    if (listening ||
-        processing ||
-        speaking) {
+    if (listening || processing || speaking) {
+        return;
+    }
 
+    const microphoneReady =
+        await requestMicrophonePermission();
+
+    if (!microphoneReady) {
+        shouldKeepListening = false;
+        voiceActive = false;
         return;
     }
 
     try {
 
-        setVoiceStatus(
-            "STARTING MICROPHONE..."
-        );
-
         recognition.start();
 
     } catch (error) {
 
-        console.log(
-            "Recognition start:",
-            error
-        );
-
-        /*
-         * Chrome may still be closing the previous
-         * recognition session. Retry once.
-         */
-
-        clearTimeout(restartTimer);
+        console.log("Recognition start:", error);
 
         if (voiceActive &&
-            shouldKeepListening) {
+            shouldKeepListening &&
+            !listening) {
+
+            clearTimeout(restartTimer);
 
             restartTimer = setTimeout(
                 function() {
-                    if (!listening &&
-                        !processing &&
-                        !speaking) {
-                        startListening();
-                    }
+                    startListening();
                 },
                 500
             );
@@ -1544,35 +1514,37 @@ function startListening() {
     }
 }
 
-
 function stopListening() {
 
     listening = false;
-
     clearTimeout(restartTimer);
 
     if (recognition) {
-
         try {
             recognition.abort();
         } catch (error) {}
     }
 
-    micButton.classList.remove("listening");
+    if (microphoneStream) {
 
-    if (!processing && !speaking) {
-        setStatus("ONLINE");
-        setVoiceStatus("VOICE READY");
+        microphoneStream
+            .getTracks()
+            .forEach(function(track) {
+                track.stop();
+            });
+
+        microphoneStream = null;
     }
-}
 
+    micButton.classList.remove("listening");
+    setVoiceStatus("VOICE READY");
+}
 
 function scheduleListening() {
 
     clearTimeout(restartTimer);
 
-    if (!voiceActive ||
-        !shouldKeepListening ||
+    if (!voiceActive || !shouldKeepListening ||
         processing ||
         speaking ||
         listening) {
@@ -1580,67 +1552,52 @@ function scheduleListening() {
         return;
     }
 
-    restartTimer = setTimeout(
-        function() {
-            startListening();
-        },
-        800
-    );
+    restartTimer = setTimeout(function() {
+        startListening();
+    }, 800);
 }
 
+micButton.addEventListener("click", async function() {
 
-micButton.addEventListener(
-    "click",
-    function() {
-
-        if (!recognition) {
-
-            setVoiceStatus(
-                "USE CHROME FOR VOICE",
-                "error"
-            );
-
-            return;
-        }
-
-        /*
-         * The first recognition.start() happens directly
-         * from this user click. This is important for
-         * browser microphone permission.
-         */
-
-        if (listening) {
-
-            shouldKeepListening = false;
-            voiceActive = false;
-
-            stopListening();
-
-            return;
-        }
-
-        shouldKeepListening = true;
-        voiceActive = true;
-
-        startListening();
+    if (!recognition) {
+        setVoiceStatus("USE CHROME FOR VOICE", "error");
+        return;
     }
-);
 
-
-stopVoiceButton.addEventListener(
-    "click",
-    function() {
-
+    if (listening) {
         shouldKeepListening = false;
         voiceActive = false;
-
         stopListening();
-        stopSpeaking();
-
-        setStatus("ONLINE");
-        setVoiceStatus("VOICE STOPPED");
+        return;
     }
-);
+
+    shouldKeepListening = true;
+    voiceActive = true;
+
+    setVoiceStatus("CHECKING MICROPHONE...");
+
+    const microphoneReady =
+        await requestMicrophonePermission();
+
+    if (!microphoneReady) {
+        shouldKeepListening = false;
+        voiceActive = false;
+        return;
+    }
+
+    setVoiceStatus("STARTING VOICE...");
+
+    startListening();
+});
+
+stopVoiceButton.addEventListener("click", function() {
+    shouldKeepListening = false;
+    voiceActive = false;
+    stopListening();
+    stopSpeaking();
+    setStatus("ONLINE");
+    setVoiceStatus("VOICE STOPPED");
+});
 
 
 /* ============================================================
@@ -1806,15 +1763,14 @@ function initializeAJ() {
         return;
     }
 
-    setVoiceStatus("PRESS VOICE TO START");
+    setVoiceStatus("VOICE READY");
 
-    /* Never start the microphone automatically. */
+    /* Microphone starts only after the user presses VOICE.
+       This avoids Chrome blocking speech recognition before
+       a user gesture/permission has been granted. */
     shouldKeepListening = false;
     voiceActive = false;
-    listening = false;
-    speaking = false;
-    processing = false;
-    setStatus("ONLINE");
+    setVoiceStatus("PRESS VOICE TO START");
 }
 
 
