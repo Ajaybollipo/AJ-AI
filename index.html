@@ -795,7 +795,8 @@ let recognition = null;
 let listening = false;
 let speaking = false;
 let processing = false;
-let shouldKeepListening = true;
+let shouldKeepListening = false;
+let voiceActive = false;
 let restartTimer = null;
 
 let history = [];
@@ -1026,7 +1027,7 @@ function setupRecognition() {
 
     recognition.lang = "en-IN";
     recognition.continuous = false;
-    recognition.interimResults = false;
+    recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
     recognition.onstart = function() {
@@ -1038,14 +1039,23 @@ function setupRecognition() {
 
     recognition.onresult = function(event) {
 
-        const transcript =
-            event.results[0][0].transcript.trim();
+        let transcript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            transcript += event.results[i][0].transcript;
+        }
+
+        transcript = transcript.trim();
+        input.value = transcript;
+
+        if (!event.results[event.results.length - 1].isFinal) {
+            setVoiceStatus("HEARING: " + transcript, "listening");
+            return;
+        }
 
         if (!transcript) {
             return;
         }
-
-        input.value = transcript;
 
         listening = false;
 
@@ -1139,7 +1149,7 @@ function scheduleListening() {
 
     clearTimeout(restartTimer);
 
-    if (!shouldKeepListening ||
+    if (!voiceActive || !shouldKeepListening ||
         processing ||
         speaking ||
         listening) {
@@ -1160,6 +1170,7 @@ micButton.addEventListener("click", function() {
     }
 
     shouldKeepListening = true;
+    voiceActive = true;
 
     if (listening) {
         stopListening();
@@ -1171,6 +1182,7 @@ micButton.addEventListener("click", function() {
 
 stopVoiceButton.addEventListener("click", function() {
     shouldKeepListening = false;
+    voiceActive = false;
     stopListening();
     stopSpeaking();
     setStatus("ONLINE");
@@ -1343,16 +1355,12 @@ function initializeAJ() {
 
     setVoiceStatus("VOICE READY");
 
-    /*
-     * AJ attempts automatic microphone startup.
-     * Chrome may require the first user interaction
-     * before allowing microphone access.
-     */
-    shouldKeepListening = true;
-
-    setTimeout(function() {
-        startListening();
-    }, 700);
+    /* Microphone starts only after the user presses VOICE.
+       This avoids Chrome blocking speech recognition before
+       a user gesture/permission has been granted. */
+    shouldKeepListening = false;
+    voiceActive = false;
+    setVoiceStatus("PRESS VOICE TO START");
 }
 
 
@@ -1366,13 +1374,8 @@ document.addEventListener("click", function() {
         return;
     }
 
-    if (!listening &&
-        !processing &&
-        !speaking &&
-        shouldKeepListening) {
-
-        startListening();
-    }
+    /* Do not start the microphone from a generic page click.
+       Speech recognition must be started by the VOICE button. */
 
 }, {passive:true});
 
