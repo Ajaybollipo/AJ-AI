@@ -42,6 +42,42 @@ button,input{font:inherit}
 }
 
 /* TOP BAR */
+.topbar-voice{
+    margin-left:18px;
+    margin-right:auto;
+    height:34px;
+    min-width:92px;
+    padding:0 12px;
+    border:1px solid rgba(0,217,255,.45);
+    background:rgba(0,30,43,.72);
+    color:#9feeff;
+    cursor:pointer;
+    font-size:10px;
+    letter-spacing:1px;
+    transition:.2s;
+}
+.topbar-voice:hover{
+    border-color:var(--cyan);
+    box-shadow:0 0 16px rgba(0,217,255,.22);
+}
+.topbar-voice.listening{
+    color:#fff;
+    border-color:var(--green);
+    box-shadow:0 0 18px rgba(0,255,157,.28);
+    animation:voicePulse 1s infinite;
+}
+.topbar-voice.stop-mode{
+    border-color:var(--green);
+}
+@media (max-width:500px){
+    .topbar-voice{
+        min-width:72px;
+        height:30px;
+        margin-left:10px;
+        padding:0 8px;
+        font-size:8px;
+    }
+}
 .topbar{
     position:absolute;
     top:0;
@@ -354,6 +390,22 @@ button,input{font:inherit}
 }
 
 /* INPUT */
+.selected-file-name{
+    max-width:180px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:rgba(159,238,255,.75);
+    font-size:9px;
+    letter-spacing:.4px;
+    margin-left:4px;
+}
+@media (max-width:500px){
+    .selected-file-name{
+        max-width:90px;
+        font-size:8px;
+    }
+}
 .command-bar{
     position:absolute;
     left:38%;
@@ -952,6 +1004,14 @@ button,input{font:inherit}
             </div>
         </div>
 
+        <button
+            class="topbar-voice"
+            id="voiceFloatButton"
+            type="button"
+            title="Voice control">
+            🎙 VOICE
+        </button>
+
         <div class="system-status">
             <span class="status-dot" id="statusDot"></span>
             <span id="topStatus">ONLINE</span>
@@ -1005,8 +1065,7 @@ button,input{font:inherit}
             </div>
 
         </section>
-
-        <!-- COMMAND BAR -->
+<!-- COMMAND BAR -->
         <div class="command-bar">
 
             <input
@@ -1020,7 +1079,7 @@ button,input{font:inherit}
                 id="fileInput"
                 type="file"
                 accept=".txt,.md,.py,.js,.html,.css,.json,.csv,.xml,.java,.c,.cpp,.sql,.pdf"
-            >
+             style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;" tabindex="-1">
 
             <button
                 class="command-button file"
@@ -1029,13 +1088,15 @@ button,input{font:inherit}
                 title="Upload file">
                 📎
             </button>
+            <span class="selected-file-name" id="selectedFileName" aria-live="polite"></span>
 
             <button
                 class="command-button voice"
                 id="micButton"
                 type="button"
-                title="Voice input">
-                🎙 
+                title="Voice input"
+                style="display:none;">
+                🎙
             </button>
 
             <button
@@ -1099,8 +1160,10 @@ button,input{font:inherit}
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 const micButton = document.getElementById("micButton");
+const voiceFloatButton = document.getElementById("voiceFloatButton");
 const fileButton = document.getElementById("fileButton");
 const fileInput = document.getElementById("fileInput");
+const selectedFileName = document.getElementById("selectedFileName");
 const stopVoiceButton = document.getElementById("stopVoiceButton");
 const historyButton = document.getElementById("historyButton");
 
@@ -1337,6 +1400,24 @@ function stopSpeaking() {
 }
 
 
+function syncVoiceButton() {
+
+    if (!voiceFloatButton) {
+        return;
+    }
+
+    if (listening || voiceActive) {
+        voiceFloatButton.classList.add("listening");
+        voiceFloatButton.classList.add("stop-mode");
+        voiceFloatButton.textContent = "STOP";
+    } else {
+        voiceFloatButton.classList.remove("listening");
+        voiceFloatButton.classList.remove("stop-mode");
+        voiceFloatButton.textContent = "VOICE";
+    }
+}
+
+
 /* ============================================================
    VOICE INPUT
 ============================================================ */
@@ -1400,6 +1481,7 @@ function setupRecognition() {
 
         listening = false;
         micButton.classList.remove("listening");
+        syncVoiceButton();
 
         if (event.error === "not-allowed" ||
             event.error === "service-not-allowed") {
@@ -1431,6 +1513,7 @@ function setupRecognition() {
 
         listening = false;
         micButton.classList.remove("listening");
+        syncVoiceButton();
 
         if (shouldKeepListening &&
             !processing &&
@@ -1566,6 +1649,7 @@ function stopListening() {
     }
 
     micButton.classList.remove("listening");
+    syncVoiceButton();
     setVoiceStatus("VOICE READY");
 }
 
@@ -1585,6 +1669,57 @@ function scheduleListening() {
         startListening();
     }, 800);
 }
+
+if (voiceFloatButton) {
+    voiceFloatButton.addEventListener("click", async function() {
+
+        if (!recognition) {
+            setVoiceStatus("USE CHROME FOR VOICE", "error");
+            return;
+        }
+
+        if (listening || voiceActive) {
+
+            shouldKeepListening = false;
+            voiceActive = false;
+
+            stopListening();
+            stopSpeaking();
+
+            setStatus("ONLINE");
+            setVoiceStatus("VOICE STOPPED");
+
+            syncVoiceButton();
+
+            return;
+        }
+
+        shouldKeepListening = true;
+        voiceActive = true;
+
+        syncVoiceButton();
+
+        setVoiceStatus("CHECKING MICROPHONE...");
+
+        const microphoneReady =
+            await requestMicrophonePermission();
+
+        if (!microphoneReady) {
+
+            shouldKeepListening = false;
+            voiceActive = false;
+
+            syncVoiceButton();
+
+            return;
+        }
+
+        setVoiceStatus("STARTING VOICE...");
+
+        startListening();
+    });
+}
+
 
 micButton.addEventListener("click", async function() {
 
@@ -1702,7 +1837,14 @@ fileInput.addEventListener("change", async function() {
     const file = fileInput.files[0];
 
     if (!file || processing) {
+        if (selectedFileName) selectedFileName.textContent = "";
+
         return;
+    }
+
+    if (selectedFileName) {
+        selectedFileName.textContent = file.name;
+        selectedFileName.title = file.name;
     }
 
     processing = true;
@@ -1752,6 +1894,7 @@ fileInput.addEventListener("change", async function() {
         processing = false;
         fileButton.classList.remove("file-button-active");
         fileInput.value = "";
+        if (selectedFileName) selectedFileName.textContent = "";
         speak(answer);
 
     } catch (error) {
@@ -1770,6 +1913,7 @@ fileInput.addEventListener("change", async function() {
         processing = false;
         fileButton.classList.remove("file-button-active");
         fileInput.value = "";
+        if (selectedFileName) selectedFileName.textContent = "";
         setStatus("ERROR");
         setVoiceStatus("FILE ERROR", "error");
 
@@ -2065,6 +2209,7 @@ async function updateServerStatus() {
 function initializeAJ() {
 
     setStatus("ONLINE");
+    syncVoiceButton();
     setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ", "");
 
     const supported =
