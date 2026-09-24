@@ -940,7 +940,7 @@ button,input{font:inherit}
     <div class="hud">
 
         <div class="voice-status" id="voiceStatus">
-            INITIALIZING VOICE...
+            PRESS VOICE TO START • VOICE • SEARCH • MEMORY • TOOLS
         </div>
 
         <!-- CENTRAL AJ CORE -->
@@ -991,7 +991,7 @@ button,input{font:inherit}
             <input
                 id="messageInput"
                 type="text"
-                placeholder="Talk to AJ..."
+                placeholder="Talk to AJ • study mode / coding mode / search..."
                 autocomplete="off"
             >
 
@@ -1068,7 +1068,6 @@ const stopVoiceButton = document.getElementById("stopVoiceButton");
 const historyButton = document.getElementById("historyButton");
 
 const voiceStatus = document.getElementById("voiceStatus");
-const coreState = document.getElementById("coreState");
 const topStatus = document.getElementById("topStatus");
 const statusDot = document.getElementById("statusDot");
 const responseState = document.getElementById("responseState");
@@ -1106,10 +1105,6 @@ function setStatus(state) {
     const value = String(state || "ONLINE").toUpperCase();
 
     topStatus.textContent = value;
-    if (coreState) {
-        coreState.textContent = value;
-    }
-
     if (value === "ERROR") {
         statusDot.style.background = "#ff1744";
         statusDot.style.boxShadow = "0 0 12px #ff1744";
@@ -1699,7 +1694,8 @@ async function sendMessage() {
             },
             body:JSON.stringify({
                 message:message,
-                history:history
+                history:history,
+                client:"AJ 2.0"
             })
         });
 
@@ -1822,7 +1818,7 @@ async function updateServerStatus() {
 function initializeAJ() {
 
     setStatus("ONLINE");
-    setVoiceStatus("INITIALIZING VOICE...");
+    setVoiceStatus("PRESS VOICE TO START");
 
     const supported =
         setupRecognition();
