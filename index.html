@@ -770,6 +770,17 @@ button,input{font:inherit}
         font-size:15px;
     }
 
+    .command-button.file{
+        width:40px;
+        min-width:40px;
+        font-size:0;
+    }
+
+    .command-button.file::after{
+        content:"📎";
+        font-size:15px;
+    }
+
     /* HISTORY */
     .history-panel{
         width:min(360px,92vw);
@@ -869,6 +880,11 @@ button,input{font:inherit}
         width:44px;
         min-width:44px;
     }
+
+    .command-button.file{
+        width:40px;
+        min-width:40px;
+    }
 }
 
 @media (max-width:380px){
@@ -914,6 +930,11 @@ button,input{font:inherit}
     .command-button.history{
         width:40px;
         min-width:40px;
+    }
+
+    .command-button.file{
+        width:35px;
+        min-width:35px;
     }
 }
 
@@ -995,6 +1016,20 @@ button,input{font:inherit}
                 autocomplete="off"
             >
 
+            <input
+                id="fileInput"
+                type="file"
+                accept=".txt,.md,.py,.js,.html,.css,.json,.csv,.xml,.java,.c,.cpp,.sql,.pdf"
+            >
+
+            <button
+                class="command-button file"
+                id="fileButton"
+                type="button"
+                title="Upload file">
+                📎
+            </button>
+
             <button
                 class="command-button voice"
                 id="micButton"
@@ -1064,6 +1099,8 @@ button,input{font:inherit}
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 const micButton = document.getElementById("micButton");
+const fileButton = document.getElementById("fileButton");
+const fileInput = document.getElementById("fileInput");
 const stopVoiceButton = document.getElementById("stopVoiceButton");
 const historyButton = document.getElementById("historyButton");
 
@@ -1650,6 +1687,100 @@ function openWebsiteDirectly(message) {
 
     return true;
 }
+
+
+/* ============================================================
+   FILE INTELLIGENCE
+============================================================ */
+
+fileButton.addEventListener("click", function() {
+    fileInput.click();
+});
+
+fileInput.addEventListener("change", async function() {
+
+    const file = fileInput.files[0];
+
+    if (!file || processing) {
+        return;
+    }
+
+    processing = true;
+    fileButton.classList.add("file-button-active");
+    showThinking();
+    responseState.textContent = "READING";
+    setStatus("THINKING");
+    setVoiceStatus("AJ READING FILE");
+
+    try {
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.response || "File upload failed."
+            );
+        }
+
+        const answer = data.response ||
+            "AJ processed the file.";
+
+        history.push({
+            role: "user",
+            content: "Uploaded: " + file.name
+        });
+
+        history.push({
+            role: "assistant",
+            content: answer
+        });
+
+        addResponse(
+            "Uploaded: " + file.name,
+            answer
+        );
+
+        setStatus("ONLINE");
+        processing = false;
+        fileButton.classList.remove("file-button-active");
+        fileInput.value = "";
+        speak(answer);
+
+    } catch (error) {
+
+        console.error("AJ FILE:", error);
+
+        const errorText =
+            error.message ||
+            "AJ could not process that file.";
+
+        addResponse(
+            "Uploaded: " + file.name,
+            errorText
+        );
+
+        processing = false;
+        fileButton.classList.remove("file-button-active");
+        fileInput.value = "";
+        setStatus("ERROR");
+        setVoiceStatus("FILE ERROR", "error");
+
+        setTimeout(function() {
+            setStatus("ONLINE");
+            if (shouldKeepListening) {
+                scheduleListening();
+            }
+        }, 1200);
+    }
+});
 
 
 /* ============================================================
