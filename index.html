@@ -1363,7 +1363,7 @@ function setupRecognition() {
     recognition.onstart = function() {
         listening = true;
         micButton.classList.add("listening");
-        setVoiceStatus("LISTENING...", "listening");
+        setVoiceStatus("LISTENING FOR AJ...", "listening");
         setStatus("LISTENING");
     };
 
@@ -1393,7 +1393,7 @@ function setupRecognition() {
             recognition.stop();
         } catch (error) {}
 
-        sendMessage();
+        sendVoiceMessage(transcript);
     };
 
     recognition.onerror = function(event) {
@@ -1784,6 +1784,122 @@ fileInput.addEventListener("change", async function() {
 
 
 /* ============================================================
+   ADVANCED VOICE COMMAND
+============================================================ */
+
+async function sendVoiceMessage(message) {
+
+    const spokenMessage = String(message || "").trim();
+
+    if (!spokenMessage || processing) {
+        return;
+    }
+
+    processing = true;
+
+    stopListening();
+    showThinking();
+    setStatus("THINKING");
+    setVoiceStatus("AJ UNDERSTANDING");
+
+    try {
+
+        const response = await fetch("/api/voice", {
+            method:"POST",
+            headers:{
+                "Content-Type":"application/json"
+            },
+            body:JSON.stringify({
+                message:spokenMessage
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(
+                data.response || "AJ voice request failed."
+            );
+        }
+
+        const command =
+            data.command ||
+            spokenMessage;
+
+        const answer =
+            data.response ||
+            "I received your voice command.";
+
+        history.push({
+            role:"user",
+            content:spokenMessage
+        });
+
+        history.push({
+            role:"assistant",
+            content:answer
+        });
+
+        addResponse(
+            spokenMessage,
+            answer
+        );
+
+        processing = false;
+
+        setStatus(data.state || "ONLINE");
+
+        if (data.wake_word) {
+            setVoiceStatus("AJ COMMAND RECEIVED");
+        } else {
+            setVoiceStatus("AJ VOICE READY");
+        }
+
+        /* AJ speaks every voice response. */
+        speak(answer);
+
+    } catch (error) {
+
+        console.error("AJ VOICE:", error);
+
+        const errorText =
+            error.message ||
+            "AJ could not process that voice command.";
+
+        addResponse(
+            spokenMessage,
+            errorText
+        );
+
+        history.push({
+            role:"user",
+            content:spokenMessage
+        });
+
+        history.push({
+            role:"assistant",
+            content:errorText
+        });
+
+        processing = false;
+
+        setStatus("ERROR");
+        setVoiceStatus("AJ VOICE ERROR", "error");
+
+        setTimeout(function() {
+
+            setStatus("ONLINE");
+
+            if (shouldKeepListening) {
+                scheduleListening();
+            }
+
+        }, 1200);
+    }
+}
+
+
+/* ============================================================
    SEND MESSAGE
 ============================================================ */
 
@@ -1949,7 +2065,7 @@ async function updateServerStatus() {
 function initializeAJ() {
 
     setStatus("ONLINE");
-    setVoiceStatus("PRESS VOICE TO START");
+    setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ", "");
 
     const supported =
         setupRecognition();
@@ -1966,7 +2082,7 @@ function initializeAJ() {
        a user gesture/permission has been granted. */
     shouldKeepListening = false;
     voiceActive = false;
-    setVoiceStatus("PRESS VOICE TO START");
+    setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ");
 }
 
 
