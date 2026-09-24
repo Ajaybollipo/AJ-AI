@@ -2165,375 +2165,451 @@ document.addEventListener(
 );
 
 /* ============================================================
-   VOICE RECOGNITION
+   ROBUST VOICE INPUT
 ============================================================ */
 
-if (
-    "webkitSpeechRecognition"
-    in window
-) {
+let recognition = null;
+let listening = false;
+let processing = false;
+let speaking = false;
+let shouldKeepListening = true;
+let restartTimer = null;
+let voiceReady = false;
 
-    recognition =
-        new webkitSpeechRecognition();
+function setVoiceListening() {
+    if (typeof setStatus === "function") {
+        setStatus("LISTENING");
+    }
+}
 
+function startListening() {
 
-    recognition.lang =
-        "en-IN";
+    if (
+        !recognition ||
+        listening ||
+        processing ||
+        speaking ||
+        !shouldKeepListening
+    ) {
+        return;
+    }
 
+    try {
+        recognition.start();
+    } catch (error) {
+        console.log("Recognition start:", error);
+    }
+}
 
-    recognition.continuous =
-        false;
+function scheduleListening(delay = 900) {
 
+    clearTimeout(restartTimer);
 
-    recognition.interimResults =
-        false;
+    if (!shouldKeepListening) {
+        return;
+    }
 
+    restartTimer = setTimeout(
+        function () {
+            startListening();
+        },
+        delay
+    );
+}
 
-    recognition.onstart =
-        function() {
+function setupRecognition() {
 
-            listening =
-                true;
+    const SpeechRecognition =
+        window.SpeechRecognition ||
+        window.webkitSpeechRecognition;
 
+    if (!SpeechRecognition) {
 
-            micButton.classList.add(
-                "listening"
-            );
+        if (typeof setStatus === "function") {
+            setStatus("VOICE UNAVAILABLE");
+        }
 
+        return false;
+    }
 
-            setStatus(
-                "LISTENING"
-            );
+    recognition = new SpeechRecognition();
 
-        };
+    recognition.lang = "en-IN";
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
 
+    recognition.onstart = function () {
 
-    recognition.onresult =
-        function(event) {
+        listening = true;
+        voiceReady = true;
 
-            if (!listening) {
-                return;
-            }
+        setVoiceListening();
+    };
 
-            const text =
-                event
-                .results[0][0]
-                .transcript;
+    recognition.onresult = function (event) {
 
+        let transcript = "";
 
-            input.value =
-                text;
+        for (
+            let i = event.resultIndex;
+            i < event.results.length;
+            i++
+        ) {
+            transcript +=
+                event.results[i][0].transcript;
+        }
 
+        transcript = transcript.trim();
 
-            recognition.stop();
+        if (!transcript) {
+            return;
+        }
+
+        commandInput.value = transcript;
+
+        /* Send only the final recognized sentence. */
+        const lastResult =
+            event.results[event.results.length - 1];
+
+        if (
+            lastResult &&
+            lastResult.isFinal &&
+            !processing
+        ) {
 
             listening = false;
 
-            micButton.classList.remove(
-                "listening"
-            );
+            try {
+                recognition.stop();
+            } catch (error) {}
 
-            setStatus(
-                "THINKING"
-            );
-
-            sendMessage();
-
-        };
-
-
-    recognition.onerror =
-        function() {
-
-            listening =
-                false;
-
-
-            micButton.classList.remove(
-                "listening"
-            );
-
-
-            setStatus(
-                "ERROR"
-            );
-
-
-            setTimeout(
-                function() {
-
-                    setStatus(
-                        "ONLINE"
-                    );
-
-                },
-                1200
-            );
-
-        };
-
-
-    recognition.onend =
-        function() {
-
-            listening =
-                false;
-
-
-            micButton.classList.remove(
-                "listening"
-            );
-
-        };
-
-}
-
-
-/* ============================================================
-   MIC BUTTON
-============================================================ */
-
-micButton.onclick =
-    function() {
-
-        if (!recognition) {
-
-            addMessage(
-                "aj",
-                "Voice input is not supported by this browser."
-            );
-
-            return;
+            sendVoiceMessage(transcript);
         }
-
-
-        if (listening) {
-
-            stopListening();
-
-            return;
-
-        }
-
-
-        try {
-
-            recognition.start();
-
-        }
-
-        catch (error) {
-
-            console.log(
-                error
-            );
-
-        }
-
     };
 
+    recognition.onerror = function (event) {
 
-/* ============================================================
-   STOP LISTENING
-============================================================ */
-
-function stopListening() {
-
-    listening = false;
-
-    if (recognition) {
-
-        try {
-            recognition.abort();
-        }
-        catch (error) {
-            console.log(error);
-        }
-
-    }
-
-    micButton.classList.remove(
-        "listening"
-    );
-
-    setStatus(
-        "ONLINE"
-    );
-}
-
-
-/* ============================================================
-   STOP VOICE OUTPUT
-============================================================ */
-
-function stopVoice() {
-
-    stopListening();
-
-    stopSpeaking();
-}
-
-
-stopVoiceButton.onclick =
-    stopVoice;
-
-
-/* ============================================================
-   SPEECH
-============================================================ */
-
-function speak(text) {
-
-    if (
-        !("speechSynthesis" in window)
-    ) {
-
-        return;
-
-    }
-
-
-    speechSynthesis.cancel();
-
-
-    const voice =
-        new SpeechSynthesisUtterance(
-            text
+        console.log(
+            "AJ voice error:",
+            event.error
         );
 
+        listening = false;
 
-    voice.lang =
-        "en-IN";
+        if (
+            event.error === "not-allowed" ||
+            event.error === "service-not-allowed"
+        ) {
 
+            shouldKeepListening = false;
 
-    voice.rate =
-        0.94;
+            if (typeof setStatus === "function") {
+                setStatus("ALLOW MICROPHONE");
+            }
 
+            return;
+        }
 
-    voice.pitch =
-        0.88;
+        if (
+            event.error === "audio-capture" ||
+            event.error === "network"
+        ) {
+            scheduleListening(1500);
+            return;
+        }
 
+        if (
+            shouldKeepListening &&
+            !processing &&
+            !speaking
+        ) {
+            scheduleListening();
+        }
+    };
 
-    voice.onstart =
-        function() {
+    recognition.onend = function () {
 
-            setStatus(
-                "SPEAKING"
-            );
+        listening = false;
 
-        };
+        if (
+            shouldKeepListening &&
+            !processing &&
+            !speaking
+        ) {
+            scheduleListening();
+        }
+    };
 
-
-    voice.onend =
-        function() {
-
-            setStatus(
-                "ONLINE"
-            );
-
-        };
-
-
-    speechSynthesis.speak(
-        voice
-    );
-
+    return true;
 }
 
-
-/* ============================================================
-   STOP VOICE
-============================================================ */
-
-function stopSpeaking() {
+async function sendVoiceMessage(message) {
 
     if (
-        "speechSynthesis"
-        in window
+        processing ||
+        !message ||
+        !message.trim()
     ) {
-
-        speechSynthesis.cancel();
-
+        return;
     }
 
+    processing = true;
 
-    setStatus(
-        "ONLINE"
-    );
-
-}
-
-
-/* ============================================================
-   SERVER STATUS
-============================================================ */
-
-async function updateStatus() {
+    clearTimeout(restartTimer);
 
     try {
 
         const response =
             await fetch(
-                "/api/status"
-            );
+                "/api/command",
+                {
+                    method: "POST",
 
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body: JSON.stringify({
+                        message:
+                            message.trim(),
+
+                        history:
+                            history
+                    })
+                }
+            );
 
         const data =
             await response.json();
 
-
-        if (
-            data &&
-            data.state
-        ) {
-
-            /*
-             * Do not overwrite an active
-             * local SPEAKING/LISTENING state.
-             */
-
-            if (
-                !listening &&
-                speechSynthesis.speaking === false
-            ) {
-
-                setStatus(
-                    data.state
-                );
-
-            }
-
+        if (!response.ok) {
+            throw new Error(
+                data.response ||
+                "AJ request failed."
+            );
         }
 
-    }
+        history.push({
+            role: "user",
+            content: message.trim()
+        });
 
-    catch (error) {
+        history.push({
+            role: "assistant",
+            content:
+                data.response || ""
+        });
 
-        console.log(
-            "AJ status unavailable"
+        if (history.length > 20) {
+            history =
+                history.slice(-20);
+        }
+
+        addMessage(
+            "user",
+            message.trim()
         );
 
-    }
+        addMessage(
+            "aj",
+            data.response ||
+                "I don't have a response right now."
+        );
 
+        processing = false;
+
+        speak(
+            String(
+                data.response || ""
+            )
+            .replace(
+                /https?:\/\/[^\s]+/g,
+                ""
+            )
+        );
+
+    } catch (error) {
+
+        console.error(
+            "AJ voice command error:",
+            error
+        );
+
+        processing = false;
+
+        addMessage(
+            "aj",
+            "I couldn't process that voice command."
+        );
+
+        if (typeof setStatus === "function") {
+            setStatus("ERROR");
+        }
+
+        scheduleListening(1500);
+    }
 }
 
-
 /* ============================================================
-   INITIALIZE
+   STOP VOICE
 ============================================================ */
 
-setStatus(
-    "ONLINE"
+function stopVoice() {
+
+    shouldKeepListening = false;
+
+    clearTimeout(restartTimer);
+
+    if (recognition) {
+
+        try {
+            recognition.abort();
+        } catch (error) {}
+    }
+
+    if (
+        "speechSynthesis" in window
+    ) {
+        speechSynthesis.cancel();
+    }
+
+    listening = false;
+    speaking = false;
+
+    if (typeof setStatus === "function") {
+        setStatus("ONLINE");
+    }
+}
+
+if (typeof stopVoiceButton !== "undefined") {
+
+    stopVoiceButton.addEventListener(
+        "click",
+        stopVoice
+    );
+}
+
+/* ============================================================
+   SPEECH OUTPUT
+============================================================ */
+
+function speak(text) {
+
+    if (
+        !text ||
+        !("speechSynthesis" in window)
+    ) {
+        if (shouldKeepListening) {
+            scheduleListening();
+        }
+        return;
+    }
+
+    speechSynthesis.cancel();
+
+    const utterance =
+        new SpeechSynthesisUtterance(
+            String(text)
+        );
+
+    utterance.lang = "en-IN";
+    utterance.rate = 0.94;
+    utterance.pitch = 0.88;
+    utterance.volume = 1;
+
+    utterance.onstart = function () {
+        speaking = true;
+
+        if (typeof setStatus === "function") {
+            setStatus("SPEAKING");
+        }
+    };
+
+    utterance.onend = function () {
+
+        speaking = false;
+
+        if (typeof setStatus === "function") {
+            setStatus("ONLINE");
+        }
+
+        if (shouldKeepListening) {
+            scheduleListening(600);
+        }
+    };
+
+    utterance.onerror = function () {
+
+        speaking = false;
+
+        if (shouldKeepListening) {
+            scheduleListening(600);
+        }
+    };
+
+    speechSynthesis.speak(
+        utterance
+    );
+}
+
+/* ============================================================
+   INITIALIZE VOICE
+============================================================ */
+
+function initializeAJVoice() {
+
+    shouldKeepListening = true;
+
+    const supported =
+        setupRecognition();
+
+    if (!supported) {
+        return;
+    }
+
+    /*
+     * Try automatically first.
+     * If Chrome requires a user gesture,
+     * the document click fallback below starts it.
+     */
+    setTimeout(
+        function () {
+            startListening();
+        },
+        700
+    );
+}
+
+/*
+ * Browser permission/user-gesture fallback.
+ * Clicking anywhere once can unlock microphone access.
+ */
+document.addEventListener(
+    "click",
+    function () {
+
+        if (
+            shouldKeepListening &&
+            !listening &&
+            !processing &&
+            !speaking
+        ) {
+            startListening();
+        }
+
+    },
+    {
+        passive: true
+    }
 );
 
-
-updateStatus();
-
-
-setInterval(
-    updateStatus,
-    2000
+window.addEventListener(
+    "load",
+    initializeAJVoice
 );
+
 
 </script>
 
