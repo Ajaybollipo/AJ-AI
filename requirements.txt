@@ -2,3 +2,4 @@ Flask
 requests
 ddgs
 gunicorn
+pypdf
