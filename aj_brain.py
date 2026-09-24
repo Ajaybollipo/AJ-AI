@@ -1,963 +1,634 @@
+from datetime import datetime
 import os
-import json
 import requests
+from aj_commands import handle_command
+import webbrowser
 
-from aj_memory import (
-    remember,
-    get_all_memory,
-    clear_memory,
-    save_memory
-)
-
-from aj_tools import run_command
+from aj_memory import remember, get_all_memory, clear_memory
 
 
-# ============================================================
-# AJ CONFIGURATION
-# ============================================================
+# =========================
+# OPENROUTER CONFIG
+# =========================
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
-
-OPENROUTER_URL = (
-    "https://openrouter.ai/api/v1/chat/completions"
-)
-
 MODEL = "openrouter/free"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
-conversation_history = []
+# =========================
+# OPEN WEBSITES
+# =========================
 
-
-# ============================================================
-# AJ SYSTEM PROMPT
-# ============================================================
-
-SYSTEM_PROMPT = """
-You are AJ, a general-purpose personal AI assistant.
-
-Your name is AJ.
-
-You were created by Ajay Bollipo.
-
-Your job is to answer questions accurately, clearly,
-naturally and efficiently.
-
-You can help with:
-
-- General knowledge
-- Science
-- Mathematics
-- Engineering
-- Programming
-- Computer science
-- AI and machine learning
-- College studies
-- Projects
-- Writing
-- Translation
-- History
-- Geography
-- Technology
-- Business
-- Research
-- Everyday questions
-- Problem solving
-
-ACCURACY RULES:
-
-1. Never intentionally invent facts.
-
-2. If current web information is supplied, use it.
-
-3. Do not claim to have searched the web unless a search
-   was actually performed.
-
-4. If information is uncertain, say so.
-
-5. If sources disagree, explain the disagreement.
-
-6. Never fabricate sources, URLs, statistics or quotes.
-
-7. For mathematics, calculate carefully.
-
-8. For programming, provide practical working code.
-
-9. For academic questions, explain clearly.
-
-10. Answer directly before giving unnecessary detail.
-
-11. Use memory only when it is relevant.
-
-12. Never claim an action happened unless a tool confirms it.
-"""
+websites = {
+    "google": "https://www.google.com",
+    "youtube": "https://www.youtube.com",
+    "github": "https://github.com",
+    "instagram": "https://www.instagram.com",
+    "chatgpt": "https://chatgpt.com",
+    "gmail": "https://mail.google.com"
+}
 
 
-# ============================================================
-# OPENROUTER
-# ============================================================
+# =========================
+# MEMORY
+# =========================
 
-def ask_openrouter(messages, max_tokens=1000):
+def process_memory(message):
+    text = message.strip()
+    lower = text.lower()
 
-    if not OPENROUTER_API_KEY:
-        return "OpenRouter API key is not configured."
-
-    headers = {
-        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://github.com/",
-        "X-Title": "AJ Personal AI"
+    patterns = {
+        "my favorite color is ": "favorite_color",
+        "my favorite food is ": "favorite_food",
+        "my favorite movie is ": "favorite_movie",
+        "i study at ": "college"
     }
 
-    payload = {
-        "model": MODEL,
-        "messages": messages,
-        "temperature": 0.5,
-        "max_tokens": max_tokens
-    }
+    for phrase, key in patterns.items():
+        if phrase in lower:
+            start = lower.index(phrase) + len(phrase)
+            value = text[start:].strip()
 
-    response = requests.post(
-        OPENROUTER_URL,
-        headers=headers,
-        json=payload,
-        timeout=45
+            if value:
+                remember(key, value)
+
+    if lower.startswith("remember that "):
+        value = text[len("remember that "):].strip()
+
+        if value:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            remember(f"note_{timestamp}", value)
+            return True
+
+    return False
+
+
+def build_memory_text():
+    memory = get_all_memory()
+
+    if not memory:
+        return "No saved personal memory."
+
+    return "\n".join(
+        f"- {key}: {value}"
+        for key, value in memory.items()
     )
 
-    response.raise_for_status()
 
-    data = response.json()
+# =========================
+# FORGET MEMORY
+# =========================
 
-    try:
-        return (
-            data["choices"][0]["message"]["content"]
-            .strip()
-        )
+def forget_memory(message):
+    lower = message.lower()
 
-    except (KeyError, IndexError, TypeError):
+    # =========================================================
+    # AJ COMMAND CENTER
+    # =========================================================
+    command_result = handle_command(message)
 
-        return "I received an unexpected AI response."
+    if command_result is not None:
+        if command_result.startswith("__AJ_MODE_STUDY__"):
+            message = (
+                "Study mode. Explain the following for a B.Tech student "
+                "with clear concepts, examples, and exam-ready points:\n"
+                + command_result.replace("__AJ_MODE_STUDY__", "", 1)
+            )
+        elif command_result.startswith("__AJ_MODE_CODING__"):
+            message = (
+                "Coding mode. Solve the following professionally. "
+                "Give correct code, explanation, and a small example:\n"
+                + command_result.replace("__AJ_MODE_CODING__", "", 1)
+            )
+        else:
+            return command_result
+    memory = get_all_memory()
+
+    memory_map = {
+        "forget my favorite color": "favorite_color",
+        "forget my favorite food": "favorite_food",
+        "forget my favorite movie": "favorite_movie"
+    }
+
+    for command, key in memory_map.items():
+        if command in lower:
+            if key in memory:
+                del memory[key]
+
+                from aj_memory import save_memory
+                save_memory(memory)
+
+                return f"I forgot your {key.replace('_', ' ')}."
+
+            return f"I don't have your {key.replace('_', ' ')} saved."
+
+    return None
 
 
-# ============================================================
+# =========================
 # WEB SEARCH
-# ============================================================
+# =========================
 
-try:
-    from ddgs import DDGS
-except ImportError:
-    DDGS = None
-
-
-def web_search(query, max_results=5):
-
-    if DDGS is None:
-        return []
+def web_search(query):
 
     try:
+        from ddgs import DDGS
 
         results = []
 
         with DDGS() as ddgs:
 
-            items = ddgs.text(
+            search_results = ddgs.text(
                 query,
-                max_results=max_results
+                region="wt-wt",
+                safesearch="moderate",
+                timelimit=None,
+                max_results=8
             )
 
-            for item in items:
+            for result in search_results:
 
-                results.append({
-                    "title": item.get("title", ""),
-                    "url": item.get("href", ""),
-                    "snippet": item.get("body", "")
-                })
+                title = result.get("title", "").strip()
+                url = result.get("href", "").strip()
+                snippet = result.get("body", "").strip()
 
-        return results
+                if title and url:
+                    results.append({
+                        "title": title,
+                        "url": url,
+                        "snippet": snippet
+                    })
+
+        if not results:
+            return f"I couldn't find useful results for '{query}'."
+
+        # =========================
+        # PREPARE SEARCH RESULTS
+        # =========================
+
+        search_text = ""
+
+        for i, result in enumerate(results, 1):
+
+            search_text += (
+                f"RESULT {i}\n"
+                f"TITLE: {result['title']}\n"
+                f"URL: {result['url']}\n"
+                f"DESCRIPTION: {result['snippet']}\n\n"
+            )
+
+        # =========================
+        # NO OPENROUTER
+        # =========================
+
+        if not OPENROUTER_API_KEY:
+
+            output = f"Search results for: {query}\n\n"
+
+            for i, result in enumerate(results, 1):
+                output += (
+                    f"{i}. {result['title']}\n"
+                    f"{result['snippet']}\n"
+                    f"Source: {result['url']}\n\n"
+                )
+
+            return output.strip()
+
+        # =========================
+        # AI SEARCH SUMMARY
+        # =========================
+
+        prompt = f"""
+You are AJ, a personal AI assistant.
+
+The user asked:
+
+{query}
+
+Web search results:
+
+{search_text}
+
+Create the most useful answer possible using ONLY these
+search results.
+
+IMPORTANT:
+
+- Answer the user's actual question.
+- Do NOT simply list websites.
+- Identify the actual headlines or important information.
+- For news searches, summarize the actual news stories.
+- Prefer recent-looking results when the user asks for latest,
+  today, current, recent, or breaking information.
+- Do not invent dates, facts, events, or details.
+- Do not claim to have opened or read a webpage.
+- If a result only gives a website homepage, don't pretend it
+  contains a specific story.
+- Mention the source name for important claims.
+- If the search results are insufficient, clearly say that.
+- Keep the response concise but useful.
+
+For news queries, use this format when possible:
+
+LATEST NEWS
+
+1. Headline
+   Short summary.
+   Source: Website
+
+2. Headline
+   Short summary.
+   Source: Website
+
+3. Headline
+   Short summary.
+   Source: Website
+
+Do not use citation markers such as [1], [2], or 【1】.
+"""
+
+        response = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
+                "X-Title": "AJ Personal AI Assistant"
+            },
+            json={
+                "model": MODEL,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            },
+            timeout=60
+        )
+
+        # =========================
+        # SEARCH AI ERROR
+        # =========================
+
+        if response.status_code != 200:
+
+            print(
+                "SEARCH AI ERROR:",
+                response.status_code,
+                response.text
+            )
+
+            output = f"Search results for: {query}\n\n"
+
+            for i, result in enumerate(results, 1):
+                output += (
+                    f"{i}. {result['title']}\n"
+                    f"{result['snippet']}\n"
+                    f"Source: {result['url']}\n\n"
+                )
+
+            return output.strip()
+
+        data = response.json()
+
+        answer = (
+            data
+            .get("choices", [{}])[0]
+            .get("message", {})
+            .get("content")
+        )
+
+        if answer:
+            return answer.strip()
+
+        return f"Search completed, but AJ couldn't summarize the results."
 
     except Exception as error:
 
         print("WEB SEARCH ERROR:", error)
 
-        return []
+        return "AJ could not perform the web search right now."
 
 
-# ============================================================
-# EXPLICIT SEARCH DETECTION
-# ============================================================
+# =========================
+# AJ AI BRAIN
+# =========================
 
-def extract_search_query(message):
+def ask_aj(message, history=None):
 
-    text = message.strip()
-    lower = text.lower()
-
-    prefixes = [
-        "search the web for ",
-        "search web for ",
-        "search for ",
-        "search ",
-        "look up ",
-        "find information about ",
-        "find info about ",
-        "google "
-    ]
-
-    for prefix in prefixes:
-
-        if lower.startswith(prefix):
-
-            query = text[len(prefix):].strip()
-
-            if query:
-                return query
-
-    return None
-
-
-# ============================================================
-# FAST CURRENT-INFORMATION DETECTION
-# ============================================================
-
-def needs_web_search(message):
-
-    lower = message.lower().strip()
-
-    # Current-time words
-    current_words = [
-        "today",
-        "tonight",
-        "yesterday",
-        "tomorrow",
-        "right now",
-        "currently",
-        "current",
-        "latest",
-        "recent",
-        "recently",
-        "newest",
-        "this week",
-        "this month",
-        "breaking",
-        "live",
-        "update",
-        "updates"
-    ]
-
-    # Live information topics
-    live_topics = [
-        "weather",
-        "temperature",
-        "news",
-        "stock price",
-        "share price",
-        "market price",
-        "crypto price",
-        "bitcoin price",
-        "cricket score",
-        "football score",
-        "match score",
-        "election result",
-        "election results",
-        "exam result",
-        "result today"
-    ]
-
-    if any(
-        word in lower
-        for word in current_words
-    ):
-        return True
-
-    if any(
-        phrase in lower
-        for phrase in live_topics
-    ):
-        return True
-
-    return False
-
-
-# ============================================================
-# RESEARCH DETECTION
-# ============================================================
-
-def is_research_question(message):
-
-    lower = message.lower()
-
-    phrases = [
-        "research",
-        "deep research",
-        "investigate",
-        "compare",
-        "comparison",
-        "pros and cons",
-        "advantages and disadvantages",
-        "detailed analysis",
-        "in detail",
-        "fact check",
-        "fact-check",
-        "verify this",
-        "with sources"
-    ]
-
-    return any(
-        phrase in lower
-        for phrase in phrases
-    )
-
-
-# ============================================================
-# SOURCE TEXT
-# ============================================================
-
-def build_source_text(results):
-
-    parts = []
-
-    for index, item in enumerate(
-        results,
-        1
-    ):
-
-        parts.append(
-            f"""
-SOURCE {index}
-
-Title:
-{item.get("title", "")}
-
-URL:
-{item.get("url", "")}
-
-Summary:
-{item.get("snippet", "")}
-"""
-        )
-
-    return "\n".join(parts)
-
-
-# ============================================================
-# ANSWER USING WEB RESULTS
-# ============================================================
-
-def answer_from_web(
-    query,
-    results
-):
-
-    if not results:
-
-        return (
-            "I couldn't find reliable web information "
-            f"for: {query}"
-        )
-
-    source_text = build_source_text(
-        results
-    )
-
-    research_mode = is_research_question(
-        query
-    )
-
-    if research_mode:
-
-        instruction = """
-Research the question using the supplied sources.
-
-Compare the sources where useful.
-
-Do not invent unsupported information.
-
-Mention important uncertainty or disagreement.
-
-Give a clear, useful answer.
-
-Include the most relevant source URLs.
-"""
-
-    else:
-
-        instruction = """
-Answer the question using the supplied sources.
-
-Prefer information supported by multiple sources
-when possible.
-
-Do not invent unsupported information.
-
-Keep the answer concise and useful.
-
-Include the most relevant source URLs.
-"""
-
-    prompt = f"""
-USER QUESTION:
-
-{query}
-
-WEB SOURCES:
-
-{source_text}
-
-TASK:
-
-{instruction}
-"""
-
-    messages = [
-        {
-            "role": "system",
-            "content": SYSTEM_PROMPT
-        },
-        {
-            "role": "user",
-            "content": prompt
-        }
-    ]
-
-    try:
-
-        return ask_openrouter(
-            messages,
-            max_tokens=1200
-        )
-
-    except Exception as error:
-
-        print(
-            "WEB ANSWER ERROR:",
-            error
-        )
-
-        first = results[0]
-
-        return (
-            f"{first.get('title', '')}\n\n"
-            f"{first.get('snippet', '')}\n\n"
-            f"{first.get('url', '')}"
-        )
-
-
-# ============================================================
-# MEMORY COMMANDS
-# ============================================================
-
-def handle_memory_command(message):
-
-    lower = message.lower().strip()
-
-    if (
-        "what do you remember about me" in lower
-        or "what do you remember" in lower
-        or "show my memory" in lower
-    ):
-
-        memory = get_all_memory()
-
-        if not memory:
-            return (
-                "I don't have anything stored "
-                "in memory yet."
-            )
-
-        lines = []
-
-        for key, value in memory.items():
-
-            lines.append(
-                f"{key}: {value}"
-            )
-
-        return (
-            "Here is what I remember:\n"
-            + "\n".join(lines)
-        )
-
-    if (
-        "clear all memory" in lower
-        or "forget everything" in lower
-    ):
-
-        clear_memory()
-
-        return "All stored memory has been cleared."
-
-    if lower.startswith("forget "):
-
-        key = message[7:].strip()
-
-        memory = get_all_memory()
-
-        if key in memory:
-
-            del memory[key]
-
-            save_memory(memory)
-
-            return f"I forgot {key}."
-
-        return (
-            f"I don't have {key} "
-            "stored in memory."
-        )
-
-    return None
-
-
-# ============================================================
-# SAVE MEMORY
-# ============================================================
-
-def try_save_memory(message):
-
-    lower = message.lower().strip()
-
-    prefixes = [
-        "remember that ",
-        "remember ",
-        "save that ",
-        "save "
-    ]
-
-    matched = None
-
-    for prefix in prefixes:
-
-        if lower.startswith(prefix):
-
-            matched = prefix
-            break
-
-    if not matched:
-        return None
-
-    content = message[len(matched):].strip()
-
-    if not content:
-        return (
-            "What would you like me to remember?"
-        )
-
-    separators = [
-        " is ",
-        " are ",
-        " = ",
-        ":"
-    ]
-
-    for separator in separators:
-
-        if separator in content:
-
-            key, value = content.split(
-                separator,
-                1
-            )
-
-            key = key.strip()
-            value = value.strip()
-
-            if key and value:
-
-                remember(
-                    key,
-                    value
-                )
-
-                return (
-                    f"I'll remember that "
-                    f"{key} is {value}."
-                )
-
-    remember(
-        "note",
-        content
-    )
-
-    return (
-        f"I'll remember: {content}"
-    )
-
-
-# ============================================================
-# AJ IDENTITY
-# ============================================================
-
-def is_creator_question(lower):
-
-    phrases = [
-        "who created you",
-        "who created u",
-        "who made you",
-        "who made u",
-        "who is your creator",
-        "who's your creator",
-        "who is ur creator",
-        "who built you",
-        "who built u",
-        "who developed you",
-        "who developed u",
-        "who is your developer",
-        "who is your owner"
-    ]
-
-    return any(
-        phrase in lower
-        for phrase in phrases
-    )
-
-
-def is_name_question(lower):
-
-    phrases = [
-        "what is your name",
-        "what's your name",
-        "who are you",
-        "tell me your name",
-        "your name"
-    ]
-
-    return any(
-        phrase in lower
-        for phrase in phrases
-    )
-
-
-# ============================================================
-# TOOL RESULT
-# ============================================================
-
-def process_tool(message):
-
-    try:
-
-        tool_result = run_command(
-            message
-        )
-
-        if not tool_result.get(
-            "handled"
-        ):
-            return None
-
-        result = tool_result.get(
-            "result"
-        )
-
-        if not result:
-            return None
-
-        message_text = result.get(
-            "message",
-            ""
-        )
-
-        url = result.get(
-            "url"
-        )
-
-        if url:
-
-            return (
-                f"{message_text}\n"
-                f"{url}"
-            )
-
-        return message_text
-
-    except Exception as error:
-
-        print(
-            "TOOL ERROR:",
-            error
-        )
-
-        return None
-
-
-# ============================================================
-# AJ MAIN BRAIN
-# ============================================================
-
-def ask_aj(
-    message,
-    history=None
-):
-
-    global conversation_history
+    message = message.strip()
 
     if not message:
         return "Please say something."
 
-    text = message.strip()
-    lower = text.lower()
+    lower = message.lower()
 
-    # --------------------------------------------------------
-    # IDENTITY
-    # --------------------------------------------------------
+    # =========================
+    # BASIC COMMANDS
+    # =========================
 
-    if is_creator_question(lower):
+    if lower in ["bye", "exit"]:
+        return "Goodbye, Ajay."
 
-        return (
-            "I was created by Ajay Bollipo "
-            "as a personal AI assistant project. "
-            "My name is AJ."
-        )
-
-    if is_name_question(lower):
-
-        return "My name is AJ."
-
-    # --------------------------------------------------------
-    # SHUTDOWN
-    # --------------------------------------------------------
+    # =========================
+    # CLEAR MEMORY
+    # =========================
 
     if lower in [
-        "exit",
-        "quit",
-        "shutdown aj",
-        "stop aj"
+        "clear memory",
+        "forget everything",
+        "delete my memory"
     ]:
 
-        return "AJ is standing by."
+        clear_memory()
 
-    # --------------------------------------------------------
-    # MEMORY
-    # --------------------------------------------------------
+        return "Your saved AJ memory has been cleared."
 
-    memory_response = handle_memory_command(
-        text
-    )
+    # =========================
+    # SHOW MEMORY
+    # =========================
 
-    if memory_response:
-        return memory_response
+    if lower in [
+        "what do you remember about me",
+        "what do you remember",
+        "show my memory",
+        "show memory",
+        "my memories"
+    ]:
 
-    memory_saved = try_save_memory(
-        text
-    )
+        memory = get_all_memory()
 
-    if memory_saved:
-        return memory_saved
+        if not memory:
+            return "I don't have any saved personal memories yet."
 
-    # --------------------------------------------------------
-    # FAST LOCAL TOOLS
-    # --------------------------------------------------------
-
-    tool_response = process_tool(
-        text
-    )
-
-    if tool_response:
-        return tool_response
-
-    # --------------------------------------------------------
-    # EXPLICIT WEB SEARCH
-    # --------------------------------------------------------
-
-    search_query = extract_search_query(
-        text
-    )
-
-    if search_query:
-
-        results = web_search(
-            search_query,
-            max_results=6
+        return (
+            "Here is what I remember:\n\n"
+            + build_memory_text()
         )
 
-        return answer_from_web(
-            search_query,
-            results
+    # =========================
+    # FORGET
+    # =========================
+
+    forgotten = forget_memory(message)
+
+    if forgotten:
+        return forgotten
+
+    # =========================
+    # SAVE MEMORY
+    # =========================
+
+    process_memory(message)
+
+
+    if lower.startswith("open "):
+        site = lower[5:].strip()
+
+        if site in websites:
+
+            return (
+                f"Opening {site.title()}:\n\n"
+                f"{websites[site]}"
+            )
+
+        return (
+            f"I don't have a direct link for {site} yet."
         )
 
-    # --------------------------------------------------------
-    # AUTOMATIC CURRENT INFORMATION
-    # --------------------------------------------------------
+    # WEB SEARCH
+    # =========================
 
-    if needs_web_search(text):
+    if lower.startswith("search for ") or lower.startswith("search "):
 
-        results = web_search(
-            text,
-            max_results=6
+        if lower.startswith("search for "):
+            query = message[11:].strip()
+        else:
+            query = message[7:].strip()
+
+        if not query:
+            return "What would you like me to search for?"
+
+        return web_search(query)
+
+    # =========================
+    # TIME
+    # =========================
+
+    if (
+        "what time is it" in lower
+        or lower == "time"
+    ):
+
+        return (
+            f"The current time is "
+            f"{datetime.now().strftime('%I:%M %p')}."
         )
 
-        if results:
+    # =========================
+    # DATE
+    # =========================
 
-            return answer_from_web(
-                text,
-                results
-            )
+    if (
+        "today's date" in lower
+        or lower == "date"
+    ):
 
-    # --------------------------------------------------------
-    # HISTORY
-    # --------------------------------------------------------
-
-    if history:
-
-        conversation_history = []
-
-        for item in history[-10:]:
-
-            role = item.get(
-                "role"
-            )
-
-            content = item.get(
-                "content"
-            )
-
-            if role and content:
-
-                conversation_history.append({
-                    "role": role,
-                    "content": content
-                })
-
-    # --------------------------------------------------------
-    # MEMORY CONTEXT
-    # --------------------------------------------------------
-
-    memory = get_all_memory()
-
-    memory_context = ""
-
-    if memory:
-
-        memory_context = (
-            "\n\nRelevant stored memory:\n"
-            + json.dumps(
-                memory,
-                ensure_ascii=False
-            )
+        return (
+            f"Today is "
+            f"{datetime.now().strftime('%d %B %Y')}."
         )
 
-    # --------------------------------------------------------
-    # NORMAL AI
-    # --------------------------------------------------------
+    # =========================
+    # API KEY
+    # =========================
+
+    if not OPENROUTER_API_KEY:
+
+        return (
+            "OpenRouter API key is not connected. "
+            "Please check the GitHub Codespaces secret."
+        )
+
+    # =========================
+    # HISTORY + MEMORY
+    # =========================
+
+    history = history or []
+
+    memory_text = build_memory_text()
 
     messages = [
         {
             "role": "system",
-            "content":
-                SYSTEM_PROMPT
-                + memory_context
+            "content": f"""
+You are AJ, a personal AI assistant created by Ajay.
+
+Your name is AJ.
+The user's name is Ajay.
+
+Be intelligent, helpful, accurate and concise.
+
+Use saved memory and recent conversation when relevant.
+
+MEMORY RULES:
+
+1. Saved memory belongs to Ajay.
+2. Use memory only when relevant.
+3. Never invent memories.
+4. If memory doesn't contain an answer, don't claim it does.
+5. Do not pretend to remember something that isn't saved.
+
+SAVED MEMORY:
+
+{memory_text}
+"""
         }
     ]
 
-    messages.extend(
-        conversation_history[-10:]
-    )
+    # =========================
+    # RECENT HISTORY
+    # =========================
+
+    for item in history[-10:]:
+
+        role = item.get("role")
+        content = item.get("content")
+
+        if role in ["user", "assistant"] and content:
+
+            messages.append({
+                "role": role,
+                "content": content
+            })
+
+    # =========================
+    # CURRENT MESSAGE
+    # =========================
 
     messages.append({
         "role": "user",
-        "content": text
+        "content": message
     })
+
+    # =========================
+    # OPENROUTER
+    # =========================
 
     try:
 
-        answer = ask_openrouter(
-            messages,
-            max_tokens=1000
+        response = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
+                "X-Title": "AJ Personal AI Assistant"
+            },
+            json={
+                "model": MODEL,
+                "messages": messages
+            },
+            timeout=60
         )
+
+        if response.status_code != 200:
+
+            print(
+                "OPENROUTER ERROR:",
+                response.status_code,
+                response.text
+            )
+
+            if response.status_code == 401:
+                return (
+                    "AJ cannot authenticate with OpenRouter. "
+                    "Please check the API key."
+                )
+
+            if response.status_code == 429:
+                return (
+                    "AJ has reached the current OpenRouter "
+                    "request limit. Please try again later."
+                )
+
+            return (
+                "AJ's AI service returned an error. "
+                "Please try again."
+            )
+
+        data = response.json()
+
+        answer = (
+            data
+            .get("choices", [{}])[0]
+            .get("message", {})
+            .get("content")
+        )
+
+        if answer:
+            return answer.strip()
+
+        return "AJ did not receive a valid AI response."
+
+    except requests.exceptions.Timeout:
+
+        return "AJ's AI service took too long to respond."
+
+    except requests.exceptions.RequestException as error:
+
+        print("OPENROUTER CONNECTION ERROR:", error)
+
+        return "AJ is having trouble connecting to the AI service."
 
     except Exception as error:
 
-        print(
-            "OPENROUTER ERROR:",
-            error
-        )
+        print("AJ ERROR:", error)
 
-        return (
-            "I'm having trouble connecting "
-            "to my AI brain right now."
-        )
-
-    # --------------------------------------------------------
-    # SAVE CONVERSATION
-    # --------------------------------------------------------
-
-    conversation_history.append({
-        "role": "user",
-        "content": text
-    })
-
-    conversation_history.append({
-        "role": "assistant",
-        "content": answer
-    })
-
-    if len(
-        conversation_history
-    ) > 20:
-
-        conversation_history = (
-            conversation_history[-20:]
-        )
-
-    return answer
+        return "AJ encountered an unexpected error."
 
 
-# ============================================================
+# =========================
 # TERMINAL MODE
-# ============================================================
+# =========================
 
 if __name__ == "__main__":
 
-    print()
     print("================================")
-    print("          AJ AI ASSISTANT")
+    print("        AJ AI ASSISTANT")
     print("================================")
     print("AJ is online.")
     print("AI Provider: OpenRouter")
-    print(f"Model: {MODEL}")
-    print("Memory: ON")
-    print("Web Search: ON")
-    print("Automatic Current Info: ON")
-    print("Action Engine: ON")
-    print("Universal Question Mode: ON")
+    print("Model:", MODEL)
+    print("Persistent memory: ON")
+    print("Web search: ON")
     print("================================")
-    print()
+
+    history = []
 
     while True:
 
-        try:
+        user_message = input("You: ").strip()
 
-            user_input = input(
-                "You: "
-            )
+        if user_message.lower() == "exit":
 
-            if not user_input.strip():
-                continue
-
-            response = ask_aj(
-                user_input
-            )
-
-            print(
-                f"AJ: {response}"
-            )
-
-            print()
-
-            if user_input.lower().strip() in [
-                "exit",
-                "quit",
-                "shutdown aj",
-                "stop aj"
-            ]:
-                break
-
-        except KeyboardInterrupt:
-
-            print(
-                "\nAJ: Standing by."
-            )
-
+            print("AJ: Goodbye, Ajay.")
             break
 
-        except Exception as error:
+        answer = ask_aj(
+            user_message,
+            history
+        )
 
-            print(
-                "ERROR:",
-                error
-            )
+        print("AJ:", answer)
+
+        history.append({
+            "role": "user",
+            "content": user_message
+        })
+
+        history.append({
+            "role": "assistant",
+            "content": answer
+        })
