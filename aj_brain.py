@@ -17,12 +17,6 @@ MODEL = "openrouter/free"
 # OpenRouter fallback models.
 # OpenRouter tries these in order if a model/provider is
 # rate-limited or temporarily unavailable.
-MODELS = [
-    "openrouter/free",
-    "nvidia/nemotron-3-ultra:free",
-    "nvidia/nemotron-3.5-lightning:free"
-]
-
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 # =========================
@@ -246,7 +240,7 @@ Do not use citation markers such as [1], [2], or 【1】.
                 "X-Title": "AJ Personal AI Assistant"
             },
             json={
-                "models": MODELS,
+                "model": MODEL,
                 "messages": [
                     {
                         "role": "user",
@@ -553,7 +547,7 @@ SAVED MEMORY:
                 "X-Title": "AJ Personal AI Assistant"
             },
             json={
-                "models": MODELS,
+                "model": MODEL,
                 "messages": messages
             },
             timeout=60
