@@ -82,26 +82,6 @@ def build_memory_text():
 def forget_memory(message):
     lower = message.lower()
 
-    # =========================================================
-    # AJ COMMAND CENTER
-    # =========================================================
-    command_result = handle_command(message)
-
-    if command_result is not None:
-        if command_result.startswith("__AJ_MODE_STUDY__"):
-            message = (
-                "Study mode. Explain the following for a B.Tech student "
-                "with clear concepts, examples, and exam-ready points:\n"
-                + command_result.replace("__AJ_MODE_STUDY__", "", 1)
-            )
-        elif command_result.startswith("__AJ_MODE_CODING__"):
-            message = (
-                "Coding mode. Solve the following professionally. "
-                "Give correct code, explanation, and a small example:\n"
-                + command_result.replace("__AJ_MODE_CODING__", "", 1)
-            )
-        else:
-            return command_result
     memory = get_all_memory()
 
     memory_map = {
@@ -324,6 +304,42 @@ def ask_aj(message, history=None):
 
     lower = message.lower()
 
+    # =========================================================
+    # AJ COMMAND CENTER
+    # =========================================================
+
+    command_result = handle_command(message)
+
+    if command_result is not None:
+
+        if command_result.startswith("__AJ_MODE_STUDY__"):
+
+            message = (
+                "Study mode. Explain the following for a B.Tech "
+                "student with clear concepts, examples, and "
+                "exam-ready points:\n"
+                + command_result.replace(
+                    "__AJ_MODE_STUDY__",
+                    "",
+                    1
+                )
+            )
+
+        elif command_result.startswith("__AJ_MODE_CODING__"):
+
+            message = (
+                "Coding mode. Solve the following professionally. "
+                "Give correct code, explanation, and a small example:\n"
+                + command_result.replace(
+                    "__AJ_MODE_CODING__",
+                    "",
+                    1
+                )
+            )
+
+        else:
+            return command_result
+
     # =========================
     # BASIC COMMANDS
     # =========================
@@ -448,7 +464,7 @@ def ask_aj(message, history=None):
 
         return (
             "OpenRouter API key is not connected. "
-            "Please check the GitHub Codespaces secret."
+            "Please check the GitHub secret."
         )
 
     # =========================
