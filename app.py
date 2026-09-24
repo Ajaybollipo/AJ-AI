@@ -5,6 +5,7 @@ import tempfile
 
 from aj_brain import ask_aj
 from aj_files import prepare_file_for_ai
+from aj_voice import process_voice_command
 
 
 app = Flask(
@@ -86,6 +87,114 @@ def status():
 
 
 # =========================================================
+# VOICE COMMAND API
+# =========================================================
+
+@app.route(
+    "/api/voice",
+    methods=["POST"]
+)
+def voice_command():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    message = str(
+        data.get(
+            "message",
+            ""
+        )
+    ).strip()
+
+    if not message:
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": "I didn't hear a command.",
+            "state": "ONLINE"
+        }), 400
+
+
+    try:
+
+        result = process_voice_command(
+            message
+        )
+
+        command = result.get(
+            "command",
+            message
+        )
+
+        if not command:
+
+            return jsonify({
+                "assistant": "AJ",
+                "response": "Yes, Ajay?",
+                "wake_word": result.get(
+                    "wake_word",
+                    False
+                ),
+                "state": "LISTENING"
+            })
+
+
+        set_status(
+            "THINKING",
+            "Processing voice command..."
+        )
+
+
+        response = ask_aj(
+            command,
+            []
+        )
+
+
+        set_status(
+            "ONLINE",
+            "AJ is ready."
+        )
+
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": response,
+            "command": command,
+            "wake_word": result.get(
+                "wake_word",
+                False
+            ),
+            "state": "ONLINE"
+        })
+
+
+    except Exception as error:
+
+        print(
+            "VOICE COMMAND ERROR:",
+            error
+        )
+
+
+        set_status(
+            "ERROR",
+            "AJ voice command failed."
+        )
+
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": (
+                "I couldn't process "
+                "that voice command."
+            ),
+            "state": "ERROR"
+        }), 500
+
+
+# =========================================================
 # COMMAND API
 # =========================================================
 
@@ -112,10 +221,6 @@ def command():
     )
 
 
-    # =====================================================
-    # EMPTY MESSAGE
-    # =====================================================
-
     if not message:
 
         return jsonify({
@@ -124,10 +229,6 @@ def command():
             "state": "ONLINE"
         }), 400
 
-
-    # =====================================================
-    # MESSAGE LIMIT
-    # =====================================================
 
     if len(message) > 6000:
 
@@ -146,19 +247,11 @@ def command():
         lower = message.lower()
 
 
-        # =================================================
-        # THINKING
-        # =================================================
-
         set_status(
             "THINKING",
             "Understanding your request..."
         )
 
-
-        # =================================================
-        # SEARCHING
-        # =================================================
 
         if any(
             word in lower
@@ -180,10 +273,6 @@ def command():
             )
 
 
-        # =================================================
-        # EXECUTING
-        # =================================================
-
         elif any(
             word in lower
             for word in [
@@ -204,19 +293,11 @@ def command():
             )
 
 
-        # =================================================
-        # AI BRAIN
-        # =================================================
-
         response = ask_aj(
             message,
             history
         )
 
-
-        # =================================================
-        # BACK ONLINE
-        # =================================================
 
         set_status(
             "ONLINE",
@@ -294,10 +375,6 @@ def upload_file():
         )
 
 
-        # =================================================
-        # TEMPORARY FILE
-        # =================================================
-
         suffix = os.path.splitext(
             uploaded_file.filename
         )[1]
@@ -315,18 +392,10 @@ def upload_file():
             temporary_path = temporary_file.name
 
 
-        # =================================================
-        # READ FILE
-        # =================================================
-
         result = prepare_file_for_ai(
             temporary_path
         )
 
-
-        # =================================================
-        # REMOVE TEMP FILE
-        # =================================================
 
         try:
 
@@ -356,10 +425,6 @@ def upload_file():
             }), 400
 
 
-        # =================================================
-        # FILE CONTENT
-        # =================================================
-
         file_name = result.get(
             "name",
             uploaded_file.filename
@@ -370,16 +435,11 @@ def upload_file():
             ""
         )
 
-
         truncated = result.get(
             "truncated",
             False
         )
 
-
-        # =================================================
-        # ASK AJ TO ANALYZE FILE
-        # =================================================
 
         analysis_prompt = f"""
 You are AJ, a personal AI assistant.
@@ -477,7 +537,8 @@ def health():
         "memory": True,
         "web_search": True,
         "file_intelligence": True,
-        "voice": True
+        "voice_control": True,
+        "voice_api": True
     })
 
 
@@ -521,6 +582,10 @@ if __name__ == "__main__":
 
     print(
         "File Intelligence: ON"
+    )
+
+    print(
+        "Voice Control: ON"
     )
 
     print(
