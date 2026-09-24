@@ -20,9 +20,7 @@ MODEL = "openrouter/free"
 MODELS = [
     "openrouter/free",
     "nvidia/nemotron-3-ultra:free",
-    "nvidia/nemotron-3.5-lightning:free",
-    "google/gemma-4-31b-it:free",
-    "cohere/north-mini-code:free"
+    "nvidia/nemotron-3.5-lightning:free"
 ]
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
