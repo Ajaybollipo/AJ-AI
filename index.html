@@ -552,70 +552,333 @@ button,input{font:inherit}
 @keyframes innerPulse{0%,100%{opacity:.4;transform:scale(.96)}50%{opacity:1;transform:scale(1)}}
 @keyframes voicePulse{50%{transform:scale(1.04)}}
 
-/* MOBILE */
+/* MOBILE — PHONE OPTIMIZED */
 @media(max-width:800px){
-    .topbar{height:58px;padding:0 12px}
-    .brand-title{font-size:13px;letter-spacing:3px}
-    .brand-sub{font-size:6px}
-    .brand-mark{width:34px;height:34px}
-    .system-status{font-size:7px;padding:6px 8px}
+    html,body{
+        width:100%;
+        height:100%;
+        overflow:hidden;
+    }
 
-    .hud{inset:58px 0 0}
+    .app{
+        height:100dvh;
+        min-height:100dvh;
+    }
 
+    .topbar{
+        height:58px;
+        padding:0 10px;
+    }
+
+    .brand{
+        gap:8px;
+        min-width:0;
+    }
+
+    .brand-mark{
+        width:34px;
+        height:34px;
+        flex:none;
+        font-size:12px;
+    }
+
+    .brand-title{
+        font-size:13px;
+        letter-spacing:3px;
+    }
+
+    .brand-sub{
+        font-size:6px;
+        letter-spacing:1.5px;
+    }
+
+    .system-status{
+        flex:none;
+        padding:6px 8px;
+        font-size:7px;
+        letter-spacing:2px;
+    }
+
+    .hud{
+        inset:58px 0 0 0;
+        height:calc(100dvh - 58px);
+    }
+
+    /* AJ CORE */
     .core-system{
         left:50%;
-        top:29%;
-        width:250px;
+        top:25%;
+        width:min(210px,58vw);
     }
 
+    .core-state{
+        bottom:21%;
+        font-size:7px;
+        letter-spacing:2px;
+    }
+
+    /* SIGNATURE */
     .creator{
         left:50%;
-        top:calc(29% + 130px);
+        top:calc(25% + 125px);
     }
 
-    .creator img{width:95px;max-width:none}
+    .creator img{
+        width:82px;
+        max-width:none;
+    }
 
+    .creator-label{
+        margin-top:2px;
+        font-size:6px;
+        letter-spacing:1.5px;
+    }
+
+    /* VOICE STATUS */
     .voice-status{
         left:50%;
         top:7%;
+        width:92%;
+        text-align:center;
+        font-size:8px;
+        letter-spacing:2.5px;
+        white-space:nowrap;
+        overflow:hidden;
+        text-overflow:ellipsis;
     }
 
+    /* RESPONSE PANEL
+       Fixed bottom space keeps the command bar visible. */
     .response-panel{
         left:10px;
         right:10px;
-        top:50%;
+        top:47%;
+        bottom:70px;
         width:auto;
-        height:31%;
-        min-height:170px;
+        height:auto;
+        min-height:0;
+        max-height:none;
     }
 
+    .response-header{
+        height:38px;
+        padding:0 11px;
+    }
+
+    .response-title{
+        font-size:8px;
+        letter-spacing:2.5px;
+    }
+
+    .response-state{
+        font-size:7px;
+        letter-spacing:1.5px;
+    }
+
+    .response-content{
+        padding:10px;
+    }
+
+    .response-user{
+        font-size:7px;
+        margin-bottom:4px;
+    }
+
+    .response-user-text{
+        font-size:10px;
+        line-height:1.45;
+        margin-bottom:8px;
+    }
+
+    .response-aj{
+        padding:9px 10px;
+        font-size:11px;
+        line-height:1.5;
+    }
+
+    /* COMMAND BAR — ALWAYS VISIBLE */
     .command-bar{
-        left:10px;
-        right:10px;
-        bottom:10px;
+        position:fixed;
+        left:8px;
+        right:8px;
+        bottom:max(8px, env(safe-area-inset-bottom));
         transform:none;
         width:auto;
+        gap:4px;
+        padding:0;
+        z-index:80;
     }
 
-    .command-button.voice{width:62px}
-    .command-button.history{width:76px}
-    .command-button{width:42px}
+    #messageInput{
+        height:44px;
+        padding:0 10px;
+        font-size:11px;
+        min-width:0;
+    }
 
-    #messageInput{font-size:11px}
+    .command-button{
+        width:40px;
+        min-width:40px;
+        height:44px;
+        padding:0;
+    }
+
+    .command-button.voice{
+        width:56px;
+        min-width:56px;
+    }
+
+    .command-button.history{
+        width:56px;
+        min-width:56px;
+    }
+
+    /* HISTORY */
+    .history-panel{
+        width:min(360px,92vw);
+    }
 }
 
 @media(max-width:500px){
-    .brand-sub{display:none}
-    .response-panel{top:48%;height:34%}
-    .core-system{top:27%;width:215px}
-    .creator{top:calc(27% + 112px)}
-    .command-bar{gap:4px}
-    .command-button.voice{font-size:0}
-    .command-button.voice::after{content:"🎙";font-size:16px}
-    .command-button.stop{font-size:0}
-    .command-button.stop::after{content:"■";font-size:14px}
-    .command-button.history{font-size:0}
-    .command-button.history::after{content:"📜";font-size:15px}
+    .brand-sub{
+        display:none;
+    }
+
+    .system-status #topStatus{
+        font-size:0;
+    }
+
+    .system-status #topStatus::after{
+        content:"ON";
+        font-size:7px;
+    }
+
+    .core-system{
+        top:24%;
+        width:min(195px,56vw);
+    }
+
+    .creator{
+        top:calc(24% + 118px);
+    }
+
+    .creator img{
+        width:76px;
+    }
+
+    .creator-label{
+        font-size:5.5px;
+        letter-spacing:1.3px;
+    }
+
+    .response-panel{
+        top:45%;
+        bottom:70px;
+    }
+
+    .command-bar{
+        gap:4px;
+    }
+
+    .command-button.voice,
+    .command-button.stop,
+    .command-button.history{
+        font-size:0;
+    }
+
+    .command-button.voice::after{
+        content:"🎙";
+        font-size:16px;
+    }
+
+    .command-button.stop::after{
+        content:"■";
+        font-size:13px;
+    }
+
+    .command-button.history::after{
+        content:"📜";
+        font-size:15px;
+    }
+
+    .command-button{
+        width:40px;
+        min-width:40px;
+    }
+
+    .command-button.voice{
+        width:46px;
+        min-width:46px;
+    }
+
+    .command-button.history{
+        width:46px;
+        min-width:46px;
+    }
+}
+
+@media(max-width:380px){
+    .topbar{
+        padding:0 8px;
+    }
+
+    .brand-mark{
+        width:32px;
+        height:32px;
+    }
+
+    .system-status{
+        padding:5px 6px;
+    }
+
+    .core-system{
+        top:22%;
+        width:175px;
+    }
+
+    .creator{
+        top:calc(22% + 105px);
+    }
+
+    .creator img{
+        width:68px;
+    }
+
+    .creator-label{
+        display:none;
+    }
+
+    .voice-status{
+        top:6%;
+        font-size:7px;
+    }
+
+    .response-panel{
+        left:8px;
+        right:8px;
+        top:43%;
+        bottom:68px;
+    }
+
+    .command-bar{
+        left:6px;
+        right:6px;
+    }
+
+    #messageInput{
+        font-size:10px;
+    }
+
+    .command-button{
+        width:38px;
+        min-width:38px;
+    }
+
+    .command-button.voice,
+    .command-button.history{
+        width:42px;
+        min-width:42px;
+    }
 }
 </style>
 </head>
