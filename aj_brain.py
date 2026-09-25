@@ -794,28 +794,29 @@ def run_task_planner(goal):
 
         task = create_task(goal, steps)
 
-        # Start the task and mark the first step as ready.
+        # Start the task and execute safe internal steps.
         start_task(task)
-        start_next_step(task)
 
-        # Sensitive steps are held for confirmation.
+        task_result = run_task_executor(task)
+
         sensitive_steps = [
             step["description"]
             for step in task.get("steps", [])
-            if requires_confirmation(step["description"])
+            if step.get("status") == "waiting_confirmation"
         ]
 
         response_lines = [
             f"TASK CREATED: {task['title']}",
             "",
-            task_summary(task)
+            task_result
         ]
 
         if sensitive_steps:
             response_lines.extend([
                 "",
                 "CONFIRMATION REQUIRED:",
-                "AJ will not perform sensitive actions automatically."
+                "AJ has paused before the sensitive action.",
+                "No sensitive external action was performed automatically."
             ])
 
         return "\n".join(response_lines)
@@ -831,6 +832,260 @@ def run_task_planner(goal):
         print("TASK PLANNER ERROR:", error)
         return "AJ encountered an error while creating the task."
 
+
+MAX_EXECUTION_STEPS = 8
+
+
+# =========================
+# TASK EXECUTION
+# =========================
+
+def _task_ai_request(instruction):
+    """Use AJ's configured AI provider to perform a safe internal step."""
+    if not OPENROUTER_API_KEY:
+        return "OpenRouter API key is not connected."
+
+    prompt = f"""
+You are AJ, executing one safe internal task step.
+
+TASK STEP:
+{instruction}
+
+Rules:
+- Perform only the intellectual/information part of the step.
+- Do not send messages, purchase anything, transfer money, delete data,
+  change passwords, publish content, submit applications, or perform
+  other external side effects.
+- Do not claim that an external action was performed.
+- Give a concrete, useful result for this step.
+- If the step requires an external action, explain that it needs explicit
+  confirmation and a suitable external capability.
+- Keep the result concise.
+"""
+
+    try:
+        response = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
+                "X-Title": "AJ Personal AI Assistant"
+            },
+            json={
+                "model": MODEL,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            },
+            timeout=60
+        )
+
+        if response.status_code != 200:
+            print(
+                "TASK EXECUTOR ERROR:",
+                response.status_code,
+                response.text
+            )
+            return "AJ could not execute this task step right now."
+
+        data = response.json()
+
+        answer = (
+            data
+            .get("choices", [{}])[0]
+            .get("message", {})
+            .get("content")
+        )
+
+        if answer:
+            return answer.strip()[:5000]
+
+        return "AJ completed the processing step but received no result."
+
+    except requests.exceptions.Timeout:
+        return "AJ's task step took too long to process."
+
+    except requests.exceptions.RequestException as error:
+        print("TASK EXECUTOR CONNECTION ERROR:", error)
+        return "AJ is having trouble connecting to the task executor."
+
+    except Exception as error:
+        print("TASK EXECUTOR ERROR:", error)
+        return "AJ encountered an error while executing this step."
+
+
+def _looks_like_search_step(description):
+    """Identify steps where AJ's existing web search capability is useful."""
+    lower = description.lower()
+
+    search_terms = (
+        "search for",
+        "search the web",
+        "research",
+        "find information",
+        "look up",
+        "latest",
+        "current information",
+        "news about",
+        "compare online"
+    )
+
+    return any(term in lower for term in search_terms)
+
+
+def _extract_search_query(description):
+    """Create a practical search query from a task step."""
+    text = description.strip()
+
+    prefixes = (
+        "search for ",
+        "search the web for ",
+        "look up ",
+        "research "
+    )
+
+    lower = text.lower()
+
+    for prefix in prefixes:
+        if lower.startswith(prefix):
+            query = text[len(prefix):].strip()
+            if query:
+                return query
+
+    return text
+
+
+def execute_task_step(task, step_id):
+    """
+    Execute one safe task step using AJ's existing capabilities.
+
+    This function never performs sensitive external side effects.
+    Sensitive steps remain waiting for explicit confirmation.
+    """
+    if not task:
+        return "No active task."
+
+    target_step = None
+
+    for step in task.get("steps", []):
+        if step.get("id") == step_id:
+            target_step = step
+            break
+
+    if not target_step:
+        return "Task step not found."
+
+    if target_step.get("status") == "waiting_confirmation":
+        return (
+            "This step requires explicit confirmation before AJ can "
+            "continue."
+        )
+
+    if target_step.get("status") != "running":
+        return (
+            f"Step {step_id} is not ready for execution. "
+            f"Current status: {target_step.get('status', 'unknown')}."
+        )
+
+    description = target_step.get("description", "").strip()
+
+    if requires_confirmation(description):
+        target_step["status"] = "waiting_confirmation"
+        task["status"] = "waiting_confirmation"
+        return (
+            f"Step {step_id} requires explicit confirmation before "
+            "execution."
+        )
+
+    if _looks_like_search_step(description):
+        result = web_search(_extract_search_query(description))
+    else:
+        result = _task_ai_request(description)
+
+    if not result:
+        fail_step(task, step_id, "No result was returned.")
+        return "Task step failed because no result was returned."
+
+    if result.startswith("AJ could not") or result.startswith(
+        "AJ encountered an error"
+    ):
+        fail_step(task, step_id, result)
+        return result
+
+    complete_step(task, step_id, result)
+
+    # Prepare the next step but do not execute it here.
+    if task.get("status") != "completed":
+        start_next_step(task)
+
+    return result
+
+
+def run_task_executor(task):
+    """
+    Execute safe steps sequentially.
+
+    The executor stops when:
+    - the task is completed,
+    - a step fails, or
+    - a sensitive step requires confirmation.
+
+    It does not perform external side effects.
+    """
+    if not task:
+        return "No task is active."
+
+    max_execution_steps = MAX_EXECUTION_STEPS
+    executed = 0
+
+    while executed < max_execution_steps:
+        if task.get("status") in {
+            "completed",
+            "failed",
+            "cancelled",
+            "waiting_confirmation"
+        }:
+            break
+
+        current = None
+
+        for step in task.get("steps", []):
+            if step.get("status") == "running":
+                current = step
+                break
+
+        if current is None:
+            current = start_next_step(task)
+
+        if current is None:
+            break
+
+        result = execute_task_step(
+            task,
+            current.get("id")
+        )
+
+        executed += 1
+
+        if task.get("status") in {
+            "failed",
+            "waiting_confirmation"
+        }:
+            break
+
+        # Stop if the current execution returned a blocking/error result.
+        if (
+            not result
+            or result.startswith("AJ could not")
+            or result.startswith("AJ encountered an error")
+        ):
+            break
+
+    return task_summary(task)
 
 # =========================
 # AJ AI BRAIN
