@@ -1272,7 +1272,24 @@ button,input{font:inherit}
     padding:20px;
     border-bottom:1px solid rgba(255,255,255,.08);
 }
+.task-title-wrap{
+    display:flex;
+    align-items:center;
+    gap:9px;
+}
 .task-title{font-weight:800;letter-spacing:2px;color:#00d9ff;}
+.task-live{
+    padding:3px 6px;
+    border:1px solid rgba(0,255,157,.28);
+    color:#72f6bd;
+    font-size:8px;
+    letter-spacing:1.2px;
+    border-radius:5px;
+}
+.task-live.off{
+    color:#667983;
+    border-color:rgba(255,255,255,.12);
+}
 .task-close{
     border:0;background:transparent;color:#fff;font-size:20px;cursor:pointer;
 }
@@ -1522,7 +1539,10 @@ button,input{font:inherit}
 
 <aside class="task-panel" id="taskPanel">
     <div class="task-head">
-        <div class="task-title">TASK CENTER</div>
+        <div class="task-title-wrap">
+            <div class="task-title">TASK CENTER</div>
+            <div class="task-live" id="taskLiveIndicator">LIVE</div>
+        </div>
         <button class="task-close" id="taskClose" type="button">✕</button>
     </div>
     <div class="task-content" id="taskContent">
@@ -1565,6 +1585,7 @@ const taskBackdrop = document.getElementById("taskBackdrop");
 const taskClose = document.getElementById("taskClose");
 const taskContent = document.getElementById("taskContent");
 const taskRefresh = document.getElementById("taskRefresh");
+const taskLiveIndicator = document.getElementById("taskLiveIndicator");
 
 
 /* ============================================================
@@ -1582,6 +1603,8 @@ let microphoneStream = null;
 
 let history = [];
 let taskList = [];
+let taskCenterOpen = false;
+let taskRefreshTimer = null;
 
 
 
@@ -2119,21 +2142,64 @@ function cancelTask(taskId) {
     taskAction("/api/tasks/cancel", taskId);
 }
 
+function setTaskLiveState(active) {
+    if (!taskLiveIndicator) return;
+
+    if (active) {
+        taskLiveIndicator.textContent = "LIVE";
+        taskLiveIndicator.classList.remove("off");
+    } else {
+        taskLiveIndicator.textContent = "PAUSED";
+        taskLiveIndicator.classList.add("off");
+    }
+}
+
+function startTaskLiveRefresh() {
+    clearInterval(taskRefreshTimer);
+    setTaskLiveState(true);
+
+    taskRefreshTimer = setInterval(function() {
+        if (!taskCenterOpen || processing) return;
+        loadTasks();
+    }, 2500);
+}
+
+function stopTaskLiveRefresh() {
+    clearInterval(taskRefreshTimer);
+    taskRefreshTimer = null;
+    setTaskLiveState(false);
+}
+
 function openTaskCenter() {
+    taskCenterOpen = true;
     taskPanel.classList.add("open");
     taskBackdrop.classList.add("open");
     loadTasks();
+    startTaskLiveRefresh();
 }
 
 function closeTaskCenter() {
+    taskCenterOpen = false;
     taskPanel.classList.remove("open");
     taskBackdrop.classList.remove("open");
+    stopTaskLiveRefresh();
 }
 
 taskButton.addEventListener("click", openTaskCenter);
 taskClose.addEventListener("click", closeTaskCenter);
 taskBackdrop.addEventListener("click", closeTaskCenter);
-taskRefresh.addEventListener("click", loadTasks);
+taskRefresh.addEventListener("click", async function() {
+    const original = taskRefresh.textContent;
+    taskRefresh.textContent = "REFRESHING...";
+    taskRefresh.disabled = true;
+
+    try {
+        await loadTasks();
+    } finally {
+        taskRefresh.textContent = original;
+        taskRefresh.disabled = false;
+    }
+});
 
 /* ============================================================
    SPEECH OUTPUT
@@ -3101,6 +3167,10 @@ document.addEventListener("click", function() {
 /* ============================================================
    PAGE LOAD
 ============================================================ */
+
+window.addEventListener("beforeunload", function() {
+    stopTaskLiveRefresh();
+});
 
 window.addEventListener("load", function() {
 
