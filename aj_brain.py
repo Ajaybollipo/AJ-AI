@@ -12,11 +12,6 @@ from aj_tasks import (
     task_summary,
     task_to_dict,
     requires_confirmation,
-    save_task,
-    get_task,
-    get_all_tasks,
-    delete_task,
-    clear_tasks,
 )
 
 from aj_memory import (
@@ -803,10 +798,6 @@ def run_task_planner(goal):
         start_task(task)
         start_next_step(task)
 
-        # Persist the task so it can be controlled by later requests
-        # and survives normal application restarts.
-        save_task(task)
-
         # Sensitive steps are held for confirmation.
         sensitive_steps = [
             step["description"]
@@ -841,113 +832,119 @@ def run_task_planner(goal):
         return "AJ encountered an error while creating the task."
 
 
-# =========================
-# TASK CONTROL
-# =========================
 
-def get_active_task():
-    tasks = get_all_tasks()
+# =========================================================
+# SAFE TASK ACTION EXECUTOR
+# =========================================================
 
-    active = [
-        task for task in tasks
-        if task.get("status") in {
-            "pending",
-            "running",
-            "waiting_confirmation"
+def execute_task_step(task):
+    """
+    Execute one task step only when it maps to an existing safe
+    AJ command. No shell, arbitrary Python, email, purchase,
+    booking, messaging, or other sensitive action is executed here.
+    """
+    if not task:
+        return {
+            "success": False,
+            "message": "No task was provided."
         }
-    ]
 
-    if not active:
-        return None
+    current_id = task.get("current_step")
 
-    active.sort(
-        key=lambda task: task.get("updated_at", ""),
-        reverse=True
-    )
-    return active[0]
+    if not current_id:
+        step = start_next_step(task)
+        current_id = step.get("id") if step else None
 
+    if not current_id:
+        return {
+            "success": False,
+            "message": "There is no executable task step."
+        }
 
-def task_control_response(message):
-    lower = message.strip().lower()
+    current_step = None
 
-    if lower in {
-        "task status",
-        "show task",
-        "show current task",
-        "current task",
-        "what is my task",
-        "task progress"
-    }:
-        task = get_active_task()
-        if not task:
-            return "No active task."
-        return task_summary(task)
+    for step in task.get("steps", []):
+        if step.get("id") == current_id:
+            current_step = step
+            break
 
-    if lower in {
-        "show tasks",
-        "list tasks",
-        "my tasks",
-        "task history"
-    }:
-        tasks = get_all_tasks()
-        if not tasks:
-            return "No saved tasks yet."
+    if not current_step:
+        return {
+            "success": False,
+            "message": "Current task step was not found."
+        }
 
-        lines = ["SAVED TASKS:"]
-        for task in tasks[:10]:
-            progress = task.get("steps", [])
-            completed = sum(
-                1 for step in progress
-                if step.get("status") == "completed"
-            )
-            lines.append(
-                f"- {task.get('title', 'AJ Task')} "
-                f"[{task.get('status', 'unknown').upper()}] "
-                f"{completed}/{len(progress)}"
-            )
-        return "\n".join(lines)
+    description = str(
+        current_step.get("description", "")
+    ).strip()
 
-    if lower in {
-        "cancel task",
-        "stop task",
-        "cancel current task",
-        "stop current task"
-    }:
-        task = get_active_task()
-        if not task:
-            return "No active task to cancel."
+    if not description:
+        fail_step(task, current_id, "Empty task step.")
+        return {
+            "success": False,
+            "message": "The current task step is empty."
+        }
 
-        from aj_tasks import cancel_task
-        if cancel_task(task):
-            save_task(task)
-            return f"Cancelled task: {task.get('title', 'AJ Task')}"
+    if current_step.get("requires_confirmation"):
+        if current_step.get("status") == "waiting_confirmation":
+            return {
+                "success": False,
+                "requires_confirmation": True,
+                "message": "Confirmation is required before this step."
+            }
 
-        return "AJ could not cancel that task."
+    # Never execute sensitive actions through the generic executor.
+    if requires_confirmation(description):
+        return {
+            "success": False,
+            "requires_confirmation": True,
+            "message": "This action requires explicit confirmation."
+        }
 
-    if lower in {
-        "confirm task",
-        "confirm current step",
-        "approve task step",
-        "approve current step"
-    }:
-        task = get_active_task()
-        if not task:
-            return "No active task."
+    try:
+        result = handle_command(description)
 
-        from aj_tasks import confirm_current_step
-        step = confirm_current_step(task)
+        if result is None:
+            return {
+                "success": False,
+                "message": (
+                    "AJ does not have a safe built-in action "
+                    f"for this step yet: {description}"
+                )
+            }
 
-        if not step:
-            return "There is no step waiting for confirmation."
+        result_text = str(result).strip()
 
-        save_task(task)
-        return (
-            f"Confirmed step {step.get('id')}: "
-            f"{step.get('description', '')}\n\n"
-            "The step is now ready for its capability-specific executor."
+        complete_step(
+            task,
+            current_id,
+            result_text
         )
 
-    return None
+        next_step = start_next_step(task)
+
+        return {
+            "success": True,
+            "result": result_text,
+            "completed_step": current_step,
+            "next_step": next_step,
+            "task": task_to_dict(task)
+        }
+
+    except Exception as error:
+        print("TASK EXECUTION ERROR:", error)
+
+        fail_step(
+            task,
+            current_id,
+            "Safe task action failed."
+        )
+
+        return {
+            "success": False,
+            "message": "The safe task action failed.",
+            "task": task_to_dict(task)
+        }
 
 
 # =========================
@@ -962,15 +959,6 @@ def ask_aj(message, history=None):
         return "Please say something."
 
     lower = message.lower()
-
-    # =========================================================
-    # TASK CONTROL
-    # =========================================================
-
-    controlled_task_response = task_control_response(message)
-
-    if controlled_task_response:
-        return controlled_task_response
 
     # =========================================================
     # AUTONOMOUS TASK REQUEST
@@ -1357,6 +1345,7 @@ if __name__ == "__main__":
     print("Persistent memory: ON")
     print("Web search: ON")
     print("Study mode: ON")
+    print("Safe task actions: ON")
     print("================================")
 
     history = []
