@@ -3,6 +3,17 @@ import os
 import requests
 from aj_commands import handle_command
 
+from aj_tasks import (
+    create_task,
+    start_task,
+    start_next_step,
+    complete_step,
+    fail_step,
+    task_summary,
+    task_to_dict,
+    requires_confirmation,
+)
+
 from aj_memory import (
     remember,
     get_all_memory,
@@ -654,6 +665,174 @@ Rules:
 
 
 # =========================
+# AUTONOMOUS TASK ENGINE
+# =========================
+
+def detect_task_request(message):
+    """Detect requests that naturally describe a multi-step task."""
+    lower = message.strip().lower()
+
+    prefixes = (
+        "create a plan to ",
+        "make a plan to ",
+        "create a step by step plan to ",
+        "make a step by step plan to ",
+        "break this into steps ",
+        "break this down into steps ",
+        "plan how to ",
+        "organize a task to ",
+    )
+
+    for prefix in prefixes:
+        if lower.startswith(prefix):
+            goal = message[len(prefix):].strip()
+            if goal:
+                return goal
+
+    return None
+
+
+def build_task_plan_prompt(goal):
+    return f"""
+You are AJ Task Planner.
+
+The user wants to accomplish this goal:
+
+{goal}
+
+Create a practical multi-step plan.
+
+Rules:
+- Return between 2 and 8 steps.
+- Each step must be a clear action.
+- Keep each step short.
+- Do not perform external or sensitive actions.
+- Do not invent information.
+- Return ONLY a numbered list.
+"""
+
+
+def parse_task_steps(text):
+    """Convert a simple numbered plan into task steps."""
+    steps = []
+
+    for raw_line in str(text).splitlines():
+        line = raw_line.strip()
+
+        if not line:
+            continue
+
+        cleaned = line.lstrip("0123456789").lstrip(".):- ").strip()
+
+        if cleaned:
+            steps.append(cleaned[:2000])
+
+        if len(steps) >= 8:
+            break
+
+    return steps
+
+
+def run_task_planner(goal):
+    """
+    Ask the AI to create a plan, then store it in the task engine.
+
+    This first integration phase creates and tracks tasks.
+    Actual external execution will be added only after explicit
+    confirmation and capability-specific wiring.
+    """
+    if not OPENROUTER_API_KEY:
+        return "OpenRouter API key is not connected."
+
+    prompt = build_task_plan_prompt(goal)
+
+    try:
+        response = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
+                "X-Title": "AJ Personal AI Assistant"
+            },
+            json={
+                "model": MODEL,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            },
+            timeout=60
+        )
+
+        if response.status_code != 200:
+            print(
+                "TASK PLANNER ERROR:",
+                response.status_code,
+                response.text
+            )
+            return "AJ could not create the task plan right now."
+
+        data = response.json()
+
+        plan_text = (
+            data
+            .get("choices", [{}])[0]
+            .get("message", {})
+            .get("content")
+        )
+
+        if not plan_text:
+            return "AJ did not receive a valid task plan."
+
+        steps = parse_task_steps(plan_text)
+
+        if not steps:
+            return "AJ could not turn that request into clear steps."
+
+        task = create_task(goal, steps)
+
+        # Start the task and mark the first step as ready.
+        start_task(task)
+        start_next_step(task)
+
+        # Sensitive steps are held for confirmation.
+        sensitive_steps = [
+            step["description"]
+            for step in task.get("steps", [])
+            if requires_confirmation(step["description"])
+        ]
+
+        response_lines = [
+            f"TASK CREATED: {task['title']}",
+            "",
+            task_summary(task)
+        ]
+
+        if sensitive_steps:
+            response_lines.extend([
+                "",
+                "CONFIRMATION REQUIRED:",
+                "AJ will not perform sensitive actions automatically."
+            ])
+
+        return "\n".join(response_lines)
+
+    except requests.exceptions.Timeout:
+        return "AJ's task planner took too long to respond."
+
+    except requests.exceptions.RequestException as error:
+        print("TASK PLANNER CONNECTION ERROR:", error)
+        return "AJ is having trouble connecting to the task planner."
+
+    except Exception as error:
+        print("TASK PLANNER ERROR:", error)
+        return "AJ encountered an error while creating the task."
+
+
+# =========================
 # AJ AI BRAIN
 # =========================
 
@@ -665,6 +844,15 @@ def ask_aj(message, history=None):
         return "Please say something."
 
     lower = message.lower()
+
+    # =========================================================
+    # AUTONOMOUS TASK REQUEST
+    # =========================================================
+
+    task_goal = detect_task_request(message)
+
+    if task_goal:
+        return run_task_planner(task_goal)
 
     # =========================================================
     # AJ COMMAND CENTER
