@@ -934,7 +934,75 @@ def continue_task_api():
         )
 
 
+@app.route("/api/tasks/run", methods=["POST"])
+def run_task_api():
+    """Run consecutive safe task steps until a stop condition."""
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return security_error(
+            "Invalid task request.",
+            400
+        )
+
+    task_id = _task_request_id(data)
+
+    if not task_id:
+        return security_error(
+            "A task_id is required.",
+            400
+        )
+
+    try:
+        task = get_task(task_id)
+
+        if not task:
+            return security_error(
+                "Task not found.",
+                404
+            )
+
+        results = []
+        max_steps = 8
+
+        for _ in range(max_steps):
+            step = start_next_step(task)
+
+            if step is None:
+                break
+
+            if step.get("status") == "waiting_confirmation":
+                break
+
+            execution = execute_task_step(task)
+            results.append(execution)
+
+            if not execution.get("success"):
+                break
+
+            if task.get("status") == "completed":
+                break
+
+        save_task(task)
+
+        return jsonify({
+            "assistant": "AJ",
+            "task": task_to_dict(task),
+            "results": results,
+            "summary": task_summary(task),
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+        print("TASK RUN ERROR:", error)
+        return security_error(
+            "AJ could not run that task.",
+            500
+        )
+
+
 @app.route("/api/tasks/confirm", methods=["POST"])
+
 def confirm_task_api():
     """Explicitly approve the current sensitive task step."""
     data = request.get_json(silent=True)
