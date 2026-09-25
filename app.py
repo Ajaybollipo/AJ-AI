@@ -2,6 +2,10 @@ from flask import Flask, jsonify, request, send_file, send_from_directory
 from datetime import datetime
 import os
 import tempfile
+import time
+from collections import defaultdict, deque
+from werkzeug.utils import secure_filename
+import requests
 
 from aj_brain import ask_aj
 from aj_files import prepare_file_for_ai
@@ -13,6 +17,103 @@ app = Flask(
     static_folder="static",
     static_url_path="/static"
 )
+
+# =========================================================
+# SECURITY CONFIG
+# =========================================================
+
+# Limit incoming HTTP bodies to protect the Render instance.
+app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024
+
+ALLOWED_FILE_EXTENSIONS = {
+    "txt", "md", "py", "js", "html", "css", "json",
+    "csv", "xml", "java", "c", "cpp", "sql", "pdf"
+}
+
+MAX_MESSAGE_LENGTH = 6000
+MAX_HISTORY_ITEMS = 20
+MAX_HISTORY_ITEM_LENGTH = 12000
+MAX_FILE_CONTENT_LENGTH = 50000
+
+# Lightweight in-memory rate limiter.
+# This protects the public API without adding another database.
+RATE_LIMITS = {
+    "command": (30, 60),
+    "voice": (30, 60),
+    "upload": (10, 60),
+    "file_question": (20, 60),
+}
+
+_request_log = defaultdict(deque)
+
+
+def get_client_ip():
+    # Do not trust arbitrary X-Forwarded-For values from clients.
+    return request.remote_addr or "unknown"
+
+
+def rate_limited(bucket):
+    limit, window = RATE_LIMITS[bucket]
+    now = time.monotonic()
+    key = f"{bucket}:{get_client_ip()}"
+    events = _request_log[key]
+
+    while events and now - events[0] > window:
+        events.popleft()
+
+    if len(events) >= limit:
+        return True
+
+    events.append(now)
+    return False
+
+
+def allowed_file(filename):
+    if not filename or "." not in filename:
+        return False
+
+    extension = filename.rsplit(".", 1)[1].lower()
+    return extension in ALLOWED_FILE_EXTENSIONS
+
+
+def security_error(message="Too many requests. Please try again shortly."):
+    return jsonify({
+        "assistant": "AJ",
+        "response": message,
+        "state": "ERROR"
+    }), 429
+
+
+def clean_history(history):
+    if not isinstance(history, list):
+        return []
+
+    cleaned = []
+
+    for item in history[-MAX_HISTORY_ITEMS:]:
+        if not isinstance(item, dict):
+            continue
+
+        role = item.get("role")
+        content = item.get("content")
+
+        if role not in {"user", "assistant"}:
+            continue
+
+        if not isinstance(content, str):
+            continue
+
+        content = content.strip()
+
+        if not content:
+            continue
+
+        cleaned.append({
+            "role": role,
+            "content": content[:MAX_HISTORY_ITEM_LENGTH]
+        })
+
+    return cleaned
 
 
 # =========================================================
@@ -96,6 +197,9 @@ def status():
 )
 def voice_command():
 
+    if rate_limited("voice"):
+        return security_error()
+
     data = request.get_json(
         silent=True
     ) or {}
@@ -108,7 +212,6 @@ def voice_command():
     ).strip()
 
     if not message:
-
         return jsonify({
             "assistant": "AJ",
             "response": "I didn't hear a command.",
@@ -204,6 +307,9 @@ def voice_command():
 )
 def command():
 
+    if rate_limited("command"):
+        return security_error()
+
     data = request.get_json(
         silent=True
     ) or {}
@@ -215,11 +321,7 @@ def command():
         )
     ).strip()
 
-    history = data.get(
-        "history",
-        []
-    )
-
+    history = clean_history(data.get("history", []))
 
     if not message:
 
@@ -346,6 +448,9 @@ def command():
 )
 def upload_file():
 
+    if rate_limited("upload"):
+        return security_error()
+
     if "file" not in request.files:
 
         return jsonify({
@@ -358,14 +463,38 @@ def upload_file():
     uploaded_file = request.files["file"]
 
 
-    if not uploaded_file.filename:
+    original_filename = uploaded_file.filename or ""
+    safe_filename = secure_filename(original_filename)
 
+    if not safe_filename:
         return jsonify({
             "assistant": "AJ",
             "response": "Please select a file.",
             "state": "ERROR"
         }), 400
 
+
+    if not allowed_file(safe_filename):
+        return jsonify({
+            "assistant": "AJ",
+            "response": (
+                "That file type is not allowed. "
+                "Please upload a supported document or code file."
+            ),
+            "state": "ERROR"
+        }), 400
+
+    # Check the uploaded stream size before saving it.
+    uploaded_file.stream.seek(0, os.SEEK_END)
+    upload_size = uploaded_file.stream.tell()
+    uploaded_file.stream.seek(0)
+
+    if upload_size > 5 * 1024 * 1024:
+        return jsonify({
+            "assistant": "AJ",
+            "response": "File is too large. Maximum file size is 5 MB.",
+            "state": "ERROR"
+        }), 413
 
     try:
 
@@ -374,10 +503,9 @@ def upload_file():
             "Reading your file..."
         )
 
-
         suffix = os.path.splitext(
-            uploaded_file.filename
-        )[1]
+            safe_filename
+        )[1].lower()
 
 
         with tempfile.NamedTemporaryFile(
@@ -427,7 +555,7 @@ def upload_file():
 
         file_name = result.get(
             "name",
-            uploaded_file.filename
+            safe_filename
         )
 
         content = result.get(
@@ -538,6 +666,9 @@ Do not invent information that is not present in the file.
 )
 def file_question():
 
+    if rate_limited("file_question"):
+        return security_error()
+
     data = request.get_json(
         silent=True
     ) or {}
@@ -554,6 +685,13 @@ def file_question():
         data.get("filename", "uploaded file")
     )
 
+    if len(question) > MAX_MESSAGE_LENGTH:
+        return jsonify({
+            "assistant": "AJ",
+            "response": "Your file question is too long.",
+            "state": "ERROR"
+        }), 400
+
     if not question:
         return jsonify({
             "assistant": "AJ",
@@ -568,8 +706,11 @@ def file_question():
             "state": "ERROR"
         }), 400
 
-    if len(content) > 50000:
-        content = content[:50000]
+    if len(content) > MAX_FILE_CONTENT_LENGTH:
+        content = content[:MAX_FILE_CONTENT_LENGTH]
+
+    if len(file_name) > 255:
+        file_name = file_name[:255]
 
     if not OPENROUTER_API_KEY:
         return jsonify({
@@ -700,8 +841,23 @@ def health():
         "web_search": True,
         "file_intelligence": True,
         "voice_control": True,
-        "voice_api": True
+        "voice_api": True,
+        "security": True,
+        "file_upload_limit_mb": 5
     })
+
+
+# =========================================================
+# REQUEST SIZE ERROR
+# =========================================================
+
+@app.errorhandler(413)
+def request_too_large(error):
+    return jsonify({
+        "assistant": "AJ",
+        "response": "Request is too large. Please reduce the size and try again.",
+        "state": "ERROR"
+    }), 413
 
 
 # =========================================================
