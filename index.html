@@ -992,6 +992,116 @@ button,input{font:inherit}
 
 
 /* ============================================================
+   AJ INTERFACE 2.0 — VISUAL POLISH
+============================================================ */
+
+:root{
+    --glass:rgba(3,16,25,.72);
+    --glow:rgba(0,217,255,.16);
+}
+
+.app::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    pointer-events:none;
+    z-index:1;
+    background:
+        radial-gradient(circle at 38% 43%, rgba(0,217,255,.045), transparent 26%),
+        radial-gradient(circle at 82% 35%, rgba(0,140,255,.035), transparent 30%);
+}
+
+.hud{
+    isolation:isolate;
+}
+
+.topbar{
+    box-shadow:0 1px 0 rgba(0,217,255,.05),0 10px 35px rgba(0,0,0,.25);
+}
+
+.brand-mark{
+    border-radius:8px;
+    background:linear-gradient(145deg,rgba(0,217,255,.12),rgba(0,0,0,.1));
+}
+
+.system-status{
+    border-radius:999px;
+    background:rgba(0,20,30,.45);
+}
+
+.ai-core{
+    transition:box-shadow .3s ease,filter .3s ease;
+}
+
+.core-system:hover .ai-core{
+    filter:brightness(1.08);
+    box-shadow:
+        0 0 32px var(--state),
+        0 0 85px rgba(0,150,255,.45),
+        inset 0 0 38px rgba(255,255,255,.22);
+}
+
+.response-content{
+    mask-image:linear-gradient(to bottom,transparent 0,#000 10px,#000 calc(100% - 8px),transparent 100%);
+}
+
+.response-block{
+    padding:11px 13px;
+    border:1px solid rgba(0,217,255,.08);
+    border-radius:10px;
+    background:linear-gradient(135deg,rgba(0,20,30,.34),rgba(0,5,10,.12));
+    box-shadow:inset 0 0 18px rgba(0,217,255,.018);
+}
+
+.response-aj{
+    border-left:2px solid rgba(0,217,255,.42);
+    padding-left:11px;
+}
+
+.command-bar{
+    padding:5px;
+    border:1px solid rgba(0,217,255,.12);
+    border-radius:13px;
+    background:rgba(0,8,13,.68);
+    box-shadow:0 12px 35px rgba(0,0,0,.38),0 0 24px rgba(0,217,255,.04);
+    backdrop-filter:blur(12px);
+}
+
+#messageInput{
+    border-radius:9px;
+    background:rgba(0,12,19,.9);
+}
+
+.command-button{
+    border-radius:9px;
+}
+
+.history-panel{
+    backdrop-filter:blur(18px);
+}
+
+.history-item{
+    border-radius:8px;
+    transition:.2s;
+}
+
+.history-item:hover{
+    border-color:rgba(0,217,255,.28);
+    transform:translateX(-2px);
+}
+
+@media (max-width:800px){
+    .command-bar{
+        border-radius:11px;
+        padding:4px;
+    }
+
+    .response-block{
+        padding:8px 9px;
+    }
+}
+
+/* ============================================================
    AJ INTERFACE 2.0 — COMMAND STATUS HUD
 ============================================================ */
 
