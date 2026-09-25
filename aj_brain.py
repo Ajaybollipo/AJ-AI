@@ -3,7 +3,15 @@ import os
 import requests
 from aj_commands import handle_command
 
-from aj_memory import remember, get_all_memory, clear_memory
+from aj_memory import (
+    remember,
+    get_all_memory,
+    clear_memory,
+    search_memory,
+    get_relevant_memory,
+    remember_in,
+    forget
+)
 
 
 # =========================
@@ -70,9 +78,43 @@ def build_memory_text():
     if not memory:
         return "No saved personal memory."
 
+    lines = []
+
+    for category in [
+        "profile",
+        "preferences",
+        "projects",
+        "important",
+        "facts",
+        "conversation"
+    ]:
+        items = memory.get(category, {})
+
+        for key, raw_value in items.items():
+            if isinstance(raw_value, dict) and "value" in raw_value:
+                value = raw_value.get("value")
+            else:
+                value = raw_value
+
+            lines.append(
+                f"- [{category}] {key}: {value}"
+            )
+
+    if not lines:
+        return "No saved personal memory."
+
+    return "\n".join(lines)
+
+
+def build_relevant_memory_text(message, limit=8):
+    relevant = get_relevant_memory(message, limit=limit)
+
+    if not relevant:
+        return "No directly relevant saved memories."
+
     return "\n".join(
-        f"- {key}: {value}"
-        for key, value in memory.items()
+        f"- [{item['category']}] {item['key']}: {item['value']}"
+        for item in relevant
     )
 
 
@@ -82,22 +124,17 @@ def build_memory_text():
 
 def forget_memory(message):
     lower = message.lower()
-    memory = get_all_memory()
 
     memory_map = {
-        "forget my favorite color": "favorite_color",
-        "forget my favorite food": "favorite_food",
-        "forget my favorite movie": "favorite_movie"
+        "forget my favorite color": ("favorite_color", None),
+        "forget my favorite food": ("favorite_food", None),
+        "forget my favorite movie": ("favorite_movie", None),
+        "forget my college": ("college", None)
     }
 
-    for command, key in memory_map.items():
+    for command, (key, category) in memory_map.items():
         if command in lower:
-            if key in memory:
-                del memory[key]
-
-                from aj_memory import save_memory
-                save_memory(memory)
-
+            if forget(key, category):
                 return f"I forgot your {key.replace('_', ' ')}."
 
             return f"I don't have your {key.replace('_', ' ')} saved."
@@ -823,6 +860,15 @@ def ask_aj(message, history=None):
     # =========================
 
     history = history or []
+
+    # =========================================================
+    # LONG-TERM INTELLIGENT MEMORY
+    # =========================================================
+
+    relevant_memory_text = build_relevant_memory_text(
+        message,
+        limit=8
+    )
 
     # =========================================================
     # CONVERSATION FOLLOW-UP MODE
