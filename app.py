@@ -454,6 +454,12 @@ FILE CONTENT:
 
 Analyze the uploaded file carefully.
 
+IMPORTANT FILE INTELLIGENCE RULES:
+- Treat the uploaded file as the primary source for file-related questions.
+- Answer questions about the file using the actual file content.
+- If the answer is not supported by the file, clearly say that it is not found in the uploaded file.
+- Do not silently replace file content with general knowledge.
+
 If it is code:
 - Explain what it does.
 - Identify important sections.
@@ -518,6 +524,162 @@ Do not invent information that is not present in the file.
                 "AJ could not process "
                 "that file."
             ),
+            "state": "ERROR"
+        }), 500
+
+
+# =========================================================
+# FILE QUESTION API
+# =========================================================
+
+@app.route(
+    "/api/file-question",
+    methods=["POST"]
+)
+def file_question():
+
+    data = request.get_json(
+        silent=True
+    ) or {}
+
+    question = str(
+        data.get("question", "")
+    ).strip()
+
+    content = str(
+        data.get("content", "")
+    )
+
+    file_name = str(
+        data.get("filename", "uploaded file")
+    )
+
+    if not question:
+        return jsonify({
+            "assistant": "AJ",
+            "response": "Please ask a question about the file.",
+            "state": "ERROR"
+        }), 400
+
+    if not content:
+        return jsonify({
+            "assistant": "AJ",
+            "response": "No file content was provided.",
+            "state": "ERROR"
+        }), 400
+
+    if len(content) > 50000:
+        content = content[:50000]
+
+    if not OPENROUTER_API_KEY:
+        return jsonify({
+            "assistant": "AJ",
+            "response": "OpenRouter API key is not connected.",
+            "state": "ERROR"
+        }), 500
+
+    try:
+
+        set_status(
+            "THINKING",
+            "Answering from your file..."
+        )
+
+        prompt = f"""
+You are AJ File Intelligence.
+
+The user uploaded a file named:
+{file_name}
+
+FILE CONTENT:
+{content}
+
+USER QUESTION:
+{question}
+
+Answer the user's question using the uploaded file as the
+primary source.
+
+Rules:
+- Use only information supported by the file.
+- Do not invent information.
+- If the answer is not present or cannot be determined from
+  the file, say so clearly.
+- If the file contains code, refer to the relevant code section.
+- Keep the answer clear and useful.
+"""
+
+        response = requests.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
+                "X-Title": "AJ Personal AI Assistant"
+            },
+            json={
+                "model": MODEL,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ]
+            },
+            timeout=60
+        )
+
+        if response.status_code != 200:
+            print(
+                "FILE QUESTION AI ERROR:",
+                response.status_code,
+                response.text
+            )
+            return jsonify({
+                "assistant": "AJ",
+                "response": "AJ could not answer from the file right now.",
+                "state": "ERROR"
+            }), 500
+
+        data = response.json()
+
+        answer = (
+            data
+            .get("choices", [{}])[0]
+            .get("message", {})
+            .get("content")
+        )
+
+        if not answer:
+            answer = "AJ did not receive a valid answer."
+
+        set_status(
+            "ONLINE",
+            "AJ is ready."
+        )
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": answer.strip(),
+            "filename": file_name,
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+
+        print(
+            "FILE QUESTION ERROR:",
+            error
+        )
+
+        set_status(
+            "ERROR",
+            "AJ could not answer the file question."
+        )
+
+        return jsonify({
+            "assistant": "AJ",
+            "response": "AJ could not answer that file question.",
             "state": "ERROR"
         }), 500
 
