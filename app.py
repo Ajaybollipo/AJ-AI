@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request, send_file, send_from_directory
 from datetime import datetime
+from werkzeug.utils import secure_filename
+from collections import defaultdict, deque
 import os
 import tempfile
 import time
-from collections import defaultdict, deque
-from werkzeug.utils import secure_filename
 import requests
 
 from aj_brain import ask_aj
@@ -19,69 +19,65 @@ app = Flask(
 )
 
 # =========================================================
-# SECURITY CONFIG
+# CONFIGURATION / SECURITY
 # =========================================================
 
-# Limit incoming HTTP bodies to protect the Render instance.
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024
-
-ALLOWED_FILE_EXTENSIONS = {
-    "txt", "md", "py", "js", "html", "css", "json",
-    "csv", "xml", "java", "c", "cpp", "sql", "pdf"
-}
 
 MAX_MESSAGE_LENGTH = 6000
 MAX_HISTORY_ITEMS = 20
 MAX_HISTORY_ITEM_LENGTH = 12000
 MAX_FILE_CONTENT_LENGTH = 50000
 
-# Lightweight in-memory rate limiter.
-# This protects the public API without adding another database.
+ALLOWED_FILE_EXTENSIONS = {
+    "txt", "md", "py", "js", "html", "css", "json", "csv",
+    "xml", "java", "c", "cpp", "sql", "pdf"
+}
+
 RATE_LIMITS = {
     "command": (30, 60),
     "voice": (30, 60),
     "upload": (10, 60),
-    "file_question": (20, 60),
+    "file_question": (20, 60)
 }
 
 _request_log = defaultdict(deque)
 
+# File-question endpoint uses OpenRouter directly.
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+MODEL = "openrouter/free"
+
 
 def get_client_ip():
-    # Do not trust arbitrary X-Forwarded-For values from clients.
+    # Do not trust arbitrary X-Forwarded-For values.
     return request.remote_addr or "unknown"
 
 
-def rate_limited(bucket):
-    limit, window = RATE_LIMITS[bucket]
-    now = time.monotonic()
-    key = f"{bucket}:{get_client_ip()}"
-    events = _request_log[key]
+def rate_limited(name):
+    limit, window = RATE_LIMITS[name]
+    now = time.time()
+    ip = get_client_ip()
+    key = f"{name}:{ip}"
 
-    while events and now - events[0] > window:
-        events.popleft()
+    bucket = _request_log[key]
 
-    if len(events) >= limit:
+    while bucket and now - bucket[0] > window:
+        bucket.popleft()
+
+    if len(bucket) >= limit:
         return True
 
-    events.append(now)
+    bucket.append(now)
     return False
 
 
-def allowed_file(filename):
-    if not filename or "." not in filename:
-        return False
-
-    extension = filename.rsplit(".", 1)[1].lower()
-    return extension in ALLOWED_FILE_EXTENSIONS
-
-
-def security_error(message="Too many requests. Please try again shortly."):
+def security_error(message, status=400):
     return jsonify({
         "assistant": "AJ",
         "response": message,
         "state": "ERROR"
-    }), 429
+    }), status
 
 
 def clean_history(history):
@@ -94,16 +90,11 @@ def clean_history(history):
         if not isinstance(item, dict):
             continue
 
-        role = item.get("role")
-        content = item.get("content")
+        role = str(item.get("role", "")).strip().lower()
+        content = str(item.get("content", "")).strip()
 
-        if role not in {"user", "assistant"}:
+        if role not in {"user", "assistant", "system"}:
             continue
-
-        if not isinstance(content, str):
-            continue
-
-        content = content.strip()
 
         if not content:
             continue
@@ -114,6 +105,23 @@ def clean_history(history):
         })
 
     return cleaned
+
+
+def allowed_file(filename):
+    if not filename or "." not in filename:
+        return False
+
+    extension = filename.rsplit(".", 1)[1].lower()
+    return extension in ALLOWED_FILE_EXTENSIONS
+
+
+def openrouter_headers():
+    return {
+        "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+        "Content-Type": "application/json",
+        "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
+        "X-Title": "AJ Personal AI Assistant"
+    }
 
 
 # =========================================================
@@ -128,7 +136,6 @@ AJ_STATUS = {
 
 
 def set_status(state, message):
-
     AJ_STATUS["state"] = state
     AJ_STATUS["message"] = message
     AJ_STATUS["updated"] = datetime.now().strftime("%H:%M:%S")
@@ -140,12 +147,9 @@ def set_status(state, message):
 
 @app.route("/")
 def home():
-
     return send_file(
         os.path.join(
-            os.path.dirname(
-                os.path.abspath(__file__)
-            ),
+            os.path.dirname(os.path.abspath(__file__)),
             "index.html"
         )
     )
@@ -157,11 +161,8 @@ def home():
 
 @app.route("/static/images/<path:filename>")
 def signature(filename):
-
     static_directory = os.path.join(
-        os.path.dirname(
-            os.path.abspath(__file__)
-        ),
+        os.path.dirname(os.path.abspath(__file__)),
         "static",
         "images"
     )
@@ -178,7 +179,6 @@ def signature(filename):
 
 @app.route("/api/status")
 def status():
-
     return jsonify({
         "assistant": "AJ",
         "state": AJ_STATUS["state"],
@@ -191,25 +191,24 @@ def status():
 # VOICE COMMAND API
 # =========================================================
 
-@app.route(
-    "/api/voice",
-    methods=["POST"]
-)
+@app.route("/api/voice", methods=["POST"])
 def voice_command():
-
     if rate_limited("voice"):
-        return security_error()
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    message = str(
-        data.get(
-            "message",
-            ""
+        return security_error(
+            "Too many voice requests. Please wait a moment.",
+            429
         )
-    ).strip()
+
+    data = request.get_json(silent=True) or {}
+
+    message = str(data.get("message", "")).strip()
+
+    # IMPORTANT FIX:
+    # Voice now receives and sanitizes the same conversation history
+    # used by the normal command endpoint.
+    history = clean_history(
+        data.get("history", [])
+    )
 
     if not message:
         return jsonify({
@@ -218,81 +217,61 @@ def voice_command():
             "state": "ONLINE"
         }), 400
 
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return security_error(
+            "Your voice command is too long. Please shorten it.",
+            400
+        )
 
     try:
+        result = process_voice_command(message)
 
-        result = process_voice_command(
-            message
-        )
-
-        command = result.get(
-            "command",
-            message
-        )
+        command = result.get("command", message)
 
         if not command:
-
             return jsonify({
                 "assistant": "AJ",
                 "response": "Yes, Ajay?",
-                "wake_word": result.get(
-                    "wake_word",
-                    False
-                ),
+                "wake_word": result.get("wake_word", False),
                 "state": "LISTENING"
             })
-
 
         set_status(
             "THINKING",
             "Processing voice command..."
         )
 
-
+        # IMPORTANT FIX:
+        # Do NOT pass [] here. Pass the actual conversation history.
         response = ask_aj(
             command,
-            []
+            history
         )
-
 
         set_status(
             "ONLINE",
             "AJ is ready."
         )
 
-
         return jsonify({
             "assistant": "AJ",
             "response": response,
             "command": command,
-            "wake_word": result.get(
-                "wake_word",
-                False
-            ),
+            "wake_word": result.get("wake_word", False),
             "state": "ONLINE"
         })
 
-
     except Exception as error:
-
-        print(
-            "VOICE COMMAND ERROR:",
-            error
-        )
-
+        print("VOICE COMMAND ERROR:", error)
 
         set_status(
             "ERROR",
             "AJ voice command failed."
         )
 
-
         return jsonify({
             "assistant": "AJ",
-            "response": (
-                "I couldn't process "
-                "that voice command."
-            ),
+            "response": "I couldn't process that voice command.",
             "state": "ERROR"
         }), 500
 
@@ -301,112 +280,79 @@ def voice_command():
 # COMMAND API
 # =========================================================
 
-@app.route(
-    "/api/command",
-    methods=["POST"]
-)
+@app.route("/api/command", methods=["POST"])
 def command():
-
     if rate_limited("command"):
-        return security_error()
-
-    data = request.get_json(
-        silent=True
-    ) or {}
-
-    message = str(
-        data.get(
-            "message",
-            ""
+        return security_error(
+            "Too many requests. Please wait a moment.",
+            429
         )
-    ).strip()
 
-    raw_history = data.get("history", [])
-    history = clean_history(raw_history)
+    data = request.get_json(silent=True) or {}
+
+    message = str(data.get("message", "")).strip()
+    history = clean_history(data.get("history", []))
 
     if not message:
-
         return jsonify({
             "assistant": "AJ",
             "response": "Please say something.",
             "state": "ONLINE"
         }), 400
 
-
-    if len(message) > 6000:
-
-        return jsonify({
-            "assistant": "AJ",
-            "response": (
-                "Your message is too long. "
-                "Please shorten it."
-            ),
-            "state": "ERROR"
-        }), 400
-
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return security_error(
+            "Your message is too long. Please shorten it.",
+            400
+        )
 
     try:
-
         lower = message.lower()
-
 
         set_status(
             "THINKING",
             "Understanding your request..."
         )
 
-
-        if any(
-            word in lower
-            for word in [
-                "search",
-                "look up",
-                "find information",
-                "find info",
-                "google",
-                "latest",
-                "current",
-                "news"
-            ]
-        ):
-
+        if any(word in lower for word in [
+            "search",
+            "look up",
+            "find information",
+            "find info",
+            "google",
+            "latest",
+            "current",
+            "news"
+        ]):
             set_status(
                 "SEARCHING",
                 "Searching..."
             )
 
-
-        elif any(
-            word in lower
-            for word in [
-                "open",
-                "launch",
-                "start",
-                "play",
-                "go to",
-                "take me",
-                "calculate",
-                "weather"
-            ]
-        ):
-
+        elif any(word in lower for word in [
+            "open",
+            "launch",
+            "start",
+            "play",
+            "go to",
+            "take me",
+            "calculate",
+            "weather"
+        ]):
             set_status(
                 "EXECUTING",
                 "Executing command..."
             )
-
 
         response = ask_aj(
             message,
             history
         )
 
-
         set_status(
             "ONLINE",
             "AJ is ready."
         )
-
 
         return jsonify({
             "assistant": "AJ",
@@ -414,27 +360,17 @@ def command():
             "state": "ONLINE"
         })
 
-
     except Exception as error:
-
-        print(
-            "COMMAND ERROR:",
-            error
-        )
-
+        print("COMMAND ERROR:", error)
 
         set_status(
             "ERROR",
             "AJ encountered an error."
         )
 
-
         return jsonify({
             "assistant": "AJ",
-            "response": (
-                "I'm having trouble "
-                "processing that right now."
-            ),
+            "response": "I'm having trouble processing that right now.",
             "state": "ERROR"
         }), 500
 
@@ -443,102 +379,73 @@ def command():
 # FILE INTELLIGENCE
 # =========================================================
 
-@app.route(
-    "/api/upload",
-    methods=["POST"]
-)
+@app.route("/api/upload", methods=["POST"])
 def upload_file():
-
     if rate_limited("upload"):
-        return security_error()
+        return security_error(
+            "Too many file uploads. Please wait a moment.",
+            429
+        )
 
     if "file" not in request.files:
-
-        return jsonify({
-            "assistant": "AJ",
-            "response": "No file was uploaded.",
-            "state": "ERROR"
-        }), 400
-
+        return security_error(
+            "No file was uploaded.",
+            400
+        )
 
     uploaded_file = request.files["file"]
 
+    if not uploaded_file.filename:
+        return security_error(
+            "Please select a file.",
+            400
+        )
 
-    original_filename = uploaded_file.filename or ""
-    safe_filename = secure_filename(original_filename)
+    if not allowed_file(uploaded_file.filename):
+        return security_error(
+            "That file type is not supported.",
+            400
+        )
+
+    safe_filename = secure_filename(uploaded_file.filename)
 
     if not safe_filename:
-        return jsonify({
-            "assistant": "AJ",
-            "response": "Please select a file.",
-            "state": "ERROR"
-        }), 400
+        return security_error(
+            "Invalid file name.",
+            400
+        )
 
-
-    if not allowed_file(safe_filename):
-        return jsonify({
-            "assistant": "AJ",
-            "response": (
-                "That file type is not allowed. "
-                "Please upload a supported document or code file."
-            ),
-            "state": "ERROR"
-        }), 400
-
-    # Check the uploaded stream size before saving it.
-    uploaded_file.stream.seek(0, os.SEEK_END)
-    upload_size = uploaded_file.stream.tell()
-    uploaded_file.stream.seek(0)
-
-    if upload_size > 5 * 1024 * 1024:
-        return jsonify({
-            "assistant": "AJ",
-            "response": "File is too large. Maximum file size is 5 MB.",
-            "state": "ERROR"
-        }), 413
+    temporary_path = None
 
     try:
-
         set_status(
             "READING",
             "Reading your file..."
         )
 
-        suffix = os.path.splitext(
-            safe_filename
-        )[1].lower()
+        suffix = os.path.splitext(safe_filename)[1].lower()
 
+        # Extra size protection even though Flask has a global limit.
+        uploaded_file.stream.seek(0, os.SEEK_END)
+        size = uploaded_file.stream.tell()
+        uploaded_file.stream.seek(0)
+
+        if size > 5 * 1024 * 1024:
+            return security_error(
+                "File is too large. Maximum allowed size is 5 MB.",
+                400
+            )
 
         with tempfile.NamedTemporaryFile(
             delete=False,
             suffix=suffix
         ) as temporary_file:
-
-            uploaded_file.save(
-                temporary_file.name
-            )
-
+            uploaded_file.save(temporary_file.name)
             temporary_path = temporary_file.name
 
-
-        result = prepare_file_for_ai(
-            temporary_path
-        )
-
-
-        try:
-
-            os.remove(
-                temporary_path
-            )
-
-        except Exception:
-
-            pass
-
+        result = prepare_file_for_ai(temporary_path)
 
         if not result.get("success"):
-
             set_status(
                 "ONLINE",
                 "AJ is ready."
@@ -553,15 +460,13 @@ def upload_file():
                 "state": "ERROR"
             }), 400
 
-
         file_name = result.get(
             "name",
             safe_filename
         )
 
-        content = result.get(
-            "content",
-            ""
+        content = str(
+            result.get("content", "")
         )
 
         truncated = result.get(
@@ -569,6 +474,7 @@ def upload_file():
             False
         )
 
+        content = content[:MAX_FILE_CONTENT_LENGTH]
 
         analysis_prompt = f"""
 You are AJ, a personal AI assistant.
@@ -603,27 +509,21 @@ If it is a document:
 Do not invent information that is not present in the file.
 """
 
-
         response = ask_aj(
             analysis_prompt,
             []
         )
 
-
         if truncated:
-
             response += (
-                "\n\nNote: The file was large, "
-                "so AJ analyzed the first "
-                "50,000 characters."
+                "\n\nNote: The file was large, so AJ analyzed "
+                "the available extracted content."
             )
-
 
         set_status(
             "ONLINE",
             "AJ is ready."
         )
-
 
         return jsonify({
             "assistant": "AJ",
@@ -632,47 +532,41 @@ Do not invent information that is not present in the file.
             "state": "ONLINE"
         })
 
-
     except Exception as error:
-
-        print(
-            "FILE UPLOAD ERROR:",
-            error
-        )
-
+        print("FILE UPLOAD ERROR:", error)
 
         set_status(
             "ERROR",
             "AJ could not read the file."
         )
 
-
         return jsonify({
             "assistant": "AJ",
-            "response": (
-                "AJ could not process "
-                "that file."
-            ),
+            "response": "AJ could not process that file.",
             "state": "ERROR"
         }), 500
+
+    finally:
+        if temporary_path:
+            try:
+                os.remove(temporary_path)
+            except Exception:
+                pass
 
 
 # =========================================================
 # FILE QUESTION API
 # =========================================================
 
-@app.route(
-    "/api/file-question",
-    methods=["POST"]
-)
+@app.route("/api/file-question", methods=["POST"])
 def file_question():
-
     if rate_limited("file_question"):
-        return security_error()
+        return security_error(
+            "Too many file questions. Please wait a moment.",
+            429
+        )
 
-    data = request.get_json(
-        silent=True
-    ) or {}
+    data = request.get_json(silent=True) or {}
 
     question = str(
         data.get("question", "")
@@ -686,32 +580,25 @@ def file_question():
         data.get("filename", "uploaded file")
     )
 
-    if len(question) > MAX_MESSAGE_LENGTH:
-        return jsonify({
-            "assistant": "AJ",
-            "response": "Your file question is too long.",
-            "state": "ERROR"
-        }), 400
-
     if not question:
-        return jsonify({
-            "assistant": "AJ",
-            "response": "Please ask a question about the file.",
-            "state": "ERROR"
-        }), 400
+        return security_error(
+            "Please ask a question about the file.",
+            400
+        )
+
+    if len(question) > MAX_MESSAGE_LENGTH:
+        return security_error(
+            "Your file question is too long.",
+            400
+        )
 
     if not content:
-        return jsonify({
-            "assistant": "AJ",
-            "response": "No file content was provided.",
-            "state": "ERROR"
-        }), 400
+        return security_error(
+            "No file content was provided.",
+            400
+        )
 
-    if len(content) > MAX_FILE_CONTENT_LENGTH:
-        content = content[:MAX_FILE_CONTENT_LENGTH]
-
-    if len(file_name) > 255:
-        file_name = file_name[:255]
+    content = content[:MAX_FILE_CONTENT_LENGTH]
 
     if not OPENROUTER_API_KEY:
         return jsonify({
@@ -721,7 +608,6 @@ def file_question():
         }), 500
 
     try:
-
         set_status(
             "THINKING",
             "Answering from your file..."
@@ -753,12 +639,7 @@ Rules:
 
         response = requests.post(
             OPENROUTER_URL,
-            headers={
-                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                "Content-Type": "application/json",
-                "HTTP-Referer": "https://github.com/Ajaybollipo/AJ-AI",
-                "X-Title": "AJ Personal AI Assistant"
-            },
+            headers=openrouter_headers(),
             json={
                 "model": MODEL,
                 "messages": [
@@ -777,16 +658,22 @@ Rules:
                 response.status_code,
                 response.text
             )
+
+            set_status(
+                "ERROR",
+                "AJ could not answer the file question."
+            )
+
             return jsonify({
                 "assistant": "AJ",
                 "response": "AJ could not answer from the file right now.",
                 "state": "ERROR"
             }), 500
 
-        data = response.json()
+        result_data = response.json()
 
         answer = (
-            data
+            result_data
             .get("choices", [{}])[0]
             .get("message", {})
             .get("content")
@@ -808,11 +695,7 @@ Rules:
         })
 
     except Exception as error:
-
-        print(
-            "FILE QUESTION ERROR:",
-            error
-        )
+        print("FILE QUESTION ERROR:", error)
 
         set_status(
             "ERROR",
@@ -832,7 +715,6 @@ Rules:
 
 @app.route("/health")
 def health():
-
     return jsonify({
         "status": "AJ is running",
         "assistant": "AJ",
@@ -849,14 +731,14 @@ def health():
 
 
 # =========================================================
-# REQUEST SIZE ERROR
+# 413 FILE TOO LARGE
 # =========================================================
 
 @app.errorhandler(413)
-def request_too_large(error):
+def request_entity_too_large(error):
     return jsonify({
         "assistant": "AJ",
-        "response": "Request is too large. Please reduce the size and try again.",
+        "response": "The uploaded file or request is too large.",
         "state": "ERROR"
     }), 413
 
@@ -866,51 +748,18 @@ def request_too_large(error):
 # =========================================================
 
 if __name__ == "__main__":
-
-    print(
-        "================================"
-    )
-
-    print(
-        "        AJ AI ASSISTANT"
-    )
-
-    print(
-        "================================"
-    )
-
-    print(
-        "AJ is online."
-    )
-
-    print(
-        "AI Provider: OpenRouter"
-    )
-
-    print(
-        "Command Center: ON"
-    )
-
-    print(
-        "Memory: ON"
-    )
-
-    print(
-        "Web Search: ON"
-    )
-
-    print(
-        "File Intelligence: ON"
-    )
-
-    print(
-        "Voice Control: ON"
-    )
-
-    print(
-        "================================"
-    )
-
+    print("================================")
+    print("        AJ AI ASSISTANT")
+    print("================================")
+    print("AJ is online.")
+    print("AI Provider: OpenRouter")
+    print("Command Center: ON")
+    print("Memory: ON")
+    print("Web Search: ON")
+    print("File Intelligence: ON")
+    print("Voice Control: ON")
+    print("Security: ON")
+    print("================================")
 
     port = int(
         os.environ.get(
@@ -919,9 +768,8 @@ if __name__ == "__main__":
         )
     )
 
-
     app.run(
         host="0.0.0.0",
         port=port,
-        debug=True
+        debug=False
     )
