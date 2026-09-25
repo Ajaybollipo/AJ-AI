@@ -899,12 +899,29 @@ def continue_task_api():
             )
 
         step = start_next_step(task)
+
+        if step is None:
+            save_task(task)
+
+            return jsonify({
+                "assistant": "AJ",
+                "task": task_to_dict(task),
+                "step": None,
+                "summary": task_summary(task),
+                "state": "ONLINE"
+            })
+
+        # Execute only the current safe step.
+        # Sensitive steps remain blocked by the task engine.
+        execution = execute_task_step(task)
+
         save_task(task)
 
         return jsonify({
             "assistant": "AJ",
             "task": task_to_dict(task),
-            "step": step,
+            "step": task.get("current_step"),
+            "execution": execution,
             "summary": task_summary(task),
             "state": "ONLINE"
         })
