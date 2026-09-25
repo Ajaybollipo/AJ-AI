@@ -192,6 +192,34 @@ def get_weather(city):
     )
 
 
+def open_url(url):
+    return "__AJ_OPEN_URL__" + url
+
+
+def youtube_search(query):
+    query = query.strip()
+
+    if not query:
+        return None
+
+    return open_url(
+        "https://www.youtube.com/results?search_query="
+        + quote_plus(query)
+    )
+
+
+def google_search(query):
+    query = query.strip()
+
+    if not query:
+        return None
+
+    return open_url(
+        "https://www.google.com/search?q="
+        + quote_plus(query)
+    )
+
+
 def handle_command(message):
 
     raw = message.strip()
@@ -214,21 +242,19 @@ def handle_command(message):
             r"\s+website$",
             "",
             site
-        )
+        ).strip()
 
         if site in SITES:
-
-            # The frontend will receive this instruction
-            # and open the URL in the user's browser.
-            return (
-                "__AJ_OPEN_URL__"
-                + SITES[site]
-            )
+            return open_url(SITES[site])
 
     # ==========================================
-    # YOUTUBE
+    # YOUTUBE SEARCH / PLAY
     # ==========================================
 
+    # Examples:
+    # play shape of you on youtube
+    # search python tutorials on youtube
+    # find virat kohli on youtube
     match = re.match(
         r"^(?:play|search|find)\s+(.+?)"
         r"\s+(?:on\s+)?youtube$",
@@ -239,17 +265,32 @@ def handle_command(message):
     if match:
 
         query = match.group(1).strip()
+        return youtube_search(query)
 
-        return (
-            "__AJ_OPEN_URL__"
-            "https://www.youtube.com/results?search_query="
-            + quote_plus(query)
-        )
+    # Examples:
+    # youtube search python
+    # youtube python tutorials
+    # search youtube for python
+    match = re.match(
+        r"^(?:search\s+youtube\s+for|youtube\s+search\s+for|"
+        r"youtube\s+search|youtube)\s+(.+)$",
+        raw,
+        re.I
+    )
+
+    if match:
+
+        query = match.group(1).strip()
+        return youtube_search(query)
 
     # ==========================================
     # GOOGLE SEARCH
     # ==========================================
 
+    # Examples:
+    # search for Python
+    # google Python
+    # search google for Python
     match = re.match(
         r"^(?:search|google)\s+(?:for\s+)?(.+)$",
         raw,
@@ -260,11 +301,21 @@ def handle_command(message):
 
         query = match.group(1).strip()
 
-        return (
-            "__AJ_OPEN_URL__"
-            "https://www.google.com/search?q="
-            + quote_plus(query)
-        )
+        if query.lower().startswith("google for "):
+            query = query[11:].strip()
+
+        return google_search(query)
+
+    match = re.match(
+        r"^search\s+google\s+for\s+(.+)$",
+        raw,
+        re.I
+    )
+
+    if match:
+
+        query = match.group(1).strip()
+        return google_search(query)
 
     # ==========================================
     # TIME
