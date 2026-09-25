@@ -2,7 +2,6 @@ from datetime import datetime
 import os
 import requests
 from aj_commands import handle_command
-import webbrowser
 
 from aj_memory import remember, get_all_memory, clear_memory
 
@@ -14,10 +13,8 @@ from aj_memory import remember, get_all_memory, clear_memory
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 MODEL = "openrouter/free"
 
-# OpenRouter fallback models.
-# OpenRouter tries these in order if a model/provider is
-# rate-limited or temporarily unavailable.
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+
 
 # =========================
 # OPEN WEBSITES
@@ -85,7 +82,6 @@ def build_memory_text():
 
 def forget_memory(message):
     lower = message.lower()
-
     memory = get_all_memory()
 
     memory_map = {
@@ -146,10 +142,6 @@ def web_search(query):
         if not results:
             return f"I couldn't find useful results for '{query}'."
 
-        # =========================
-        # PREPARE SEARCH RESULTS
-        # =========================
-
         search_text = ""
 
         for i, result in enumerate(results, 1):
@@ -160,10 +152,6 @@ def web_search(query):
                 f"URL: {result['url']}\n"
                 f"DESCRIPTION: {result['snippet']}\n\n"
             )
-
-        # =========================
-        # NO OPENROUTER
-        # =========================
 
         if not OPENROUTER_API_KEY:
 
@@ -177,10 +165,6 @@ def web_search(query):
                 )
 
             return output.strip()
-
-        # =========================
-        # AI SEARCH SUMMARY
-        # =========================
 
         prompt = f"""
 You are AJ, a personal AI assistant.
@@ -251,10 +235,6 @@ Do not use citation markers such as [1], [2], or 【1】.
             timeout=60
         )
 
-        # =========================
-        # SEARCH AI ERROR
-        # =========================
-
         if response.status_code != 200:
 
             print(
@@ -286,13 +266,143 @@ Do not use citation markers such as [1], [2], or 【1】.
         if answer:
             return answer.strip()
 
-        return f"Search completed, but AJ couldn't summarize the results."
+        return "Search completed, but AJ couldn't summarize the results."
 
     except Exception as error:
 
         print("WEB SEARCH ERROR:", error)
 
         return "AJ could not perform the web search right now."
+
+
+# =========================
+# STUDY MODE
+# =========================
+
+def build_study_prompt(topic):
+    return f"""
+You are AJ Study Mode, a focused study assistant for Ajay.
+
+The student asked about:
+
+{topic}
+
+Teach the topic clearly and in a B.Tech-student-friendly way.
+
+Follow this structure when it fits the topic:
+
+1. SIMPLE DEFINITION
+2. CORE CONCEPT
+3. IMPORTANT POINTS
+4. STEP-BY-STEP EXPLANATION
+5. EXAMPLE
+6. EXAM-READY ANSWER
+7. QUICK REVISION
+8. 3 PRACTICE QUESTIONS
+
+Rules:
+- Start from basics if the topic may be unfamiliar.
+- Use simple language.
+- Keep technical terms accurate.
+- Use headings and bullet points.
+- For programming topics, include correct code when useful.
+- For algorithms, explain the steps clearly.
+- For numerical problems, show the calculation steps.
+- For exam preparation, make the answer easy to revise.
+- Do not invent syllabus-specific facts that were not provided.
+- If the topic is ambiguous, explain the most common meaning and
+  state what assumption you made.
+"""
+
+
+def build_quiz_prompt(topic):
+    return f"""
+You are AJ Quiz Mode.
+
+Create a short quiz for a B.Tech student on:
+
+{topic}
+
+Rules:
+- Ask 5 questions.
+- Mix conceptual and application-based questions.
+- Do not reveal answers immediately.
+- Number every question.
+- Keep the difficulty suitable for a college student.
+- After the user answers, evaluate each answer and explain mistakes.
+"""
+
+
+def build_summary_prompt(topic):
+    return f"""
+You are AJ Revision Mode.
+
+Summarize this study topic for a B.Tech student:
+
+{topic}
+
+Give:
+- Definition
+- 5 to 10 key points
+- Important formulas/steps if applicable
+- One small example
+- Common exam points
+- A 30-second quick revision section
+
+Keep it concise and easy to memorize.
+"""
+
+
+def detect_study_request(message):
+    lower = message.strip().lower()
+
+    quiz_starts = (
+        "quiz me on ",
+        "quiz me about ",
+        "test me on ",
+        "test me about ",
+        "give me a quiz on ",
+        "give me a quiz about "
+    )
+
+    summary_starts = (
+        "summarize ",
+        "summarise ",
+        "give me a summary of ",
+        "summary of ",
+        "revise ",
+        "revision of "
+    )
+
+    study_starts = (
+        "explain ",
+        "teach me ",
+        "teach me about ",
+        "study ",
+        "learn ",
+        "help me understand ",
+        "how does "
+    )
+
+    for prefix in quiz_starts:
+        if lower.startswith(prefix):
+            topic = message[len(prefix):].strip()
+            if topic:
+                return "quiz", topic
+
+    for prefix in summary_starts:
+        if lower.startswith(prefix):
+            topic = message[len(prefix):].strip()
+            if topic:
+                return "summary", topic
+
+    for prefix in study_starts:
+        if lower.startswith(prefix):
+            topic = message[len(prefix):].strip()
+            if topic:
+                return "study", topic
+
+    return None, None
 
 
 # =========================
@@ -318,31 +428,46 @@ def ask_aj(message, history=None):
 
         if command_result.startswith("__AJ_MODE_STUDY__"):
 
-            message = (
-                "Study mode. Explain the following for a B.Tech "
-                "student with clear concepts, examples, and "
-                "exam-ready points:\n"
-                + command_result.replace(
+            message = build_study_prompt(
+                command_result.replace(
                     "__AJ_MODE_STUDY__",
                     "",
                     1
-                )
+                ).strip()
             )
 
         elif command_result.startswith("__AJ_MODE_CODING__"):
 
             message = (
                 "Coding mode. Solve the following professionally. "
-                "Give correct code, explanation, and a small example:\n"
+                "Give correct code, explanation, and a small example:\n\n"
                 + command_result.replace(
                     "__AJ_MODE_CODING__",
                     "",
                     1
-                )
+                ).strip()
             )
+
+        elif command_result.startswith("__AJ_OPEN_URL__"):
+            return command_result
 
         else:
             return command_result
+
+    # =========================================================
+    # NATURAL STUDY MODE
+    # =========================================================
+
+    study_type, study_topic = detect_study_request(message)
+
+    if study_type == "study":
+        message = build_study_prompt(study_topic)
+
+    elif study_type == "quiz":
+        message = build_quiz_prompt(study_topic)
+
+    elif study_type == "summary":
+        message = build_summary_prompt(study_topic)
 
     # =========================
     # BASIC COMMANDS
@@ -402,6 +527,9 @@ def ask_aj(message, history=None):
 
     process_memory(message)
 
+    # =========================
+    # OPEN WEBSITE
+    # =========================
 
     if lower.startswith("open "):
         site = lower[5:].strip()
@@ -409,14 +537,13 @@ def ask_aj(message, history=None):
         if site in websites:
 
             return (
-                f"Opening {site.title()}:\n\n"
-                f"{websites[site]}"
+                "__AJ_OPEN_URL__"
+                + websites[site]
             )
 
-        return (
-            f"I don't have a direct link for {site} yet."
-        )
+        return f"I don't have a direct link for {site} yet."
 
+    # =========================
     # WEB SEARCH
     # =========================
 
@@ -468,7 +595,7 @@ def ask_aj(message, history=None):
 
         return (
             "OpenRouter API key is not connected. "
-            "Please check the GitHub secret."
+            "Please check the Render environment variable."
         )
 
     # =========================
@@ -569,10 +696,8 @@ SAVED MEMORY:
 
             if response.status_code == 429:
                 return (
-                    "AJ could not get a response from the available "
-                    "OpenRouter models right now. The fallback models "
-                    "are also unavailable or rate-limited. Please try "
-                    "again shortly."
+                    "AJ could not get a response from OpenRouter "
+                    "right now. Please try again shortly."
                 )
 
             return (
@@ -625,6 +750,7 @@ if __name__ == "__main__":
     print("Model:", MODEL)
     print("Persistent memory: ON")
     print("Web search: ON")
+    print("Study mode: ON")
     print("================================")
 
     history = []
