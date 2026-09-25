@@ -212,12 +212,122 @@ def google_search(query):
     query = query.strip()
 
     if not query:
-        return None
+        # ==========================================
+    # COMMAND CENTER HELP
+    # ==========================================
+
+    if lower in {
+        "help",
+        "aj help",
+        "command help",
+        "commands",
+        "show commands",
+        "command center",
+        "what can you do",
+        "what can aj do",
+    }:
+        return get_command_help()
+
+    # ==========================================
+    # COMMAND CENTER STATUS
+    # ==========================================
+
+    if lower in {
+        "command status",
+        "command center status",
+        "show command status",
+    }:
+        status = command_center_status()
+
+        return (
+            "AJ Command Center: ONLINE\n"
+            f"Commands: {len(status['commands'])}\n"
+            f"Websites: {len(status['websites'])}\n"
+            "Tools: calculator, weather, search, memory, "
+            "study and coding."
+        )
+
+    return None
 
     return open_url(
         "https://www.google.com/search?q="
         + quote_plus(query)
     )
+
+
+
+# ==========================================
+# AJ COMMAND CENTER
+# ==========================================
+
+COMMAND_ALIASES = {
+    "yt": "youtube",
+    "youtube videos": "youtube",
+    "google search": "google",
+    "git hub": "github",
+    "ig": "instagram",
+    "chat gpt": "chatgpt",
+    "google mail": "gmail",
+    "mail": "gmail",
+    "email": "gmail",
+    "whats app": "whatsapp",
+    "linked in": "linkedin",
+    "music": "spotify",
+}
+
+COMMAND_HELP = {
+    "open": "Open a supported website.",
+    "search": "Search Google for something.",
+    "youtube": "Search YouTube for videos.",
+    "calculate": "Perform a safe mathematical calculation.",
+    "weather": "Get live weather for a supported city.",
+    "time": "Show the current India time.",
+    "date": "Show today's date.",
+    "memory": "Save, show, or clear AJ memory.",
+    "study": "Start Study Mode with 'study mode: topic'.",
+    "coding": "Start Coding Mode with 'coding mode: task'.",
+}
+
+
+def normalize_site_name(name):
+    name = re.sub(r"\s+", " ", name.strip().lower())
+    return COMMAND_ALIASES.get(name, name)
+
+
+def get_command_help():
+    return (
+        "AJ COMMAND CENTER\n\n"
+        "Open: open YouTube\n"
+        "Search: search for Python tutorials\n"
+        "YouTube: play Python tutorials on YouTube\n"
+        "Calculate: calculate 125 * 48\n"
+        "Weather: weather in Hyderabad\n"
+        "Time: what time is it\n"
+        "Date: today's date\n"
+        "Memory: remember that favorite color is blue\n"
+        "Study: study mode: linked lists\n"
+        "Coding: coding mode: write a Python program\n"
+    )
+
+
+def command_center_status():
+    return {
+        "online": True,
+        "commands": list(COMMAND_HELP.keys()),
+        "websites": sorted(SITES.keys()),
+        "features": [
+            "website_control",
+            "google_search",
+            "youtube_search",
+            "calculator",
+            "weather",
+            "time",
+            "date",
+            "memory",
+            "study_mode",
+            "coding_mode",
+        ],
+    }
 
 
 def handle_command(message):
@@ -236,7 +346,7 @@ def handle_command(message):
 
     if match:
 
-        site = match.group(1).strip()
+        site = normalize_site_name(match.group(1).strip())
 
         site = re.sub(
             r"\s+website$",
