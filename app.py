@@ -24,6 +24,23 @@ app = Flask(
 
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024
 
+# Production security headers.
+# Compatible with the current AJ interface and browser speech APIs.
+@app.after_request
+def add_security_headers(response):
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "SAMEORIGIN"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = (
+        "microphone=(self), camera=(), geolocation=()"
+    )
+    response.headers["Strict-Transport-Security"] = (
+        "max-age=31536000; includeSubDomains"
+    )
+    response.headers["Cache-Control"] = "no-store"
+    return response
+
+
 MAX_MESSAGE_LENGTH = 6000
 MAX_HISTORY_ITEMS = 20
 MAX_HISTORY_ITEM_LENGTH = 12000
@@ -199,7 +216,9 @@ def voice_command():
             429
         )
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return security_error("Invalid request format.", 400)
 
     message = str(data.get("message", "")).strip()
 
@@ -293,7 +312,9 @@ def command():
             429
         )
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return security_error("Invalid request format.", 400)
 
     message = str(data.get("message", "")).strip()
     history = clean_history(data.get("history", []))
@@ -403,6 +424,12 @@ def upload_file():
     if not uploaded_file.filename:
         return security_error(
             "Please select a file.",
+            400
+        )
+
+    if len(uploaded_file.filename) > 255:
+        return security_error(
+            "File name is too long.",
             400
         )
 
@@ -571,7 +598,9 @@ def file_question():
             429
         )
 
-    data = request.get_json(silent=True) or {}
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return security_error("Invalid request format.", 400)
 
     question = str(
         data.get("question", "")
