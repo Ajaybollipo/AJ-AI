@@ -82,6 +82,22 @@ def build_memory_text():
 
 def forget_memory(message):
     lower = message.lower()
+    # =========================================================
+    # CONVERSATION FOLLOW-UP MODE
+    # =========================================================
+
+    follow_up_instruction = detect_follow_up(
+        message,
+        history or []
+    )
+
+    if follow_up_instruction:
+        message = build_conversation_prompt(
+            message,
+            history or [],
+            follow_up_instruction
+        )
+
     memory = get_all_memory()
 
     memory_map = {
@@ -515,6 +531,108 @@ def detect_study_request(message):
 
 
 # =========================
+# CONVERSATION INTELLIGENCE
+# =========================
+
+FOLLOW_UPS = {
+    "why": "Explain why the previous answer is true, using the previous context.",
+    "how": "Explain how the previous topic or solution works, using the previous context.",
+    "how?": "Explain how the previous topic or solution works, using the previous context.",
+    "why?": "Explain why the previous answer is true, using the previous context.",
+    "explain again": "Explain the previous answer again in simpler language.",
+    "explain that again": "Explain the previous topic again in simpler language.",
+    "simplify that": "Simplify the previous answer without losing the important meaning.",
+    "give example": "Give a clear example related to the previous topic.",
+    "give me an example": "Give a clear example related to the previous topic.",
+    "more": "Continue the previous answer with useful additional details.",
+    "more details": "Continue the previous answer with useful additional details.",
+    "what about it": "Continue discussing the previous topic using the existing context.",
+    "what do you mean": "Clarify the previous answer in simple language.",
+    "continue": "Continue from the previous answer without restarting the topic.",
+}
+
+
+def get_conversation_context(history):
+    if not history:
+        return "No recent conversation is available."
+
+    context = []
+
+    for item in history[-12:]:
+        role = item.get("role")
+        content = item.get("content")
+
+        if role in ["user", "assistant"] and content:
+            context.append(
+                f"{role.upper()}: {content}"
+            )
+
+    if not context:
+        return "No recent conversation is available."
+
+    return "\n".join(context)
+
+
+def detect_follow_up(message, history):
+    if not history:
+        return None
+
+    normalized = " ".join(
+        message.strip().lower().split()
+    )
+
+    if normalized in FOLLOW_UPS:
+        return FOLLOW_UPS[normalized]
+
+    short_follow_ups = (
+        "and?",
+        "then?",
+        "next?",
+        "really?",
+        "why",
+        "how",
+        "example",
+        "more"
+    )
+
+    if normalized in short_follow_ups:
+        return (
+            "Continue from the previous conversation. "
+            "Do not restart the topic unless necessary."
+        )
+
+    return None
+
+
+def build_conversation_prompt(message, history, follow_up_instruction):
+    context = get_conversation_context(history)
+
+    return f"""
+You are AJ, a personal AI assistant.
+
+The user is continuing an existing conversation.
+
+RECENT CONVERSATION:
+{context}
+
+CURRENT USER MESSAGE:
+{message}
+
+CONVERSATION INSTRUCTION:
+{follow_up_instruction}
+
+Rules:
+- Use the recent conversation to understand references such as
+  "that", "it", "this", "why", "how", "again", and "more".
+- Do not unnecessarily repeat the previous answer.
+- Continue naturally from the existing topic.
+- If the reference is genuinely ambiguous, ask one short
+  clarification question.
+- Keep the answer useful and concise.
+"""
+
+
+# =========================
 # AJ AI BRAIN
 # =========================
 
@@ -736,6 +854,15 @@ The user's name is Ajay.
 Be intelligent, helpful, accurate and concise.
 
 Use saved memory and recent conversation when relevant.
+
+CONVERSATION RULES:
+1. Understand follow-up questions from recent context.
+2. Resolve references such as "it", "that", "this", "again",
+   "why", "how", "more", and "continue" from recent messages.
+3. Do not repeat the same introduction when the user is continuing
+   the same topic.
+4. If the user changes the subject, follow the new subject.
+5. Never invent conversation history that is not provided.
 
 MEMORY RULES:
 
