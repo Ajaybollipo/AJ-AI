@@ -1,4 +1,6 @@
 import uuid
+import json
+import os
 from datetime import datetime
 
 
@@ -9,6 +11,8 @@ from datetime import datetime
 MAX_STEPS = 20
 MAX_STEP_LENGTH = 2000
 MAX_RESULT_LENGTH = 5000
+TASK_FILE = "aj_tasks.json"
+MAX_STORED_TASKS = 20
 
 
 def _now():
@@ -17,6 +21,132 @@ def _now():
 
 def _clean_text(value, limit=MAX_STEP_LENGTH):
     return str(value or "").strip()[:limit]
+
+
+
+def _task_file_path():
+    return os.path.join(
+        os.path.dirname(os.path.abspath(__file__)),
+        TASK_FILE
+    )
+
+
+def _save_tasks(tasks):
+    """Persist task state safely using an atomic file replacement."""
+    path = _task_file_path()
+    temp_path = path + ".tmp"
+
+    try:
+        with open(temp_path, "w", encoding="utf-8") as file:
+            json.dump(
+                tasks[-MAX_STORED_TASKS:],
+                file,
+                indent=2,
+                ensure_ascii=False
+            )
+
+        os.replace(temp_path, path)
+        return True
+
+    except Exception:
+        try:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
+        except Exception:
+            pass
+
+        return False
+
+
+def _load_tasks():
+    """Load persisted tasks. Corrupt storage is treated as empty."""
+    path = _task_file_path()
+
+    if not os.path.exists(path):
+        return []
+
+    try:
+        with open(path, "r", encoding="utf-8") as file:
+            data = json.load(file)
+
+        if not isinstance(data, list):
+            return []
+
+        return data[-MAX_STORED_TASKS:]
+
+    except Exception:
+        return []
+
+
+def save_task(task):
+    """Create or update one persisted task."""
+    if not task or not task.get("id"):
+        return False
+
+    tasks = _load_tasks()
+    task_id = task.get("id")
+
+    replaced = False
+
+    for index, stored_task in enumerate(tasks):
+        if stored_task.get("id") == task_id:
+            tasks[index] = task
+            replaced = True
+            break
+
+    if not replaced:
+        tasks.append(task)
+
+    return _save_tasks(tasks)
+
+
+def get_task(task_id=None):
+    """
+    Return a persisted task.
+
+    If task_id is omitted, return the most recent active task.
+    """
+    tasks = _load_tasks()
+
+    if task_id:
+        for task in tasks:
+            if task.get("id") == task_id:
+                return task
+        return None
+
+    for task in reversed(tasks):
+        if task.get("status") in {
+            "pending",
+            "running",
+            "waiting_confirmation"
+        }:
+            return task
+
+    return tasks[-1] if tasks else None
+
+
+def get_all_tasks():
+    """Return persisted tasks, newest last."""
+    return _load_tasks()
+
+
+def delete_task(task_id):
+    """Delete a stored task record."""
+    tasks = _load_tasks()
+    filtered = [
+        task for task in tasks
+        if task.get("id") != task_id
+    ]
+
+    if len(filtered) == len(tasks):
+        return False
+
+    return _save_tasks(filtered)
+
+
+def clear_tasks():
+    """Clear all persisted task records."""
+    return _save_tasks([])
 
 
 def create_task(title, steps):
@@ -55,7 +185,7 @@ def create_task(title, steps):
                 )
             })
 
-    return {
+    task = {
         "id": str(uuid.uuid4()),
         "title": title,
         "status": "pending",
@@ -65,6 +195,9 @@ def create_task(title, steps):
         "steps": cleaned_steps,
         "result": None
     }
+
+    save_task(task)
+    return task
 
 
 def get_progress(task):
@@ -116,6 +249,7 @@ def start_task(task):
 
     # Do not automatically execute sensitive steps.
     start_next_step(task)
+    save_task(task)
 
     return task
 
@@ -139,6 +273,7 @@ def start_next_step(task):
             task["current_step"] = step["id"]
             task["status"] = "waiting_confirmation"
             task["updated_at"] = _now()
+            save_task(task)
             return step
 
         step["status"] = "running"
@@ -149,6 +284,7 @@ def start_next_step(task):
         return step
 
     _finish_if_complete(task)
+    save_task(task)
 
     return None
 
@@ -173,6 +309,7 @@ def confirm_current_step(task):
             step["status"] = "running"
             task["status"] = "running"
             task["updated_at"] = _now()
+            save_task(task)
 
             return step
 
@@ -203,6 +340,7 @@ def complete_step(task, step_id, result=""):
         task["updated_at"] = _now()
 
         _finish_if_complete(task)
+        save_task(task)
 
         return True
 
@@ -222,6 +360,7 @@ def fail_step(task, step_id, error):
         step["error"] = _clean_text(error, 2000)
         task["status"] = "failed"
         task["updated_at"] = _now()
+        save_task(task)
 
         return True
 
@@ -242,6 +381,7 @@ def skip_step(task, step_id, reason="Skipped"):
         task["updated_at"] = _now()
 
         _finish_if_complete(task)
+        save_task(task)
 
         return True
 
