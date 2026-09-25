@@ -2209,7 +2209,9 @@ async function sendVoiceMessage(message) {
                 "Content-Type":"application/json"
             },
             body:JSON.stringify({
-                message:spokenMessage
+                message:spokenMessage,
+                history:history,
+                client:"AJ 2.0"
             })
         });
 
