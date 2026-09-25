@@ -82,22 +82,6 @@ def build_memory_text():
 
 def forget_memory(message):
     lower = message.lower()
-    # =========================================================
-    # CONVERSATION FOLLOW-UP MODE
-    # =========================================================
-
-    follow_up_instruction = detect_follow_up(
-        message,
-        history or []
-    )
-
-    if follow_up_instruction:
-        message = build_conversation_prompt(
-            message,
-            history or [],
-            follow_up_instruction
-        )
-
     memory = get_all_memory()
 
     memory_map = {
@@ -839,6 +823,22 @@ def ask_aj(message, history=None):
     # =========================
 
     history = history or []
+
+    # =========================================================
+    # CONVERSATION FOLLOW-UP MODE
+    # =========================================================
+
+    follow_up_instruction = detect_follow_up(
+        message,
+        history
+    )
+
+    if follow_up_instruction:
+        message = build_conversation_prompt(
+            message,
+            history,
+            follow_up_instruction
+        )
 
     memory_text = build_memory_text()
 
