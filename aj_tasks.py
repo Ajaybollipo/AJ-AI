@@ -8,6 +8,7 @@ from datetime import datetime
 
 MAX_STEPS = 20
 MAX_STEP_LENGTH = 2000
+MAX_RESULT_LENGTH = 5000
 
 
 def _now():
@@ -20,10 +21,11 @@ def _clean_text(value, limit=MAX_STEP_LENGTH):
 
 def create_task(title, steps):
     """
-    Create a safe, structured task.
+    Create a structured task.
 
-    The engine only creates and tracks tasks here.
-    It does not automatically perform sensitive external actions.
+    The task engine tracks and executes only safe, explicitly
+    supported operations. Sensitive external actions require
+    confirmation before execution.
     """
     title = _clean_text(title, 300)
 
@@ -47,7 +49,10 @@ def create_task(title, steps):
                 "description": description,
                 "status": "pending",
                 "result": None,
-                "error": None
+                "error": None,
+                "requires_confirmation": requires_confirmation(
+                    description
+                )
             })
 
     return {
@@ -63,7 +68,6 @@ def create_task(title, steps):
 
 
 def get_progress(task):
-    """Return a compact progress description."""
     if not task:
         return {
             "status": "unknown",
@@ -75,15 +79,18 @@ def get_progress(task):
     steps = task.get("steps", [])
 
     completed = sum(
-        1 for step in steps
+        1
+        for step in steps
         if step.get("status") == "completed"
     )
 
     total = len(steps)
 
-    percent = int(
-        (completed / total) * 100
-    ) if total else 0
+    percent = (
+        int((completed / total) * 100)
+        if total
+        else 0
+    )
 
     return {
         "status": task.get("status", "unknown"),
@@ -94,7 +101,7 @@ def get_progress(task):
 
 
 def start_task(task):
-    """Move a pending task into execution."""
+    """Start a task and prepare its first executable step."""
     if not task:
         return None
 
@@ -105,80 +112,138 @@ def start_task(task):
         return task
 
     task["status"] = "running"
-    task["current_step"] = 1
     task["updated_at"] = _now()
+
+    # Do not automatically execute sensitive steps.
+    start_next_step(task)
 
     return task
 
 
 def start_next_step(task):
-    """Start the next pending task step."""
+    """
+    Find the next pending step.
+
+    Sensitive steps are moved to waiting_confirmation instead
+    of being started automatically.
+    """
     if not task:
         return None
 
     for step in task.get("steps", []):
-        if step.get("status") == "pending":
-            step["status"] = "running"
+        if step.get("status") != "pending":
+            continue
+
+        if step.get("requires_confirmation"):
+            step["status"] = "waiting_confirmation"
             task["current_step"] = step["id"]
+            task["status"] = "waiting_confirmation"
+            task["updated_at"] = _now()
+            return step
+
+        step["status"] = "running"
+        task["current_step"] = step["id"]
+        task["status"] = "running"
+        task["updated_at"] = _now()
+
+        return step
+
+    _finish_if_complete(task)
+
+    return None
+
+
+def confirm_current_step(task):
+    """
+    Explicitly approve the current sensitive step.
+
+    This function only changes its state to running.
+    A separate executor must perform the actual action.
+    """
+    if not task:
+        return None
+
+    current_id = task.get("current_step")
+
+    for step in task.get("steps", []):
+        if step.get("id") == current_id:
+            if step.get("status") != "waiting_confirmation":
+                return step
+
+            step["status"] = "running"
             task["status"] = "running"
             task["updated_at"] = _now()
+
             return step
 
     return None
 
 
 def complete_step(task, step_id, result=""):
-    """Mark one task step as completed."""
+    """Complete a running step and prepare the next step."""
     if not task:
         return False
 
     for step in task.get("steps", []):
-        if step.get("id") == step_id:
-            step["status"] = "completed"
-            step["result"] = _clean_text(result, 5000)
-            step["error"] = None
-            task["updated_at"] = _now()
+        if step.get("id") != step_id:
+            continue
 
-            if all(
-                item.get("status") == "completed"
-                for item in task.get("steps", [])
-            ):
-                task["status"] = "completed"
-                task["result"] = _build_final_result(task)
-                task["current_step"] = len(task.get("steps", []))
+        if step.get("status") not in {
+            "running",
+            "waiting_confirmation"
+        }:
+            return False
 
-            return True
+        step["status"] = "completed"
+        step["result"] = _clean_text(
+            result,
+            MAX_RESULT_LENGTH
+        )
+        step["error"] = None
+        task["updated_at"] = _now()
+
+        _finish_if_complete(task)
+
+        return True
 
     return False
 
 
 def fail_step(task, step_id, error):
-    """Mark one task step as failed."""
+    """Fail the current step and stop the task."""
     if not task:
         return False
 
     for step in task.get("steps", []):
-        if step.get("id") == step_id:
-            step["status"] = "failed"
-            step["error"] = _clean_text(error, 2000)
-            task["status"] = "failed"
-            task["updated_at"] = _now()
-            return True
+        if step.get("id") != step_id:
+            continue
+
+        step["status"] = "failed"
+        step["error"] = _clean_text(error, 2000)
+        task["status"] = "failed"
+        task["updated_at"] = _now()
+
+        return True
 
     return False
 
 
 def skip_step(task, step_id, reason="Skipped"):
-    """Safely skip a task step."""
+    """Skip a step without performing it."""
     if not task:
         return False
 
     for step in task.get("steps", []):
-        if step.get("id") == step_id:
-            step["status"] = "skipped"
-            step["result"] = _clean_text(reason, 2000)
-            task["updated_at"] = _now()
-            return True
+        if step.get("id") != step_id:
+            continue
+
+        step["status"] = "skipped"
+        step["result"] = _clean_text(reason, 2000)
+        task["updated_at"] = _now()
+
+        _finish_if_complete(task)
+
+        return True
 
     return False
 
@@ -197,8 +262,38 @@ def cancel_task(task):
     return True
 
 
+def _finish_if_complete(task):
+    steps = task.get("steps", [])
+
+    if not steps:
+        task["status"] = "completed"
+        task["current_step"] = 0
+        task["result"] = "Task completed."
+        task["updated_at"] = _now()
+        return
+
+    if any(
+        step.get("status") in {
+            "failed",
+            "waiting_confirmation",
+            "running",
+            "pending"
+        }
+        for step in steps
+    ):
+        return
+
+    if all(
+        step.get("status") in {"completed", "skipped"}
+        for step in steps
+    ):
+        task["status"] = "completed"
+        task["result"] = _build_final_result(task)
+        task["current_step"] = len(steps)
+        task["updated_at"] = _now()
+
+
 def _build_final_result(task):
-    """Combine completed step results into one final result."""
     results = []
 
     for step in task.get("steps", []):
@@ -212,11 +307,10 @@ def _build_final_result(task):
     if not results:
         return "Task completed."
 
-    return "\n\n".join(results)
+    return "\n\n".join(results)[:MAX_RESULT_LENGTH]
 
 
 def task_summary(task):
-    """Return a human-readable task summary."""
     if not task:
         return "No task is active."
 
@@ -225,15 +319,21 @@ def task_summary(task):
     lines = [
         f"Task: {task.get('title', 'AJ Task')}",
         f"Status: {progress['status'].upper()}",
-        f"Progress: {progress['completed']}/{progress['total']} "
-        f"({progress['percent']}%)"
+        f"Progress: {progress['completed']}/"
+        f"{progress['total']} ({progress['percent']}%)"
     ]
 
     for step in task.get("steps", []):
         status = step.get("status", "pending").upper()
+
+        suffix = ""
+
+        if step.get("requires_confirmation"):
+            suffix = " — CONFIRMATION REQUIRED"
+
         lines.append(
             f"{step.get('id')}. [{status}] "
-            f"{step.get('description', '')}"
+            f"{step.get('description', '')}{suffix}"
         )
 
     return "\n".join(lines)
@@ -241,8 +341,9 @@ def task_summary(task):
 
 def is_sensitive_action(description):
     """
-    Detect actions that should require explicit confirmation
-    before a future executor is allowed to perform them.
+    Detect actions that require explicit confirmation.
+
+    This is a safety gate, not an executor.
     """
     text = _clean_text(description, 500).lower()
 
@@ -254,22 +355,62 @@ def is_sensitive_action(description):
         "transfer money",
         "send money",
         "send email",
+        "send message",
         "post publicly",
         "publish",
         "change password",
         "close account",
-        "submit application"
+        "submit application",
+        "place order",
+        "book appointment",
+        "make reservation"
     )
 
-    return any(term in text for term in sensitive_terms)
+    return any(
+        term in text
+        for term in sensitive_terms
+    )
 
 
 def requires_confirmation(description):
     return is_sensitive_action(description)
 
 
+def get_current_step(task):
+    """Return the currently active/waiting step."""
+    if not task:
+        return None
+
+    current_id = task.get("current_step")
+
+    for step in task.get("steps", []):
+        if step.get("id") == current_id:
+            return step
+
+    return None
+
+
+def get_next_executable_step(task):
+    """
+    Return the next step that can be safely executed.
+
+    Sensitive steps remain blocked until explicitly confirmed.
+    """
+    if not task:
+        return None
+
+    for step in task.get("steps", []):
+        if step.get("status") == "pending":
+            if step.get("requires_confirmation"):
+                return None
+
+            return step
+
+    return None
+
+
 def task_to_dict(task):
-    """Return a safe copy suitable for an API response."""
+    """Return a safe representation suitable for an API response."""
     if not task:
         return None
 
@@ -286,7 +427,11 @@ def task_to_dict(task):
                 "description": step.get("description"),
                 "status": step.get("status"),
                 "result": step.get("result"),
-                "error": step.get("error")
+                "error": step.get("error"),
+                "requires_confirmation": step.get(
+                    "requires_confirmation",
+                    False
+                )
             }
             for step in task.get("steps", [])
         ],
