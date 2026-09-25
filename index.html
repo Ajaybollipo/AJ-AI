@@ -990,6 +990,129 @@ button,input{font:inherit}
     }
 }
 
+
+/* ============================================================
+   AJ INTERFACE 2.0 — COMMAND STATUS HUD
+============================================================ */
+
+.aj-mode-hud{
+    position:absolute;
+    left:38%;
+    top:3.5%;
+    transform:translateX(-50%);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:7px;
+    z-index:22;
+    pointer-events:none;
+}
+
+.aj-mode-chip{
+    min-width:70px;
+    height:24px;
+    padding:0 9px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid rgba(0,217,255,.18);
+    background:rgba(0,12,20,.62);
+    color:#4d7785;
+    font-size:7px;
+    letter-spacing:1.5px;
+    transition:.2s;
+}
+
+.aj-mode-chip.active{
+    color:var(--cyan);
+    border-color:rgba(0,217,255,.55);
+    box-shadow:0 0 12px rgba(0,217,255,.16);
+}
+
+.aj-mode-chip.active.study{
+    color:#00ff9d;
+    border-color:rgba(0,255,157,.55);
+    box-shadow:0 0 12px rgba(0,255,157,.14);
+}
+
+.aj-mode-chip.active.coding{
+    color:#b68cff;
+    border-color:rgba(182,140,255,.55);
+    box-shadow:0 0 12px rgba(182,140,255,.14);
+}
+
+.aj-mode-chip.active.file{
+    color:#ffd166;
+    border-color:rgba(255,209,102,.55);
+    box-shadow:0 0 12px rgba(255,209,102,.14);
+}
+
+.command-panel{
+    position:absolute;
+    left:25px;
+    bottom:22px;
+    width:190px;
+    padding:12px;
+    border:1px solid rgba(0,217,255,.14);
+    background:rgba(0,9,15,.62);
+    z-index:24;
+    pointer-events:none;
+}
+
+.command-panel-title{
+    color:#527887;
+    font-size:7px;
+    letter-spacing:2px;
+    margin-bottom:8px;
+}
+
+.command-panel-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:6px;
+    color:#638a98;
+    font-size:7px;
+    letter-spacing:1px;
+}
+
+.command-panel-value{
+    color:var(--state);
+}
+
+@media (max-width:800px){
+    .aj-mode-hud{
+        left:50%;
+        top:1.5%;
+        width:94%;
+        gap:4px;
+    }
+
+    .aj-mode-chip{
+        min-width:0;
+        flex:1;
+        height:21px;
+        padding:0 5px;
+        font-size:6px;
+        letter-spacing:1px;
+    }
+
+    .command-panel{
+        display:none;
+    }
+}
+
+@media (max-width:500px){
+    .aj-mode-hud{
+        top:1.2%;
+    }
+
+    .aj-mode-chip{
+        height:19px;
+        font-size:5.5px;
+    }
+}
+
 </style>
 </head>
 
@@ -1019,6 +1142,36 @@ button,input{font:inherit}
     </div>
 
     <div class="hud">
+
+
+        <!-- AJ INTERFACE 2.0 STATUS -->
+        <div class="aj-mode-hud" id="ajModeHud">
+            <div class="aj-mode-chip active" id="modeCore">CORE</div>
+            <div class="aj-mode-chip" id="modeStudy">STUDY</div>
+            <div class="aj-mode-chip" id="modeCoding">CODING</div>
+            <div class="aj-mode-chip" id="modeSearch">SEARCH</div>
+            <div class="aj-mode-chip" id="modeFile">FILE</div>
+        </div>
+
+        <div class="command-panel">
+            <div class="command-panel-title">AJ COMMAND CENTER</div>
+            <div class="command-panel-row">
+                <span>VOICE</span>
+                <span class="command-panel-value" id="panelVoice">READY</span>
+            </div>
+            <div class="command-panel-row">
+                <span>MEMORY</span>
+                <span class="command-panel-value">ON</span>
+            </div>
+            <div class="command-panel-row">
+                <span>SEARCH</span>
+                <span class="command-panel-value">ON</span>
+            </div>
+            <div class="command-panel-row">
+                <span>TOOLS</span>
+                <span class="command-panel-value">ON</span>
+            </div>
+        </div>
 
         <div class="voice-status" id="voiceStatus">
             PRESS VOICE TO START • VOICE • SEARCH • MEMORY • TOOLS
@@ -1197,6 +1350,102 @@ let microphoneStream = null;
 let history = [];
 
 
+
+/* ============================================================
+   AJ INTERFACE 2.0 — MODE HUD
+============================================================ */
+
+const modeCore = document.getElementById("modeCore");
+const modeStudy = document.getElementById("modeStudy");
+const modeCoding = document.getElementById("modeCoding");
+const modeSearch = document.getElementById("modeSearch");
+const modeFile = document.getElementById("modeFile");
+const panelVoice = document.getElementById("panelVoice");
+
+function resetModeHUD() {
+    [modeCore, modeStudy, modeCoding, modeSearch, modeFile]
+        .forEach(function(el) {
+            if (el) el.classList.remove("active");
+        });
+
+    if (modeCore) modeCore.classList.add("active");
+}
+
+function setModeHUD(mode) {
+    resetModeHUD();
+
+    const value = String(mode || "").toLowerCase();
+
+    if (value.includes("study") && modeStudy) {
+        modeStudy.classList.add("active", "study");
+    } else if (value.includes("coding") && modeCoding) {
+        modeCoding.classList.add("active", "coding");
+    } else if (value.includes("search") && modeSearch) {
+        modeSearch.classList.add("active");
+    } else if (value.includes("file") && modeFile) {
+        modeFile.classList.add("active", "file");
+    }
+}
+
+function detectInterfaceMode(message) {
+    const text = String(message || "").toLowerCase();
+
+    if (
+        text.includes("study") ||
+        text.startsWith("explain ") ||
+        text.startsWith("teach me ") ||
+        text.startsWith("quiz me") ||
+        text.startsWith("summarize ") ||
+        text.startsWith("summarise ") ||
+        text.startsWith("revise ")
+    ) {
+        return "study";
+    }
+
+    if (
+        text.includes("code") ||
+        text.includes("coding") ||
+        text.includes("debug") ||
+        text.includes("program") ||
+        text.includes("python") ||
+        text.includes("java") ||
+        text.includes("c++") ||
+        text.includes("javascript") ||
+        text.includes("sql")
+    ) {
+        return "coding";
+    }
+
+    if (
+        text.startsWith("search") ||
+        text.startsWith("google ") ||
+        text.includes("latest news")
+    ) {
+        return "search";
+    }
+
+    return "core";
+}
+
+function setInterfaceActivity(message, state) {
+    const mode = detectInterfaceMode(message);
+
+    if (String(state || "").toUpperCase() === "SEARCHING") {
+        setModeHUD("search");
+    } else if (String(state || "").toUpperCase() === "EXECUTING") {
+        setModeHUD("core");
+    } else {
+        setModeHUD(mode);
+    }
+}
+
+function setVoicePanelState(value) {
+    if (panelVoice) {
+        panelVoice.textContent = String(value || "READY").toUpperCase();
+    }
+}
+
+
 /* ============================================================
    STATUS
 ============================================================ */
@@ -1364,6 +1613,7 @@ function speak(text) {
     utterance.onstart = function() {
         speaking = true;
         setVoiceStatus("AJ SPEAKING", "speaking");
+        setVoicePanelState("SPEAKING");
         setStatus("SPEAKING");
     };
 
@@ -1445,6 +1695,7 @@ function setupRecognition() {
         listening = true;
         micButton.classList.add("listening");
         setVoiceStatus("LISTENING FOR AJ...", "listening");
+        setVoicePanelState("LISTENING");
         setStatus("LISTENING");
     };
 
@@ -1848,6 +2099,8 @@ fileInput.addEventListener("change", async function() {
     }
 
     processing = true;
+    setModeHUD("file");
+    setVoicePanelState("READING");
     fileButton.classList.add("file-button-active");
     showThinking();
     responseState.textContent = "READING";
@@ -1940,6 +2193,8 @@ async function sendVoiceMessage(message) {
     }
 
     processing = true;
+    setInterfaceActivity(spokenMessage, "THINKING");
+    setVoicePanelState("THINKING");
 
     stopListening();
     showThinking();
@@ -2085,6 +2340,8 @@ async function sendMessage() {
     }
 
     processing = true;
+    setInterfaceActivity(message, "THINKING");
+    setVoicePanelState("THINKING");
 
     stopListening();
     showThinking();
@@ -2243,6 +2500,8 @@ async function updateServerStatus() {
 function initializeAJ() {
 
     setStatus("ONLINE");
+    resetModeHUD();
+    setVoicePanelState("READY");
     syncVoiceButton();
     setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ", "");
 
