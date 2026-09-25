@@ -1571,7 +1571,8 @@ button,input{font:inherit}
 .task-create-cancel{border:1px solid rgba(255,255,255,.10);background:transparent;color:#66818b;}
 .task-create-submit{border:1px solid rgba(0,217,255,.35);background:rgba(0,217,255,.07);color:#00d9ff;}
 .task-create-submit:disabled{opacity:.45;cursor:wait;}
-@media (max-width:800px){.task-run-all,.task-create{padding:0 6px;font-size:6.5px;}}\n</style>
+@media (max-width:800px){.task-run-all,.task-create{padding:0 6px;font-size:6.5px;}}
+</style>
 </head>
 
 <body>
@@ -2292,7 +2293,8 @@ if (taskNotificationsEnabled) {
 
 updateTaskNotificationButton();
 
-let taskActivityEvents=[];\n        try{localStorage.removeItem("aj_task_activity");}catch(error){}
+let taskActivityEvents=[];
+        try{localStorage.removeItem("aj_task_activity");}catch(error){}
 try{
     const savedTaskActivity=localStorage.getItem("aj_task_activity");
     if(savedTaskActivity) taskActivityEvents=JSON.parse(savedTaskActivity);
@@ -2300,7 +2302,8 @@ try{
 }catch(error){taskActivityEvents=[];}
 function addTaskActivity(message){
     taskActivityEvents.unshift({message:String(message),time:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})});
-    taskActivityEvents=taskActivityEvents.slice(0,8);\n    try{localStorage.setItem("aj_task_activity",JSON.stringify(taskActivityEvents));}catch(error){}
+    taskActivityEvents=taskActivityEvents.slice(0,8);
+    try{localStorage.setItem("aj_task_activity",JSON.stringify(taskActivityEvents));}catch(error){}
     const box=document.getElementById("taskActivityList");
     if(box) box.innerHTML=taskActivityEvents.map(e=>'<div class="task-activity-item"><span>'+e.message.replace(/</g,"&lt;")+'</span><span class="task-activity-time">'+e.time+'</span></div>').join("");
 }
@@ -2610,7 +2613,7 @@ function hasActiveTasks() {
     });
 }
 
-async let taskAutoRefreshEnabled=true;
+let taskAutoRefreshEnabled=true;
 
 const taskAutoRefreshToggle=document.getElementById("taskAutoRefreshToggle");
 if(taskAutoRefreshToggle){
@@ -2623,7 +2626,7 @@ if(taskAutoRefreshToggle){
     });
 }
 
-function loadTasks() {
+async function loadTasks() {
     try {
         const response = await fetch("/api/tasks", { cache: "no-store" });
         const data = await response.json();
