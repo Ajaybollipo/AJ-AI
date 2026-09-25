@@ -241,11 +241,16 @@ def voice_command():
             "Processing voice command..."
         )
 
-        # IMPORTANT FIX:
-        # Do NOT pass [] here. Pass the actual conversation history.
+        # Pass the sanitized conversation history to AJ.
+        # Define it here as well so the deployed voice handler
+        # always has a local history variable.
+        voice_history = clean_history(
+            data.get("history", [])
+        )
+
         response = ask_aj(
             command,
-            history
+            voice_history
         )
 
         set_status(
