@@ -1,3 +1,5 @@
+import ast
+import operator
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from urllib.parse import quote_plus
@@ -93,7 +95,15 @@ def find_website(target):
         "mail": "gmail",
         "whats app": "whatsapp",
         "linked in": "linkedin",
-        "music": "spotify"
+        "music": "spotify",
+        "yt": "youtube",
+        "yt videos": "youtube",
+        "git hub": "github",
+        "open ai": "chatgpt",
+        "chat gpt": "chatgpt",
+        "google mail": "gmail",
+        "whats app": "whatsapp",
+        "linked in": "linkedin"
     }
 
     for alias, site in aliases.items():
@@ -171,6 +181,7 @@ def search_web(query):
         "action": "search",
         "query": query,
         "url": url,
+        "browser_url": url,
         "message": f"Searching Google for {query}."
     }
 
@@ -201,6 +212,7 @@ def youtube_search(query):
         "action": "youtube_search",
         "query": query,
         "url": url,
+        "browser_url": url,
         "message": f"Searching YouTube for {query}."
     }
 
@@ -208,6 +220,52 @@ def youtube_search(query):
 # ============================================================
 # SMART CALCULATOR
 # ============================================================
+
+MATH_OPERATORS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Mod: operator.mod,
+    ast.Pow: operator.pow,
+    ast.FloorDiv: operator.floordiv,
+    ast.USub: operator.neg,
+    ast.UAdd: operator.pos,
+}
+
+
+def _safe_math_node(node):
+    if isinstance(node, ast.Constant):
+        if isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+            return node.value
+        raise ValueError("Invalid number")
+
+    if isinstance(node, ast.UnaryOp):
+        if type(node.op) not in MATH_OPERATORS:
+            raise ValueError("Unsupported operator")
+        return MATH_OPERATORS[type(node.op)](
+            _safe_math_node(node.operand)
+        )
+
+    if isinstance(node, ast.BinOp):
+        if type(node.op) not in MATH_OPERATORS:
+            raise ValueError("Unsupported operator")
+
+        left = _safe_math_node(node.left)
+        right = _safe_math_node(node.right)
+
+        if isinstance(node.op, ast.Pow) and abs(right) > 100:
+            raise ValueError("Power too large")
+
+        return MATH_OPERATORS[type(node.op)](left, right)
+
+    raise ValueError("Unsupported expression")
+
+
+def _safe_math(expression):
+    tree = ast.parse(expression, mode="eval")
+    return _safe_math_node(tree.body)
+
 
 def calculate_expression(expression):
     expression = expression.strip()
@@ -227,19 +285,8 @@ def calculate_expression(expression):
         if expression.endswith("%"):
             expression = expression[:-1].strip()
             result = float(expression) / 100
-
         else:
-            allowed = {
-                "abs": abs,
-                "round": round,
-                "pow": pow
-            }
-
-            result = eval(
-                expression,
-                {"__builtins__": {}},
-                allowed
-            )
+            result = _safe_math(expression)
 
         if isinstance(result, float):
 
