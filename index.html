@@ -1573,7 +1573,110 @@ button,input{font:inherit}
 .task-create-submit:disabled{opacity:.45;cursor:wait;}
 @media (max-width:800px){.task-run-all,.task-create{padding:0 6px;font-size:6.5px;}}
 </style>
-</head>
+<style id="task-center-clean-style">
+.task-panel{
+    width:min(440px,94vw)!important;
+    max-height:88vh!important;
+    overflow:auto!important;
+    padding:18px!important;
+}
+.task-head{padding-bottom:12px!important;border-bottom:1px solid rgba(255,255,255,.08)}
+.task-title{font-size:17px!important;letter-spacing:1.5px!important}
+.task-subtitle{font-size:9px;letter-spacing:1.2px;opacity:.45;margin-top:3px}
+.task-toolbar{display:grid;grid-template-columns:1fr 1.25fr 1fr;gap:7px;margin:12px 0 9px}
+.task-tool-btn{min-height:34px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.035);color:inherit;border-radius:7px;font-size:10px;font-weight:800;letter-spacing:.5px;cursor:pointer}
+.task-tool-btn.primary{border-color:rgba(80,180,255,.35);background:rgba(80,180,255,.08)}
+.task-livebar{display:flex;align-items:center;gap:7px;padding:8px 9px;border:1px solid rgba(255,255,255,.07);border-radius:7px;font-size:10px;opacity:.8}
+.task-live-dot{width:6px;height:6px;border-radius:50%;background:#53e38b;box-shadow:0 0 8px rgba(83,227,139,.7)}
+.task-shortcut{margin-left:auto;font-size:8px;opacity:.4}
+.task-filters{display:grid;grid-template-columns:auto auto auto 1fr;gap:6px;margin:10px 0}
+.task-filter{border:1px solid rgba(255,255,255,.1);background:transparent;color:inherit;border-radius:6px;padding:7px 9px;font-size:9px;font-weight:800;cursor:pointer}
+.task-filter.active{background:rgba(255,255,255,.1)}
+.task-search{min-width:0;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:inherit;border-radius:6px;padding:7px 9px;font-size:10px;outline:none}
+.task-content{min-height:110px;max-height:38vh;overflow:auto}
+.task-activity{margin-top:10px!important}
+.task-footer{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+.task-stats,.task-last-update{font-size:9px;letter-spacing:.4px;opacity:.55}
+.task-last-update{margin-top:3px}
+.task-footer-row{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:8px}
+.task-refresh{width:100%;min-height:30px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.035);color:inherit;border-radius:6px;font-size:9px;font-weight:800;cursor:pointer}
+.task-confirmation-alert{display:none;align-items:center;gap:7px;flex-wrap:wrap;margin:8px 0;padding:8px;border-radius:7px;font-size:10px}
+.task-confirmation-actions{margin-left:auto}
+.task-activity-head{display:flex;align-items:center;justify-content:space-between}
+.task-activity-actions{display:flex;gap:7px}
+@media(max-width:600px){
+    .task-panel{width:96vw!important;padding:14px!important}
+    .task-toolbar{grid-template-columns:1fr 1fr}
+    .task-tool-btn:last-child{grid-column:1/-1}
+    .task-filters{grid-template-columns:auto auto auto}
+    .task-search{grid-column:1/-1}
+    .task-content{max-height:32vh}
+}
+</style><style id="task-center-clear-fonts">
+.task-panel{
+    font-size:14px!important;
+}
+.task-title{
+    font-size:20px!important;
+    font-weight:800!important;
+}
+.task-subtitle{
+    font-size:11px!important;
+}
+.task-tool-btn{
+    font-size:12px!important;
+    font-weight:800!important;
+    min-height:40px!important;
+}
+.task-livebar{
+    font-size:13px!important;
+    padding:10px 11px!important;
+}
+.task-shortcut{
+    font-size:10px!important;
+}
+.task-filter{
+    font-size:11px!important;
+    padding:9px 11px!important;
+}
+.task-search{
+    font-size:12px!important;
+    padding:9px 11px!important;
+}
+.task-content{
+    font-size:13px!important;
+}
+.task-activity-title{
+    font-size:12px!important;
+}
+.task-activity-clear{
+    font-size:10px!important;
+}
+.task-activity-item{
+    font-size:12px!important;
+    line-height:1.35!important;
+}
+.task-activity-empty{
+    font-size:12px!important;
+}
+.task-stats,.task-last-update{
+    font-size:11px!important;
+}
+.task-refresh{
+    font-size:11px!important;
+    min-height:36px!important;
+}
+.task-confirmation-alert{
+    font-size:12px!important;
+}
+.task-alert-btn{
+    font-size:11px!important;
+    padding:7px 11px!important;
+}
+.task-empty{
+    font-size:13px!important;
+}
+</style></head>
 
 <body>
 
@@ -1777,58 +1880,66 @@ button,input{font:inherit}
 
 <aside class="task-panel" id="taskPanel">
     <div class="task-head">
-        <div class="task-title-wrap">
-            <div class="task-title">TASK CENTER <span class="task-quick-hint">CTRL+SHIFT+R = REFRESH</span></div>
-            <div class="task-live" id="taskLiveIndicator">LIVE</div>
+        <div>
+            <div class="task-title">TASK CENTER</div>
+            <div class="task-subtitle">CONTROL • MONITOR • EXECUTE</div>
         </div>
-        <div class="task-head-actions">
-            <button class="task-notify" id="taskNotify" type="button" title="Task notifications">NOTIFY</button>
-            <button class="task-run-all" id="taskRunAll" type="button">RUN ALL SAFE</button>
-            <button class="task-create" id="taskCreate" type="button">+ NEW TASK</button>
-            <button class="task-close" id="taskClose" type="button">✕</button>
-        </div>
+        <button class="task-close" id="taskClose" type="button">✕</button>
     </div>
-    <div class="task-live-message" id="taskLiveMessage">
-        TASK CENTER READY
+
+    <div class="task-toolbar">
+        <button type="button" id="taskNotify" class="task-tool-btn">NOTIFY</button>
+        <button type="button" id="taskRunAll" class="task-tool-btn primary">RUN ALL SAFE</button>
+        <button type="button" id="newTaskButton" class="task-tool-btn">+ NEW TASK</button>
     </div>
+
+    <div class="task-livebar">
+        <span class="task-live-dot"></span>
+        <span id="taskLiveMessage">NO TASKS — READY</span>
+        <span class="task-shortcut">CTRL+SHIFT+T</span>
+    </div>
+
+    <div class="task-filters">
+        <button type="button" class="task-filter active" data-filter="all">ALL</button>
+        <button type="button" class="task-filter" data-filter="active">ACTIVE</button>
+        <button type="button" class="task-filter" data-filter="done">DONE</button>
+        <input id="taskSearch" class="task-search" type="text" placeholder="SEARCH TASKS..." autocomplete="off">
+    </div>
+
     <div class="task-confirmation-alert" id="taskConfirmationAlert">
         <span class="task-confirmation-dot"></span>
         <span id="taskConfirmationText">CONFIRMATION REQUIRED</span>
-    <span class="task-confirmation-actions">
-        <button type="button" id="taskAlertConfirm" class="task-alert-btn confirm">CONFIRM</button>
-        <button type="button" id="taskAlertCancel" class="task-alert-btn cancel">CANCEL</button>
-    </span>
+        <span class="task-confirmation-actions">
+            <button type="button" id="taskAlertConfirm" class="task-alert-btn confirm">CONFIRM</button>
+            <button type="button" id="taskAlertCancel" class="task-alert-btn cancel">CANCEL</button>
+        </span>
     </div>
-    <div class="task-filter-row">
-        <button class="task-filter active" data-task-filter="all" type="button">ALL</button>
-        <button class="task-filter" data-task-filter="active" type="button">ACTIVE</button>
-        <button class="task-filter" data-task-filter="completed" type="button">DONE</button>
-    </div>
-    <div class="task-search-row">
-        <input
-            class="task-search"
-            id="taskSearch"
-            type="search"
-            placeholder="SEARCH TASKS..."
-            autocomplete="off"
-            spellcheck="false"
-        >
-    </div>
-    <div class="task-activity" id="taskActivity"><div class="task-activity-head">
-    <div class="task-activity-title">ACTIVITY <span class="task-activity-live">LIVE</span></div>
-    <span class="task-activity-actions">
-        <button type="button" id="toggleTaskActivity" class="task-activity-clear">COLLAPSE</button>
-        <button type="button" id="clearTaskActivity" class="task-activity-clear">CLEAR</button>
-    </span>
-</div><div class="task-activity-list" id="taskActivityList"><div class="task-activity-empty">NO RECENT ACTIVITY</div></div></div><div class="task-stats" id="taskStats">
-        TOTAL 0  •  ACTIVE 0  •  DONE 0
-    </div>
-    <div class="task-updated" id="taskUpdated">LAST UPDATE — NEVER</div>
+
     <div class="task-content" id="taskContent">
-        <div class="task-empty">NO ACTIVE TASKS</div>
+        <div class="task-empty">NO TASKS — READY</div>
     </div>
-    <div class="task-shortcut-hint">CTRL + SHIFT + T — TASK CENTER</div>
-    <button class="task-refresh" id="taskRefresh" type="button"><button type="button" id="taskAutoRefreshToggle" class="task-refresh" title="Toggle live task refresh">LIVE REFRESH: ON</button>REFRESH TASKS</button>
+
+    <div class="task-activity" id="taskActivity">
+        <div class="task-activity-head">
+            <div class="task-activity-title">ACTIVITY <span class="task-activity-live">LIVE</span></div>
+            <span class="task-activity-actions">
+                <button type="button" id="toggleTaskActivity" class="task-activity-clear">COLLAPSE</button>
+                <button type="button" id="clearTaskActivity" class="task-activity-clear">CLEAR</button>
+            </span>
+        </div>
+        <div class="task-activity-list" id="taskActivityList">
+            <div class="task-activity-empty">NO RECENT ACTIVITY</div>
+        </div>
+    </div>
+
+    <div class="task-footer">
+        <div class="task-stats" id="taskStats">TOTAL 0 • ACTIVE 0 • DONE 0</div>
+        <div class="task-last-update" id="taskLastUpdate">LAST UPDATE — --:--:--</div>
+        <div class="task-footer-row">
+            <button type="button" id="taskAutoRefreshToggle" class="task-refresh">LIVE REFRESH: ON</button>
+            <button type="button" id="taskRefresh" class="task-refresh">REFRESH TASKS</button>
+        </div>
+    </div>
 </aside>
 
 <div class="task-create-backdrop" id="taskCreateBackdrop">
