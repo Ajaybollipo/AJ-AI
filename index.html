@@ -1104,6 +1104,40 @@ button,input{font:inherit}
         font-size:10px;
         padding:6px 8px;
     }
+
+    .task-live-message{
+        margin-left:14px;
+        margin-right:14px;
+        font-size:8px;
+    }
+
+    .task-filter-row{
+        padding-left:14px;
+        padding-right:14px;
+    }
+
+    .task-search-row{
+        padding-left:14px;
+        padding-right:14px;
+    }
+
+    .task-progress-mini{font-size:10px;font-weight:800;opacity:.65;margin-left:auto}.task-title-row{display:flex;align-items:center;gap:8px}.task-quick-hint{font-size:8px;letter-spacing:.6px;opacity:.45;margin-left:8px;font-weight:600}.task-activity{margin:10px 0;padding:10px;border:1px solid rgba(255,255,255,.08);border-radius:8px;background:rgba(255,255,255,.025)}.task-activity-title{font-size:10px;font-weight:800;letter-spacing:1px;opacity:.65;margin-bottom:7px}.task-activity-head{display:flex;align-items:center;justify-content:space-between}.task-activity-clear{border:0;background:transparent;color:inherit;opacity:.55;font-size:9px;font-weight:800;cursor:pointer}.task-activity-clear:hover{opacity:1}.task-activity-live{font-size:8px;letter-spacing:.8px;margin-left:6px;opacity:.7}.task-activity-live:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:4px;vertical-align:middle}.task-activity-actions{display:flex;gap:8px}.task-activity-collapsed .task-activity-list{display:none}.task-activity-list{display:flex;flex-direction:column;gap:5px}.task-activity-item{font-size:11px;display:flex;justify-content:space-between;gap:8px}.task-activity-time{opacity:.5;white-space:nowrap}.task-activity-empty{font-size:11px;opacity:.45}.task-stats{
+        padding-left:14px;
+        padding-right:14px;
+    }
+
+    .task-shortcut-hint{
+        font-size:6px;
+    }
+
+    .task-updated{
+        padding-left:14px;
+        padding-right:14px;
+    }
+
+    .task-step-detail{
+        font-size:9px;
+    }
 }
 
 /* ============================================================
@@ -1277,6 +1311,63 @@ button,input{font:inherit}
     align-items:center;
     gap:9px;
 }
+.task-head-actions{display:flex;align-items:center;gap:7px;}
+.task-notify{
+    height:27px;
+    padding:0 8px;
+    border:1px solid rgba(255,209,102,.18);
+    background:rgba(255,209,102,.025);
+    color:#a88f58;
+    border-radius:5px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:8px;
+    letter-spacing:1px;
+}
+.task-notify:hover{
+    color:#ffd166;
+    border-color:rgba(255,209,102,.42);
+    background:rgba(255,209,102,.06);
+}
+.task-notify.enabled{
+    color:#ffd166;
+    border-color:rgba(255,209,102,.42);
+}
+.task-run-all{
+    height:27px;
+    padding:0 9px;
+    border:1px solid rgba(0,255,157,.20);
+    background:rgba(0,255,157,.025);
+    color:#67ad91;
+    border-radius:5px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:8px;
+    letter-spacing:1px;
+}
+.task-run-all:hover{
+    color:#72f6bd;
+    border-color:rgba(0,255,157,.45);
+    background:rgba(0,255,157,.07);
+}
+.task-run-all:disabled{opacity:.45;cursor:wait;}
+.task-create{
+    height:27px;
+    padding:0 9px;
+    border:1px solid rgba(0,217,255,.20);
+    background:rgba(0,217,255,.035);
+    color:#6fa7b6;
+    border-radius:5px;
+    cursor:pointer;
+    font-family:inherit;
+    font-size:8px;
+    letter-spacing:1px;
+}
+.task-create:hover{
+    color:#00d9ff;
+    border-color:rgba(0,217,255,.45);
+    background:rgba(0,217,255,.07);
+}
 .task-title{font-weight:800;letter-spacing:2px;color:#00d9ff;}
 .task-live{
     padding:3px 6px;
@@ -1292,6 +1383,106 @@ button,input{font:inherit}
 }
 .task-close{
     border:0;background:transparent;color:#fff;font-size:20px;cursor:pointer;
+}
+.task-live-message{
+    margin:12px 18px 0;
+    padding:7px 9px;
+    border:1px solid rgba(0,217,255,.12);
+    background:rgba(0,217,255,.025);
+    color:#6e9aa8;
+    font-size:9px;
+    letter-spacing:1px;
+    border-radius:6px;
+}
+.task-live-message.active{
+    color:#8fffd0;
+    border-color:rgba(0,255,157,.20);
+}
+.task-live-message.error{
+    color:#ff8da0;
+    border-color:rgba(255,23,68,.22);
+}
+.task-confirmation-actions{display:flex;gap:6px;margin-left:auto}.task-alert-btn{border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.06);color:inherit;padding:5px 9px;border-radius:6px;font-size:10px;font-weight:700;cursor:pointer}.task-alert-btn.confirm{border-color:rgba(80,220,140,.5)}.task-alert-btn.cancel{border-color:rgba(255,100,100,.5)}.task-alert-btn:hover{background:rgba(255,255,255,.14)}@media(max-width:600px){.task-confirmation-actions{width:100%;margin-left:0}.task-alert-btn{flex:1}}.task-confirmation-alert{
+    display:none;
+    align-items:center;
+    gap:7px;
+    margin:8px 18px 0;
+    padding:8px 9px;
+    border:1px solid rgba(255,209,102,.24);
+    border-radius:6px;
+    background:rgba(255,209,102,.035);
+    color:#e8c878;
+    font-size:8px;
+    letter-spacing:1px;
+}
+.task-confirmation-alert.open{display:flex;}
+.task-confirmation-dot{
+    width:6px;
+    height:6px;
+    flex:0 0 6px;
+    border-radius:50%;
+    background:#ffd166;
+    box-shadow:0 0 8px rgba(255,209,102,.45);
+}
+.task-filter-row{
+    display:flex;
+    gap:6px;
+    padding:10px 18px 0;
+}
+.task-filter{
+    flex:1;
+    height:30px;
+    border:1px solid rgba(0,217,255,.14);
+    background:rgba(255,255,255,.025);
+    color:#668794;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:8px;
+    letter-spacing:1.5px;
+}
+.task-filter.active{
+    color:#00d9ff;
+    border-color:rgba(0,217,255,.42);
+    background:rgba(0,217,255,.06);
+}
+.task-filter:hover{
+    border-color:rgba(0,217,255,.30);
+}
+.task-search-row{
+    padding:8px 18px 0;
+}
+.task-search{
+    width:100%;
+    height:30px;
+    box-sizing:border-box;
+    border:1px solid rgba(0,217,255,.12);
+    background:rgba(255,255,255,.025);
+    color:#b8d6df;
+    border-radius:6px;
+    outline:none;
+    padding:0 10px;
+    font-family:inherit;
+    font-size:9px;
+    letter-spacing:1px;
+}
+.task-search::placeholder{
+    color:#46636e;
+}
+.task-search:focus{
+    border-color:rgba(0,217,255,.40);
+    box-shadow:0 0 10px rgba(0,217,255,.08);
+}
+.task-stats{
+    padding:8px 18px 0;
+    color:#4e707b;
+    font-size:8px;
+    letter-spacing:1px;
+}
+.task-updated{
+    padding:4px 18px 0;
+    color:#3f5b64;
+    font-size:7px;
+    letter-spacing:1px;
 }
 .task-content{padding:18px;overflow:auto;flex:1;}
 .task-empty{padding:30px 10px;text-align:center;color:#7c8b94;letter-spacing:1px;}
@@ -1309,6 +1500,33 @@ button,input{font:inherit}
 .task-step.running{border-left-color:#00d9ff;color:#fff;}
 .task-step.completed{border-left-color:#55e67a;color:#9ee9ad;}
 .task-step.waiting_confirmation{border-left-color:#ffd166;color:#ffe4a3;}
+.task-step-detail{
+    display:none;
+    margin:4px 0 9px 10px;
+    padding:7px 9px;
+    border-left:1px solid rgba(0,217,255,.12);
+    color:#7696a1;
+    font-size:10px;
+    line-height:1.45;
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+}
+.task-card.details-open .task-step-detail{
+    display:block;
+}
+.task-details-button{
+    margin-top:7px;
+    border:0;
+    background:transparent;
+    color:#6aa4b4;
+    cursor:pointer;
+    font-size:8px;
+    letter-spacing:1.2px;
+    padding:4px 0;
+}
+.task-details-button:hover{
+    color:#00d9ff;
+}
 .task-current-step{
     margin:8px 0 4px;
     padding:7px 9px;
@@ -1329,12 +1547,31 @@ button,input{font:inherit}
 .task-action.run{border-color:rgba(0,255,157,.38);color:#9fffd3;}
 .task-action.run:hover{background:rgba(0,255,157,.10);}
 .task-action.danger{border-color:rgba(255,23,68,.35);color:#ff8ba0;}
+.task-shortcut-hint{
+    padding:7px 18px 0;
+    text-align:center;
+    color:#3d5c66;
+    font-size:7px;
+    letter-spacing:1px;
+}
 .task-refresh{
     margin:0 18px 18px;padding:10px;border:1px solid rgba(255,255,255,.12);
     background:rgba(255,255,255,.04);color:#fff;border-radius:8px;cursor:pointer;
 }
 
-</style>
+.task-create-backdrop{position:fixed;inset:0;z-index:1200;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.68);backdrop-filter:blur(5px);}
+.task-create-backdrop.open{display:flex;}
+.task-create-dialog{width:min(520px,100%);box-sizing:border-box;padding:20px;border:1px solid rgba(0,217,255,.18);border-radius:10px;background:rgba(8,16,20,.97);box-shadow:0 20px 70px rgba(0,0,0,.5);}
+.task-create-title{color:#00d9ff;font-size:11px;letter-spacing:2px;}
+.task-create-subtitle{margin-top:8px;color:#678692;font-size:9px;line-height:1.5;}
+.task-create-input{width:100%;min-height:110px;box-sizing:border-box;margin-top:14px;resize:vertical;border:1px solid rgba(0,217,255,.14);border-radius:7px;outline:none;background:rgba(255,255,255,.025);color:#c4dce3;padding:10px;font-family:inherit;font-size:11px;line-height:1.5;}
+.task-create-input:focus{border-color:rgba(0,217,255,.40);}
+.task-create-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:12px;}
+.task-create-cancel,.task-create-submit{height:31px;padding:0 11px;border-radius:5px;cursor:pointer;font-family:inherit;font-size:8px;letter-spacing:1px;}
+.task-create-cancel{border:1px solid rgba(255,255,255,.10);background:transparent;color:#66818b;}
+.task-create-submit{border:1px solid rgba(0,217,255,.35);background:rgba(0,217,255,.07);color:#00d9ff;}
+.task-create-submit:disabled{opacity:.45;cursor:wait;}
+@media (max-width:800px){.task-run-all,.task-create{padding:0 6px;font-size:6.5px;}}\n</style>
 </head>
 
 <body>
@@ -1540,16 +1777,73 @@ button,input{font:inherit}
 <aside class="task-panel" id="taskPanel">
     <div class="task-head">
         <div class="task-title-wrap">
-            <div class="task-title">TASK CENTER</div>
+            <div class="task-title">TASK CENTER <span class="task-quick-hint">CTRL+SHIFT+R = REFRESH</span></div>
             <div class="task-live" id="taskLiveIndicator">LIVE</div>
         </div>
-        <button class="task-close" id="taskClose" type="button">✕</button>
+        <div class="task-head-actions">
+            <button class="task-notify" id="taskNotify" type="button" title="Task notifications">NOTIFY</button>
+            <button class="task-run-all" id="taskRunAll" type="button">RUN ALL SAFE</button>
+            <button class="task-create" id="taskCreate" type="button">+ NEW TASK</button>
+            <button class="task-close" id="taskClose" type="button">✕</button>
+        </div>
     </div>
+    <div class="task-live-message" id="taskLiveMessage">
+        TASK CENTER READY
+    </div>
+    <div class="task-confirmation-alert" id="taskConfirmationAlert">
+        <span class="task-confirmation-dot"></span>
+        <span id="taskConfirmationText">CONFIRMATION REQUIRED</span>
+    <span class="task-confirmation-actions">
+        <button type="button" id="taskAlertConfirm" class="task-alert-btn confirm">CONFIRM</button>
+        <button type="button" id="taskAlertCancel" class="task-alert-btn cancel">CANCEL</button>
+    </span>
+    </div>
+    <div class="task-filter-row">
+        <button class="task-filter active" data-task-filter="all" type="button">ALL</button>
+        <button class="task-filter" data-task-filter="active" type="button">ACTIVE</button>
+        <button class="task-filter" data-task-filter="completed" type="button">DONE</button>
+    </div>
+    <div class="task-search-row">
+        <input
+            class="task-search"
+            id="taskSearch"
+            type="search"
+            placeholder="SEARCH TASKS..."
+            autocomplete="off"
+            spellcheck="false"
+        >
+    </div>
+    <div class="task-activity" id="taskActivity"><div class="task-activity-head">
+    <div class="task-activity-title">ACTIVITY <span class="task-activity-live">LIVE</span></div>
+    <span class="task-activity-actions">
+        <button type="button" id="toggleTaskActivity" class="task-activity-clear">COLLAPSE</button>
+        <button type="button" id="clearTaskActivity" class="task-activity-clear">CLEAR</button>
+    </span>
+</div><div class="task-activity-list" id="taskActivityList"><div class="task-activity-empty">NO RECENT ACTIVITY</div></div></div><div class="task-stats" id="taskStats">
+        TOTAL 0  •  ACTIVE 0  •  DONE 0
+    </div>
+    <div class="task-updated" id="taskUpdated">LAST UPDATE — NEVER</div>
     <div class="task-content" id="taskContent">
         <div class="task-empty">NO ACTIVE TASKS</div>
     </div>
-    <button class="task-refresh" id="taskRefresh" type="button">REFRESH TASKS</button>
+    <div class="task-shortcut-hint">CTRL + SHIFT + T — TASK CENTER</div>
+    <button class="task-refresh" id="taskRefresh" type="button"><button type="button" id="taskAutoRefreshToggle" class="task-refresh" title="Toggle live task refresh">LIVE REFRESH: ON</button>REFRESH TASKS</button>
 </aside>
+
+<div class="task-create-backdrop" id="taskCreateBackdrop">
+    <div class="task-create-dialog" role="dialog" aria-modal="true" aria-labelledby="taskCreateTitle">
+        <div class="task-create-title" id="taskCreateTitle">CREATE TASK</div>
+        <div class="task-create-subtitle">
+            Describe what you want AJ to plan. AJ will create a structured task when the request is supported.
+        </div>
+        <textarea class="task-create-input" id="taskCreateInput" rows="4" maxlength="2000"
+            placeholder="Example: Help me study Data Structures for tomorrow's exam."></textarea>
+        <div class="task-create-actions">
+            <button class="task-create-cancel" id="taskCreateCancel" type="button">CANCEL</button>
+            <button class="task-create-submit" id="taskCreateSubmit" type="button">CREATE WITH AJ</button>
+        </div>
+    </div>
+</div>
 
 <script>
 /* ============================================================
@@ -1584,7 +1878,20 @@ const taskPanel = document.getElementById("taskPanel");
 const taskBackdrop = document.getElementById("taskBackdrop");
 const taskClose = document.getElementById("taskClose");
 const taskContent = document.getElementById("taskContent");
+const taskConfirmationAlert = document.getElementById("taskConfirmationAlert");
+const taskConfirmationText = document.getElementById("taskConfirmationText");
 const taskRefresh = document.getElementById("taskRefresh");
+const taskSearchInput = document.getElementById("taskSearch");
+const taskStats = document.getElementById("taskStats");
+const taskUpdated = document.getElementById("taskUpdated");
+const taskCreate = document.getElementById("taskCreate");
+const taskRunAll = document.getElementById("taskRunAll");
+const taskNotify = document.getElementById("taskNotify");
+const taskCreateBackdrop = document.getElementById("taskCreateBackdrop");
+const taskCreateInput = document.getElementById("taskCreateInput");
+const taskCreateCancel = document.getElementById("taskCreateCancel");
+const taskCreateSubmit = document.getElementById("taskCreateSubmit");
+const taskLiveMessage = document.getElementById("taskLiveMessage");
 const taskLiveIndicator = document.getElementById("taskLiveIndicator");
 
 
@@ -1602,9 +1909,21 @@ let restartTimer = null;
 let microphoneStream = null;
 
 let history = [];
+let taskActivitySnapshot={};
 let taskList = [];
 let taskCenterOpen = false;
 let taskRefreshTimer = null;
+let taskFilter = "all";
+let taskSearch = "";
+let taskNotificationsEnabled = false;
+let taskNotificationPermission = "default";
+
+try {
+    taskNotificationsEnabled =
+        localStorage.getItem("aj_task_notifications") === "1";
+} catch (error) {
+    taskNotificationsEnabled = false;
+}
 
 
 
@@ -1848,10 +2167,228 @@ function taskStepClass(status) {
     return String(status || "").toLowerCase();
 }
 
+const taskAlertConfirm=document.getElementById("taskAlertConfirm");
+const taskAlertCancel=document.getElementById("taskAlertCancel");
+if(taskAlertConfirm){taskAlertConfirm.addEventListener("click",function(){const t=taskList.find(x=>x.status==="waiting_confirmation");if(t)confirmTask(t.id);});}
+if(taskAlertCancel){taskAlertCancel.addEventListener("click",function(){const t=taskList.find(x=>x.status==="waiting_confirmation");if(t)cancelTask(t.id);});}
+function updateTaskConfirmationAlert() {
+    if (!taskConfirmationAlert || !taskConfirmationText) return;
+
+    const waitingTask = taskList.find(function(task) {
+        return String(task.status || "").toLowerCase() === "waiting_confirmation";
+    });
+
+    if (!waitingTask) {
+        taskConfirmationAlert.classList.remove("open");
+        return;
+    }
+
+    const step = (waitingTask.steps || []).find(function(item) {
+        return String(item.status || "").toLowerCase() === "waiting_confirmation";
+    });
+
+    const title = step
+        ? String(step.title || step.description || "Task step")
+        : "A task step";
+
+    taskConfirmationText.textContent =
+        "CONFIRMATION REQUIRED — " + title;
+
+    taskConfirmationAlert.classList.add("open");
+}
+
+function notifyTaskEvent(title, body) {
+    if (!taskNotificationsEnabled) return;
+
+    if (
+        "Notification" in window &&
+        Notification.permission === "granted"
+    ) {
+        try {
+            new Notification(title, {
+                body: body,
+                tag: "aj-task-event"
+            });
+        } catch (error) {
+            console.debug("TASK NOTIFICATION ERROR:", error);
+        }
+    }
+
+    if (typeof showToast === "function") {
+        showToast(title + (body ? " — " + body : ""));
+    }
+}
+
+function updateTaskNotificationButton() {
+    if (!taskNotify) return;
+
+    taskNotify.classList.toggle("enabled", taskNotificationsEnabled);
+    taskNotify.textContent = taskNotificationsEnabled ? "NOTIFY ON" : "NOTIFY";
+}
+
+async function toggleTaskNotifications() {
+    if (!("Notification" in window)) {
+        if (typeof showToast === "function") {
+            showToast("Browser notifications are not supported.");
+        }
+        return;
+    }
+
+    if (Notification.permission === "denied") {
+        if (typeof showToast === "function") {
+            showToast("Task notifications are blocked in this browser.");
+        }
+        return;
+    }
+
+    if (Notification.permission === "default") {
+        try {
+            taskNotificationPermission = await Notification.requestPermission();
+        } catch (error) {
+            console.debug("NOTIFICATION PERMISSION ERROR:", error);
+            taskNotificationPermission = "denied";
+        }
+    } else {
+        taskNotificationPermission = Notification.permission;
+    }
+
+    taskNotificationsEnabled =
+        taskNotificationPermission === "granted";
+
+    try {
+        localStorage.setItem(
+            "aj_task_notifications",
+            taskNotificationsEnabled ? "1" : "0"
+        );
+    } catch (error) {
+        console.debug("TASK NOTIFICATION STORAGE ERROR:", error);
+    }
+
+    updateTaskNotificationButton();
+
+    if (taskNotificationsEnabled && typeof showToast === "function") {
+        showToast("Task notifications enabled.");
+    }
+}
+
+if (taskNotify) {
+    taskNotify.addEventListener("click", toggleTaskNotifications);
+}
+
+if (taskNotificationsEnabled) {
+    taskNotificationPermission =
+        "Notification" in window ? Notification.permission : "default";
+
+    if (taskNotificationPermission !== "granted") {
+        taskNotificationsEnabled = false;
+
+        try {
+            localStorage.removeItem("aj_task_notifications");
+        } catch (error) {
+            console.debug("TASK NOTIFICATION STORAGE ERROR:", error);
+        }
+    }
+}
+
+updateTaskNotificationButton();
+
+let taskActivityEvents=[];\n        try{localStorage.removeItem("aj_task_activity");}catch(error){}
+try{
+    const savedTaskActivity=localStorage.getItem("aj_task_activity");
+    if(savedTaskActivity) taskActivityEvents=JSON.parse(savedTaskActivity);
+    if(!Array.isArray(taskActivityEvents)) taskActivityEvents=[];
+}catch(error){taskActivityEvents=[];}
+function addTaskActivity(message){
+    taskActivityEvents.unshift({message:String(message),time:new Date().toLocaleTimeString([], {hour:"2-digit",minute:"2-digit",second:"2-digit"})});
+    taskActivityEvents=taskActivityEvents.slice(0,8);\n    try{localStorage.setItem("aj_task_activity",JSON.stringify(taskActivityEvents));}catch(error){}
+    const box=document.getElementById("taskActivityList");
+    if(box) box.innerHTML=taskActivityEvents.map(e=>'<div class="task-activity-item"><span>'+e.message.replace(/</g,"&lt;")+'</span><span class="task-activity-time">'+e.time+'</span></div>').join("");
+}
+const clearTaskActivity=document.getElementById("clearTaskActivity");
+if(clearTaskActivity){
+    clearTaskActivity.addEventListener("click",function(){
+        taskActivityEvents=[];
+        const box=document.getElementById("taskActivityList");
+        if(box) box.innerHTML='<div class="task-activity-empty">NO RECENT ACTIVITY</div>';
+    });
+}
+document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") return;
+    if (event.ctrlKey && event.shiftKey && event.key.toLowerCase() === "a") {
+        const activity = document.getElementById("taskActivity");
+        if (activity) {
+            activity.scrollIntoView({behavior:"smooth", block:"nearest"});
+        }
+    }
+});
+
+
+function taskProgressLabel(task) {
+    const value = Number(task && task.progress);
+    if (!Number.isFinite(value)) return "";
+    return Math.max(0, Math.min(100, Math.round(value))) + "%";
+}
+
+function taskProgressBadge(task) {
+    const label = taskProgressLabel(task);
+    return label ? '<span class="task-progress-mini">' + label + '</span>' : '';
+}
+
+document.addEventListener("keydown",function(event){
+    if(event.ctrlKey && event.shiftKey && event.key.toLowerCase()==="r"){
+        const tag=(document.activeElement&&document.activeElement.tagName)||"";
+        if(!["INPUT","TEXTAREA","SELECT"].includes(tag)){
+            event.preventDefault();
+            if(typeof loadTasks==="function") loadTasks(true);
+        }
+    }
+});
+
+function runNextSafeTask(taskId){
+    if(!taskId) return;
+    taskAction("/api/tasks/continue", taskId);
+}
+
+const toggleTaskActivity=document.getElementById("toggleTaskActivity");
+if(toggleTaskActivity){
+    toggleTaskActivity.addEventListener("click",function(){
+        const panel=document.getElementById("taskActivity");
+        if(!panel) return;
+        const collapsed=panel.classList.toggle("task-activity-collapsed");
+        toggleTaskActivity.textContent=collapsed?"EXPAND":"COLLAPSE";
+    });
+}
+
 function renderTasks() {
+    taskList.forEach(function(task){
+        const state=String(task.status||"");
+        const old=taskActivitySnapshot[task.id];
+        if(old===undefined){ addTaskActivity("TASK CREATED — "+(task.goal||task.id)); }
+        else if(old!==state){ addTaskActivity((task.goal||task.id)+" — "+state.toUpperCase()); }
+        taskActivitySnapshot[task.id]=state;
+    });
+
     if (!taskContent) return;
 
+    updateTaskConfirmationAlert();
     taskContent.innerHTML = "";
+
+    const totalCount = taskList.length;
+    const activeCount = taskList.filter(function(task) {
+        const status = String(task.status || "").toLowerCase();
+        return !["completed", "cancelled", "failed"].includes(status);
+    }).length;
+    const doneCount = taskList.filter(function(task) {
+        const status = String(task.status || "").toLowerCase();
+        return ["completed", "cancelled", "failed"].includes(status);
+    }).length;
+
+    if (taskStats) {
+        taskStats.textContent =
+            "TOTAL " + totalCount +
+            "  •  ACTIVE " + activeCount +
+            "  •  DONE " + doneCount;
+    }
 
     if (!taskList.length) {
         const empty = document.createElement("div");
@@ -1861,7 +2398,59 @@ function renderTasks() {
         return;
     }
 
-    taskList.slice().reverse().forEach(function(task) {
+    const filteredTasks = taskList.filter(function(task) {
+        const status = String(task.status || "").toLowerCase();
+        const search = taskSearch.trim().toLowerCase();
+
+        if (search) {
+            const haystack = [
+                task.goal,
+                task.id,
+                task.status,
+                ...(Array.isArray(task.steps)
+                    ? task.steps.flatMap(function(step) {
+                        return [step.title, step.description, step.status];
+                    })
+                    : [])
+            ].map(function(value) {
+                return String(value || "").toLowerCase();
+            }).join(" ");
+
+            if (!haystack.includes(search)) {
+                return false;
+            }
+        }
+
+        if (taskFilter === "active") {
+            return !["completed", "cancelled", "failed"].includes(status);
+        }
+
+        if (taskFilter === "completed") {
+            return ["completed", "cancelled", "failed"].includes(status);
+        }
+
+        return true;
+    });
+
+    if (!filteredTasks.length) {
+        const empty = document.createElement("div");
+        empty.className = "task-empty";
+
+        if (taskSearch.trim()) {
+            empty.textContent = "NO MATCHING TASKS";
+        } else if (taskFilter === "active") {
+            empty.textContent = "NO ACTIVE TASKS";
+        } else if (taskFilter === "completed") {
+            empty.textContent = "NO COMPLETED TASKS";
+        } else {
+            empty.textContent = "NO TASKS FOUND";
+        }
+
+        taskContent.appendChild(empty);
+        return;
+    }
+
+    filteredTasks.slice().reverse().forEach(function(task) {
         const card = document.createElement("div");
         card.className = "task-card" +
             (String(task.status || "").toLowerCase() === "running" ? " current" : "");
@@ -1913,13 +2502,44 @@ function renderTasks() {
 
         card.appendChild(currentStep);
 
-        (task.steps || []).forEach(function(step, index) {
+        const steps = Array.isArray(task.steps) ? task.steps : [];
+
+        steps.forEach(function(step, index) {
             const stepEl = document.createElement("div");
             stepEl.className = "task-step " + taskStepClass(step.status);
-            stepEl.textContent = (index + 1) + ". " +
+
+            const title = document.createElement("div");
+            title.textContent = (index + 1) + ". " +
                 String(step.title || step.description || "Task step");
+
+            stepEl.appendChild(title);
+
+            const detail = document.createElement("div");
+            detail.className = "task-step-detail";
+
+            const description = String(step.description || "").trim();
+            const status = taskStatusLabel(step.status);
+
+            detail.textContent =
+                "STATUS: " + status +
+                (description ? "\n" + description : "");
+
             card.appendChild(stepEl);
+            card.appendChild(detail);
         });
+
+        const detailsButton = document.createElement("button");
+        detailsButton.type = "button";
+        detailsButton.className = "task-details-button";
+        detailsButton.textContent = "SHOW STEP DETAILS";
+
+        detailsButton.onclick = function() {
+            const opened = card.classList.toggle("details-open");
+            detailsButton.textContent =
+                opened ? "HIDE STEP DETAILS" : "SHOW STEP DETAILS";
+        };
+
+        card.appendChild(detailsButton);
 
         const actions = document.createElement("div");
         actions.className = "task-actions";
@@ -1971,17 +2591,114 @@ function renderTasks() {
     });
 }
 
-async function loadTasks() {
+function setTaskLiveMessage(message, type="") {
+    if (!taskLiveMessage) return;
+
+    taskLiveMessage.textContent = String(message || "TASK CENTER READY");
+    taskLiveMessage.className = "task-live-message";
+
+    if (type) {
+        taskLiveMessage.classList.add(type);
+    }
+}
+
+function hasActiveTasks() {
+    return taskList.some(function(task) {
+        return !["completed", "cancelled", "failed"].includes(
+            String(task.status || "").toLowerCase()
+        );
+    });
+}
+
+async let taskAutoRefreshEnabled=true;
+
+const taskAutoRefreshToggle=document.getElementById("taskAutoRefreshToggle");
+if(taskAutoRefreshToggle){
+    taskAutoRefreshToggle.addEventListener("click",function(){
+        taskAutoRefreshEnabled=!taskAutoRefreshEnabled;
+        taskAutoRefreshToggle.textContent=taskAutoRefreshEnabled?"LIVE REFRESH: ON":"LIVE REFRESH: OFF";
+        if(typeof showToast==="function"){
+            showToast(taskAutoRefreshEnabled?"LIVE REFRESH ON":"LIVE REFRESH OFF");
+        }
+    });
+}
+
+function loadTasks() {
     try {
         const response = await fetch("/api/tasks", { cache: "no-store" });
         const data = await response.json();
-        if (!response.ok) throw new Error(data.response || "Task API error");
+
+        if (!response.ok) {
+            throw new Error(data.response || "Task API error");
+        }
+
+        const previousTasks = Array.isArray(taskList)
+            ? taskList.map(function(task) {
+                return {
+                    id: String(task.id || ""),
+                    status: String(task.status || "").toLowerCase()
+                };
+            })
+            : [];
+
         taskList = Array.isArray(data.tasks) ? data.tasks : [];
+
+        if (taskNotificationsEnabled && previousTasks.length) {
+            taskList.forEach(function(task) {
+                const id = String(task.id || "");
+                const currentStatus = String(task.status || "").toLowerCase();
+
+                const previous = previousTasks.find(function(item) {
+                    return item.id === id;
+                });
+
+                if (!previous || previous.status === currentStatus) return;
+
+                if (currentStatus === "waiting_confirmation") {
+                    notifyTaskEvent(
+                        "AJ needs confirmation",
+                        String(task.goal || "A task is waiting for confirmation.")
+                    );
+                } else if (currentStatus === "completed") {
+                    notifyTaskEvent(
+                        "AJ task completed",
+                        String(task.goal || "A task has completed.")
+                    );
+                } else if (currentStatus === "failed") {
+                    notifyTaskEvent(
+                        "AJ task failed",
+                        String(task.goal || "A task failed.")
+                    );
+                }
+            });
+        }
+
+        if (taskUpdated) {
+            const now = new Date();
+            taskUpdated.textContent =
+                "LAST UPDATE — " +
+                now.toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                });
+        }
         renderTasks();
+
+        if (!taskList.length) {
+            setTaskLiveMessage("NO TASKS — READY");
+        } else if (hasActiveTasks()) {
+            setTaskLiveMessage("LIVE • ACTIVE TASKS UPDATED", "active");
+        } else {
+            setTaskLiveMessage("ALL TASKS COMPLETE", "active");
+        }
     } catch (error) {
         console.error("TASK LOAD ERROR:", error);
+        setTaskLiveMessage("TASK SERVICE UNAVAILABLE", "error");
+
         if (taskContent) {
-            taskContent.innerHTML = '<div class="task-empty">TASK SERVICE UNAVAILABLE</div>';
+            taskContent.innerHTML =
+                '<div class="task-empty">TASK SERVICE UNAVAILABLE</div>';
         }
     }
 }
@@ -2159,8 +2876,13 @@ function startTaskLiveRefresh() {
     setTaskLiveState(true);
 
     taskRefreshTimer = setInterval(function() {
+        if(!taskAutoRefreshEnabled) return;
+
         if (!taskCenterOpen || processing) return;
-        loadTasks();
+
+        if (!taskList.length || hasActiveTasks()) {
+            loadTasks();
+        }
     }, 2500);
 }
 
@@ -2188,6 +2910,47 @@ function closeTaskCenter() {
 taskButton.addEventListener("click", openTaskCenter);
 taskClose.addEventListener("click", closeTaskCenter);
 taskBackdrop.addEventListener("click", closeTaskCenter);
+
+document.addEventListener("keydown", function(event) {
+    const target = event.target;
+    const tag = target && target.tagName ? target.tagName.toLowerCase() : "";
+
+    if (
+        event.key.toLowerCase() === "t" &&
+        event.ctrlKey &&
+        event.shiftKey &&
+        !event.altKey &&
+        !event.metaKey &&
+        !["input", "textarea", "select"].includes(tag) &&
+        !(target && target.isContentEditable)
+    ) {
+        event.preventDefault();
+
+        if (taskCenterOpen) {
+            closeTaskCenter();
+        } else {
+            openTaskCenter();
+        }
+
+        return;
+    }
+
+    if (event.key !== "Escape") return;
+
+    if (taskCreateBackdrop && taskCreateBackdrop.classList.contains("open")) {
+        closeTaskCreate();
+        return;
+    }
+
+    if (taskCenterOpen) {
+        closeTaskCenter();
+    }
+
+    if (historyPanel.classList.contains("open")) {
+        closeHistory();
+    }
+});
+
 taskRefresh.addEventListener("click", async function() {
     const original = taskRefresh.textContent;
     taskRefresh.textContent = "REFRESHING...";
@@ -2200,6 +2963,177 @@ taskRefresh.addEventListener("click", async function() {
         taskRefresh.disabled = false;
     }
 });
+
+let taskRunPaused=false;
+
+function toggleTaskRunnerPause(){
+    taskRunPaused=!taskRunPaused;
+    const buttons=document.querySelectorAll("button");
+    buttons.forEach(function(button){
+        if((button.textContent||"").includes("RUN ALL SAFE")){
+            button.textContent=taskRunPaused?"RESUME ALL":"RUN ALL SAFE";
+        }
+    });
+    if(typeof showToast==="function"){
+        showToast(taskRunPaused?"TASK RUNNER PAUSED":"TASK RUNNER RESUMED");
+    }
+}
+
+document.addEventListener("keydown",function(event){
+    if(event.ctrlKey && event.shiftKey && event.key.toLowerCase()==="p"){
+        const tag=(document.activeElement&&document.activeElement.tagName)||"";
+        if(!["INPUT","TEXTAREA","SELECT"].includes(tag)){
+            event.preventDefault();
+            toggleTaskRunnerPause();
+        }
+    }
+});
+
+async function runAllSafeTasks() {
+    if(taskRunPaused){
+        if(typeof showToast==="function") showToast("TASK RUNNER PAUSED");
+        return;
+    }
+
+    if (!taskRunAll) return;
+
+    const activeTasks = taskList.filter(function(task) {
+        const status = String(task.status || "").toLowerCase();
+        return !["completed", "cancelled", "failed"].includes(status);
+    });
+
+    if (!activeTasks.length) {
+        if (typeof showToast === "function") {
+            showToast("No active tasks to run.");
+        }
+        return;
+    }
+
+    taskRunAll.disabled = true;
+    taskRunAll.textContent = "RUNNING...";
+
+    let processed = 0;
+
+    try {
+        for (const task of activeTasks) {
+            const taskId = String(task.id || "").trim();
+            if (!taskId) continue;
+
+            const response = await fetch("/api/tasks/run", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify({task_id: taskId})
+            });
+
+            if (response.ok) processed += 1;
+        }
+
+        await loadTasks();
+
+        if (typeof showToast === "function") {
+            showToast(
+                processed + " task" +
+                (processed === 1 ? "" : "s") +
+                " processed."
+            );
+        }
+    } catch (error) {
+        console.error("RUN ALL TASKS ERROR:", error);
+        if (typeof showToast === "function") {
+            showToast("Could not run all safe tasks.");
+        }
+    } finally {
+        taskRunAll.disabled = false;
+        taskRunAll.textContent = "RUN ALL SAFE";
+    }
+}
+
+if (taskRunAll) {
+    taskRunAll.addEventListener("click", runAllSafeTasks);
+}
+
+function openTaskCreate() {
+    if (!taskCreateBackdrop) return;
+    taskCreateBackdrop.classList.add("open");
+    setTimeout(function() {
+        if (taskCreateInput) taskCreateInput.focus();
+    }, 50);
+}
+
+function closeTaskCreate() {
+    if (taskCreateBackdrop) taskCreateBackdrop.classList.remove("open");
+}
+
+if (taskCreate) taskCreate.addEventListener("click", openTaskCreate);
+if (taskCreateCancel) taskCreateCancel.addEventListener("click", closeTaskCreate);
+
+if (taskCreateBackdrop) {
+    taskCreateBackdrop.addEventListener("click", function(event) {
+        if (event.target === taskCreateBackdrop) closeTaskCreate();
+    });
+}
+
+if (taskCreateInput) {
+    taskCreateInput.addEventListener("keydown", function(event) {
+        if ((event.ctrlKey || event.metaKey) && event.key === "Enter") {
+            event.preventDefault();
+            if (taskCreateSubmit) taskCreateSubmit.click();
+        }
+    });
+}
+
+if (taskCreateSubmit) {
+    taskCreateSubmit.addEventListener("click", async function() {
+        const request = (taskCreateInput ? taskCreateInput.value : "").trim();
+        if (!request) {
+            if (taskCreateInput) taskCreateInput.focus();
+            return;
+        }
+
+        taskCreateSubmit.disabled = true;
+        taskCreateSubmit.textContent = "CREATING...";
+
+        try {
+            const message = "Create a task from this request: " + request;
+
+            if (typeof sendMessage !== "function") {
+                throw new Error("Chat interface is not available.");
+            }
+
+            closeTaskCreate();
+            await sendMessage(message);
+            await loadTasks();
+        } catch (error) {
+            console.error("TASK CREATE ERROR:", error);
+            if (typeof showToast === "function") {
+                showToast("Could not create the task.");
+            }
+        } finally {
+            taskCreateSubmit.disabled = false;
+            taskCreateSubmit.textContent = "CREATE WITH AJ";
+        }
+    });
+}
+
+document.querySelectorAll(".task-filter").forEach(function(button) {
+    button.addEventListener("click", function() {
+        taskFilter = button.dataset.taskFilter || "all";
+
+        document.querySelectorAll(".task-filter").forEach(function(item) {
+            item.classList.remove("active");
+        });
+
+        button.classList.add("active");
+        renderTasks();
+    });
+});
+
+if (taskSearchInput) {
+    taskSearchInput.addEventListener("input", function() {
+        taskSearch = taskSearchInput.value || "";
+        renderTasks();
+    });
+}
 
 /* ============================================================
    SPEECH OUTPUT
