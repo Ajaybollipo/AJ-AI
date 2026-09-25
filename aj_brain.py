@@ -353,6 +353,115 @@ Keep it concise and easy to memorize.
 """
 
 
+def build_coding_prompt(request):
+    return f"""
+You are AJ Coding Assistant, a professional programming mentor.
+
+The user asked:
+
+{request}
+
+Help the user solve the programming task accurately.
+
+Follow this structure when useful:
+
+1. UNDERSTAND THE PROBLEM
+2. APPROACH
+3. CODE
+4. EXPLANATION
+5. EXAMPLE / SAMPLE OUTPUT
+6. COMPLEXITY
+7. COMMON MISTAKES
+
+Rules:
+- Identify the programming language if the user specifies it.
+- If no language is specified, use the language most appropriate
+  for the request and clearly state it.
+- Give complete, runnable code when code is requested.
+- Preserve the user's intended behavior when fixing code.
+- Explain errors in simple language.
+- For debugging, identify the likely cause before giving the fix.
+- For DSA questions, explain the algorithm and time/space complexity.
+- For SQL, provide valid SQL and explain the query.
+- For HTML/CSS/JavaScript, keep the code complete and practical.
+- Never claim code was executed or tested unless it actually was.
+- For exam questions, include a short exam-ready explanation.
+"""
+
+
+def detect_coding_request(message):
+    lower = message.strip().lower()
+
+    prefixes = (
+        "write code for ",
+        "write a program for ",
+        "write a program to ",
+        "generate code for ",
+        "create code for ",
+        "code for ",
+        "solve this coding problem ",
+        "solve this programming problem ",
+        "debug this code ",
+        "fix this code ",
+        "fix my code ",
+        "find the error in ",
+        "find errors in ",
+        "explain this code ",
+        "explain my code ",
+        "convert this code ",
+        "optimize this code ",
+        "program for ",
+    )
+
+    coding_keywords = (
+        "python",
+        "java",
+        "c programming",
+        "c++",
+        "cpp",
+        "javascript",
+        "html",
+        "css",
+        "sql",
+        "code",
+        "program",
+        "coding",
+        "debug",
+        "compiler error",
+        "syntax error",
+        "runtime error",
+        "algorithm",
+        "function",
+        "class",
+    )
+
+    for prefix in prefixes:
+        if lower.startswith(prefix):
+            request = message[len(prefix):].strip()
+            if request:
+                return request
+
+    if any(keyword in lower for keyword in coding_keywords):
+        if any(
+            action in lower
+            for action in (
+                "write",
+                "create",
+                "generate",
+                "solve",
+                "fix",
+                "debug",
+                "explain",
+                "convert",
+                "optimize",
+                "error",
+            )
+        ):
+            return message.strip()
+
+    return None
+
+
 def detect_study_request(message):
     lower = message.strip().lower()
 
@@ -453,6 +562,15 @@ def ask_aj(message, history=None):
 
         else:
             return command_result
+
+    # =========================================================
+    # NATURAL CODING MODE
+    # =========================================================
+
+    coding_request = detect_coding_request(message)
+
+    if coding_request:
+        message = build_coding_prompt(coding_request)
 
     # =========================================================
     # NATURAL STUDY MODE
