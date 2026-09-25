@@ -1223,6 +1223,82 @@ button,input{font:inherit}
     }
 }
 
+
+/* ============================================================
+   AJ TASK CENTER — STEP 14.8
+============================================================ */
+.task-button{
+    margin-left:6px;
+}
+.task-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.58);
+    backdrop-filter:blur(4px);
+    opacity:0;
+    pointer-events:none;
+    transition:.2s ease;
+    z-index:80;
+}
+.task-backdrop.open{
+    opacity:1;
+    pointer-events:auto;
+}
+.task-panel{
+    position:fixed;
+    top:0;
+    right:0;
+    width:min(420px,92vw);
+    height:100vh;
+    background:rgba(7,11,15,.97);
+    border-left:1px solid rgba(0,217,255,.35);
+    box-shadow:-20px 0 60px rgba(0,0,0,.55);
+    transform:translateX(105%);
+    transition:.25s ease;
+    z-index:81;
+    display:flex;
+    flex-direction:column;
+}
+.task-panel.open{transform:translateX(0);}
+.task-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+}
+.task-title{font-weight:800;letter-spacing:2px;color:#00d9ff;}
+.task-close{
+    border:0;background:transparent;color:#fff;font-size:20px;cursor:pointer;
+}
+.task-content{padding:18px;overflow:auto;flex:1;}
+.task-empty{padding:30px 10px;text-align:center;color:#7c8b94;letter-spacing:1px;}
+.task-card{
+    border:1px solid rgba(0,217,255,.22);
+    background:rgba(255,255,255,.025);
+    padding:15px;border-radius:12px;margin-bottom:12px;
+}
+.task-card.current{border-color:rgba(0,217,255,.65);}
+.task-goal{font-weight:700;color:#fff;margin-bottom:8px;line-height:1.4;}
+.task-meta{font-size:12px;color:#8fa2ad;margin-bottom:10px;}
+.task-progress{height:5px;background:rgba(255,255,255,.08);border-radius:10px;overflow:hidden;margin:10px 0;}
+.task-progress-bar{height:100%;background:#00d9ff;transition:.25s ease;}
+.task-step{font-size:13px;color:#c8d4da;margin:7px 0;padding-left:8px;border-left:2px solid rgba(0,217,255,.25);}
+.task-step.running{border-left-color:#00d9ff;color:#fff;}
+.task-step.completed{border-left-color:#55e67a;color:#9ee9ad;}
+.task-step.waiting_confirmation{border-left-color:#ffd166;color:#ffe4a3;}
+.task-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.task-action{
+    border:1px solid rgba(0,217,255,.3);background:rgba(0,217,255,.06);
+    color:#dffaff;border-radius:8px;padding:8px 11px;cursor:pointer;font-size:12px;
+}
+.task-action:hover{background:rgba(0,217,255,.14);}
+.task-action.danger{border-color:rgba(255,23,68,.35);color:#ff8ba0;}
+.task-refresh{
+    margin:0 18px 18px;padding:10px;border:1px solid rgba(255,255,255,.12);
+    background:rgba(255,255,255,.04);color:#fff;border-radius:8px;cursor:pointer;
+}
+
 </style>
 </head>
 
@@ -1386,6 +1462,14 @@ button,input{font:inherit}
                 📜 
             </button>
 
+            <button
+                class="command-button task-button"
+                id="taskButton"
+                type="button"
+                title="Task Center">
+                ☷
+            </button>
+
         </div>
     </div>
 </div>
@@ -1413,6 +1497,20 @@ button,input{font:inherit}
         </button>
     </div>
 
+</aside>
+
+<!-- TASK CENTER -->
+<div class="task-backdrop" id="taskBackdrop"></div>
+
+<aside class="task-panel" id="taskPanel">
+    <div class="task-head">
+        <div class="task-title">TASK CENTER</div>
+        <button class="task-close" id="taskClose" type="button">✕</button>
+    </div>
+    <div class="task-content" id="taskContent">
+        <div class="task-empty">NO ACTIVE TASKS</div>
+    </div>
+    <button class="task-refresh" id="taskRefresh" type="button">REFRESH TASKS</button>
 </aside>
 
 <script>
@@ -1443,6 +1541,13 @@ const historyClose = document.getElementById("historyClose");
 const historyList = document.getElementById("historyList");
 const clearHistoryButton = document.getElementById("clearHistory");
 
+const taskButton = document.getElementById("taskButton");
+const taskPanel = document.getElementById("taskPanel");
+const taskBackdrop = document.getElementById("taskBackdrop");
+const taskClose = document.getElementById("taskClose");
+const taskContent = document.getElementById("taskContent");
+const taskRefresh = document.getElementById("taskRefresh");
+
 
 /* ============================================================
    STATE
@@ -1458,6 +1563,7 @@ let restartTimer = null;
 let microphoneStream = null;
 
 let history = [];
+let taskList = [];
 
 
 
@@ -1688,6 +1794,168 @@ clearHistoryButton.addEventListener("click", function() {
     renderHistory();
 });
 
+
+/* ============================================================
+   TASK CENTER — STEP 14.8
+============================================================ */
+
+function taskStatusLabel(status) {
+    return String(status || "UNKNOWN").replace(/_/g, " ").toUpperCase();
+}
+
+function taskStepClass(status) {
+    return String(status || "").toLowerCase();
+}
+
+function renderTasks() {
+    if (!taskContent) return;
+
+    taskContent.innerHTML = "";
+
+    if (!taskList.length) {
+        const empty = document.createElement("div");
+        empty.className = "task-empty";
+        empty.textContent = "NO TASKS FOUND";
+        taskContent.appendChild(empty);
+        return;
+    }
+
+    taskList.slice().reverse().forEach(function(task) {
+        const card = document.createElement("div");
+        card.className = "task-card" +
+            (String(task.status || "").toLowerCase() === "running" ? " current" : "");
+
+        const goal = document.createElement("div");
+        goal.className = "task-goal";
+        goal.textContent = task.goal || "Untitled task";
+
+        const meta = document.createElement("div");
+        meta.className = "task-meta";
+        meta.textContent = taskStatusLabel(task.status) +
+            " • " + String(task.progress ?? 0) + "%";
+
+        const progress = document.createElement("div");
+        progress.className = "task-progress";
+        const bar = document.createElement("div");
+        bar.className = "task-progress-bar";
+        bar.style.width = Math.max(0, Math.min(100, Number(task.progress || 0))) + "%";
+        progress.appendChild(bar);
+
+        card.appendChild(goal);
+        card.appendChild(meta);
+        card.appendChild(progress);
+
+        (task.steps || []).forEach(function(step, index) {
+            const stepEl = document.createElement("div");
+            stepEl.className = "task-step " + taskStepClass(step.status);
+            stepEl.textContent = (index + 1) + ". " +
+                String(step.title || step.description || "Task step");
+            card.appendChild(stepEl);
+        });
+
+        const actions = document.createElement("div");
+        actions.className = "task-actions";
+
+        if (["pending", "paused", "waiting_confirmation"].includes(
+            String(task.status || "").toLowerCase()
+        )) {
+            const continueButton = document.createElement("button");
+            continueButton.className = "task-action";
+            continueButton.textContent = "CONTINUE";
+            continueButton.onclick = function() { continueTask(task.id); };
+            actions.appendChild(continueButton);
+        }
+
+        const waiting = (task.steps || []).some(function(step) {
+            return String(step.status || "").toLowerCase() === "waiting_confirmation";
+        });
+
+        if (waiting) {
+            const confirmButton = document.createElement("button");
+            confirmButton.className = "task-action";
+            confirmButton.textContent = "CONFIRM STEP";
+            confirmButton.onclick = function() { confirmTask(task.id); };
+            actions.appendChild(confirmButton);
+        }
+
+        if (!["completed", "cancelled", "failed"].includes(
+            String(task.status || "").toLowerCase()
+        )) {
+            const cancelButton = document.createElement("button");
+            cancelButton.className = "task-action danger";
+            cancelButton.textContent = "CANCEL";
+            cancelButton.onclick = function() { cancelTask(task.id); };
+            actions.appendChild(cancelButton);
+        }
+
+        if (actions.children.length) card.appendChild(actions);
+        taskContent.appendChild(card);
+    });
+}
+
+async function loadTasks() {
+    try {
+        const response = await fetch("/api/tasks", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.response || "Task API error");
+        taskList = Array.isArray(data.tasks) ? data.tasks : [];
+        renderTasks();
+    } catch (error) {
+        console.error("TASK LOAD ERROR:", error);
+        if (taskContent) {
+            taskContent.innerHTML = '<div class="task-empty">TASK SERVICE UNAVAILABLE</div>';
+        }
+    }
+}
+
+async function taskAction(endpoint, taskId) {
+    try {
+        const response = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ task_id: taskId })
+        });
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.response || "Task action failed");
+        }
+        await loadTasks();
+        if (data.summary) {
+            addResponse("TASK CENTER", data.summary);
+        }
+    } catch (error) {
+        console.error("TASK ACTION ERROR:", error);
+        addResponse("TASK CENTER", error.message || "Task action failed.");
+    }
+}
+
+function continueTask(taskId) {
+    taskAction("/api/tasks/continue", taskId);
+}
+
+function confirmTask(taskId) {
+    taskAction("/api/tasks/confirm", taskId);
+}
+
+function cancelTask(taskId) {
+    taskAction("/api/tasks/cancel", taskId);
+}
+
+function openTaskCenter() {
+    taskPanel.classList.add("open");
+    taskBackdrop.classList.add("open");
+    loadTasks();
+}
+
+function closeTaskCenter() {
+    taskPanel.classList.remove("open");
+    taskBackdrop.classList.remove("open");
+}
+
+taskButton.addEventListener("click", openTaskCenter);
+taskClose.addEventListener("click", closeTaskCenter);
+taskBackdrop.addEventListener("click", closeTaskCenter);
+taskRefresh.addEventListener("click", loadTasks);
 
 /* ============================================================
    SPEECH OUTPUT
