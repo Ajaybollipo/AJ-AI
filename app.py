@@ -321,7 +321,8 @@ def command():
         )
     ).strip()
 
-    history = clean_history(data.get("history", []))
+    raw_history = data.get("history", [])
+    history = clean_history(raw_history)
 
     if not message:
 
