@@ -10,6 +10,17 @@ import requests
 from aj_brain import ask_aj
 from aj_files import prepare_file_for_ai
 from aj_voice import process_voice_command
+from aj_tasks import (
+    get_task,
+    get_all_tasks,
+    save_task,
+    start_task,
+    start_next_step,
+    confirm_current_step,
+    cancel_task,
+    task_to_dict,
+    task_summary,
+)
 
 
 app = Flask(
@@ -743,6 +754,269 @@ Rules:
         }), 500
 
 
+
+# =========================================================
+# TASK CONTROL API
+# =========================================================
+
+def _task_request_id(data):
+    if not isinstance(data, dict):
+        return ""
+    return str(
+        data.get("task_id", "")
+    ).strip()
+
+
+@app.route("/api/tasks", methods=["GET"])
+def tasks():
+    """Return all persisted AJ tasks."""
+    try:
+        return jsonify({
+            "assistant": "AJ",
+            "tasks": [
+                task_to_dict(task)
+                for task in get_all_tasks()
+            ],
+            "state": "ONLINE"
+        })
+    except Exception as error:
+        print("TASK LIST ERROR:", error)
+        return security_error(
+            "AJ could not load the task list.",
+            500
+        )
+
+
+@app.route("/api/tasks/current", methods=["GET"])
+def current_task():
+    """Return the current active task."""
+    try:
+        tasks_list = get_all_tasks()
+
+        active = [
+            task for task in tasks_list
+            if task.get("status") in {
+                "pending",
+                "running",
+                "waiting_confirmation"
+            }
+        ]
+
+        task = active[-1] if active else None
+
+        return jsonify({
+            "assistant": "AJ",
+            "task": task_to_dict(task),
+            "summary": task_summary(task),
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+        print("CURRENT TASK ERROR:", error)
+        return security_error(
+            "AJ could not load the current task.",
+            500
+        )
+
+
+@app.route("/api/tasks/start", methods=["POST"])
+def start_task_api():
+    """Start a persisted task."""
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return security_error(
+            "Invalid task request.",
+            400
+        )
+
+    task_id = _task_request_id(data)
+
+    if not task_id:
+        return security_error(
+            "A task_id is required.",
+            400
+        )
+
+    try:
+        task = get_task(task_id)
+
+        if not task:
+            return security_error(
+                "Task not found.",
+                404
+            )
+
+        start_task(task)
+        save_task(task)
+
+        return jsonify({
+            "assistant": "AJ",
+            "task": task_to_dict(task),
+            "summary": task_summary(task),
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+        print("TASK START ERROR:", error)
+        return security_error(
+            "AJ could not start that task.",
+            500
+        )
+
+
+@app.route("/api/tasks/continue", methods=["POST"])
+def continue_task_api():
+    """
+    Move a task to its next safe step.
+
+    This endpoint changes task state only. It does not perform
+    arbitrary shell commands or sensitive external actions.
+    """
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return security_error(
+            "Invalid task request.",
+            400
+        )
+
+    task_id = _task_request_id(data)
+
+    if not task_id:
+        return security_error(
+            "A task_id is required.",
+            400
+        )
+
+    try:
+        task = get_task(task_id)
+
+        if not task:
+            return security_error(
+                "Task not found.",
+                404
+            )
+
+        step = start_next_step(task)
+        save_task(task)
+
+        return jsonify({
+            "assistant": "AJ",
+            "task": task_to_dict(task),
+            "step": step,
+            "summary": task_summary(task),
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+        print("TASK CONTINUE ERROR:", error)
+        return security_error(
+            "AJ could not continue that task.",
+            500
+        )
+
+
+@app.route("/api/tasks/confirm", methods=["POST"])
+def confirm_task_api():
+    """Explicitly approve the current sensitive task step."""
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return security_error(
+            "Invalid task request.",
+            400
+        )
+
+    task_id = _task_request_id(data)
+
+    if not task_id:
+        return security_error(
+            "A task_id is required.",
+            400
+        )
+
+    try:
+        task = get_task(task_id)
+
+        if not task:
+            return security_error(
+                "Task not found.",
+                404
+            )
+
+        step = confirm_current_step(task)
+        save_task(task)
+
+        return jsonify({
+            "assistant": "AJ",
+            "task": task_to_dict(task),
+            "step": step,
+            "summary": task_summary(task),
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+        print("TASK CONFIRM ERROR:", error)
+        return security_error(
+            "AJ could not confirm that task step.",
+            500
+        )
+
+
+@app.route("/api/tasks/cancel", methods=["POST"])
+def cancel_task_api():
+    """Cancel a persisted task."""
+    data = request.get_json(silent=True)
+
+    if not isinstance(data, dict):
+        return security_error(
+            "Invalid task request.",
+            400
+        )
+
+    task_id = _task_request_id(data)
+
+    if not task_id:
+        return security_error(
+            "A task_id is required.",
+            400
+        )
+
+    try:
+        task = get_task(task_id)
+
+        if not task:
+            return security_error(
+                "Task not found.",
+                404
+            )
+
+        cancelled = cancel_task(task)
+        save_task(task)
+
+        if not cancelled:
+            return security_error(
+                "That task cannot be cancelled.",
+                400
+            )
+
+        return jsonify({
+            "assistant": "AJ",
+            "task": task_to_dict(task),
+            "summary": task_summary(task),
+            "state": "ONLINE"
+        })
+
+    except Exception as error:
+        print("TASK CANCEL ERROR:", error)
+        return security_error(
+            "AJ could not cancel that task.",
+            500
+        )
+
+
+
 # =========================================================
 # HEALTH CHECK
 # =========================================================
@@ -759,6 +1033,8 @@ def health():
         "file_intelligence": True,
         "voice_control": True,
         "voice_api": True,
+        "task_engine": True,
+        "task_api": True,
         "security": True,
         "file_upload_limit_mb": 5
     })
