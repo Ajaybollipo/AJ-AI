@@ -218,9 +218,11 @@ def handle_command(message):
 
         if site in SITES:
 
+            # The frontend will receive this instruction
+            # and open the URL in the user's browser.
             return (
-                f"Opening {site.title()}: "
-                f"{SITES[site]}"
+                "__AJ_OPEN_URL__"
+                + SITES[site]
             )
 
     # ==========================================
@@ -239,7 +241,7 @@ def handle_command(message):
         query = match.group(1).strip()
 
         return (
-            "Opening YouTube search: "
+            "__AJ_OPEN_URL__"
             "https://www.youtube.com/results?search_query="
             + quote_plus(query)
         )
@@ -259,7 +261,7 @@ def handle_command(message):
         query = match.group(1).strip()
 
         return (
-            "Searching Google: "
+            "__AJ_OPEN_URL__"
             "https://www.google.com/search?q="
             + quote_plus(query)
         )
