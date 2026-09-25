@@ -1974,6 +1974,23 @@ async function sendVoiceMessage(message) {
             data.response ||
             "I received your voice command.";
 
+        // AJ backend can request a real browser navigation for voice commands.
+        if (typeof answer === "string" &&
+            answer.startsWith("__AJ_OPEN_URL__")) {
+
+            const url = answer
+                .replace("__AJ_OPEN_URL__", "")
+                .trim();
+
+            if (/^https?:\/\//i.test(url)) {
+                processing = false;
+                setStatus("ONLINE");
+                setVoiceStatus("OPENING WEBSITE...");
+                window.location.href = url;
+                return;
+            }
+        }
+
         history.push({
             role:"user",
             content:spokenMessage
@@ -2101,6 +2118,23 @@ async function sendMessage() {
         const answer =
             data.response ||
             "I received your request.";
+
+        // AJ backend can request a real browser navigation.
+        if (typeof answer === "string" &&
+            answer.startsWith("__AJ_OPEN_URL__")) {
+
+            const url = answer
+                .replace("__AJ_OPEN_URL__", "")
+                .trim();
+
+            if (/^https?:\/\//i.test(url)) {
+                window.location.href = url;
+                processing = false;
+                setStatus("ONLINE");
+                setVoiceStatus("OPENING WEBSITE...");
+                return;
+            }
+        }
 
         history.push({
             role:"user",
