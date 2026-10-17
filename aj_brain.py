@@ -36,6 +36,87 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 
 # =========================
+# GEMINI FALLBACK CONFIG
+# =========================
+
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash").strip()
+GEMINI_URL = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent"
+
+
+def ask_gemini(messages):
+    """Return a Gemini answer, or None if Gemini is unavailable."""
+    if not GEMINI_API_KEY:
+        print("GEMINI FALLBACK: GEMINI_API_KEY is not configured.")
+        return None
+
+    system_parts = []
+    contents = []
+    for item in messages:
+        role = item.get("role")
+        content = item.get("content")
+        if not content:
+            continue
+        if isinstance(content, list):
+            # This text-only fallback supports plain text messages.
+            content = " ".join(
+                str(part.get("text", "")) if isinstance(part, dict) else str(part)
+                for part in content
+            ).strip()
+        else:
+            content = str(content)
+        if not content:
+            continue
+        if role == "system":
+            system_parts.append(content)
+        elif role in ("user", "assistant"):
+            contents.append({
+                "role": "user" if role == "user" else "model",
+                "parts": [{"text": content}],
+            })
+
+    if not contents:
+        print("GEMINI FALLBACK: no user content to send.")
+        return None
+
+    payload = {"contents": contents}
+    if system_parts:
+        payload["systemInstruction"] = {"parts": [{"text": "\n\n".join(system_parts)}]}
+
+    try:
+        response = requests.post(
+            GEMINI_URL,
+            headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
+            json=payload,
+            timeout=45,
+        )
+        if response.status_code != 200:
+            # Log only the provider response; never log the API key or headers.
+            print("GEMINI ERROR:", response.status_code, response.text[:1200])
+            return None
+        data = response.json()
+        parts = (
+            data.get("candidates", [{}])[0]
+            .get("content", {})
+            .get("parts", [])
+        )
+        answer = "\n".join(
+            str(part.get("text", "")) for part in parts if part.get("text")
+        ).strip()
+        if answer:
+            print("AI PROVIDER: Gemini fallback succeeded.")
+            return answer
+        print("GEMINI ERROR: response contained no text.")
+        return None
+    except requests.exceptions.RequestException as error:
+        print("GEMINI CONNECTION ERROR:", error)
+        return None
+    except Exception as error:
+        print("GEMINI FALLBACK ERROR:", error)
+        return None
+
+
+# =========================
 # OPEN WEBSITES
 # =========================
 
@@ -1279,24 +1360,30 @@ SAVED MEMORY:
             print(
                 "OPENROUTER ERROR:",
                 response.status_code,
-                response.text
+                response.text[:1200]
             )
+
+            # If OpenRouter is rate-limited or unavailable, try Gemini.
+            gemini_answer = ask_gemini(messages)
+            if gemini_answer:
+                return gemini_answer
 
             if response.status_code == 401:
                 return (
-                    "AJ cannot authenticate with OpenRouter. "
-                    "Please check the API key."
+                    "AJ could not authenticate with OpenRouter, and Gemini "
+                    "fallback did not succeed. Check the provider settings in Render."
                 )
 
             if response.status_code == 429:
                 return (
-                    "AJ could not get a response from OpenRouter "
-                    "right now. Please try again shortly."
+                    "OpenRouter's quota is exhausted and Gemini fallback also failed. "
+                    "Check the Render logs for a GEMINI ERROR line and verify the "
+                    "GEMINI_API_KEY environment variable name (do not share its value)."
                 )
 
             return (
-                "AJ's AI service returned an error. "
-                "Please try again."
+                "OpenRouter returned an error and Gemini fallback did not succeed. "
+                "Check the Render logs for GEMINI ERROR details."
             )
 
         data = response.json()
@@ -1315,13 +1402,18 @@ SAVED MEMORY:
 
     except requests.exceptions.Timeout:
 
-        return "AJ's AI service took too long to respond."
+        gemini_answer = ask_gemini(messages)
+        if gemini_answer:
+            return gemini_answer
+        return "AJ's AI providers took too long to respond. Check the Render logs."
 
     except requests.exceptions.RequestException as error:
 
         print("OPENROUTER CONNECTION ERROR:", error)
-
-        return "AJ is having trouble connecting to the AI service."
+        gemini_answer = ask_gemini(messages)
+        if gemini_answer:
+            return gemini_answer
+        return "AJ is having trouble connecting to OpenRouter or Gemini. Check the Render logs."
 
     except Exception as error:
 
