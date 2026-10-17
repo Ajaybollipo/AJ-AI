@@ -1924,6 +1924,39 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
   .main-voice-waveform.wave-right { left: calc(50% + 37px) !important; right: auto !important; }
 }
 
+
+
+/* FINAL FIX — restore the reference composition without changing app logic.
+   Desktop: keep the chat field on the lower-right and make the center mic/waves
+   visible below the signature. Mobile keeps its existing compact layout. */
+@media (min-width: 701px) {
+  .command-bar { left:auto!important; right:2.5%!important; transform:none!important; width:min(550px,34vw)!important; max-width:calc(100vw - 270px)!important; bottom:113px!important; height:60px!important; border-radius:34px!important; overflow:visible!important; z-index:25!important; }
+  .command-bar #messageInput { height:48px!important; min-width:0!important; padding:0 54px 0 18px!important; font-size:14px!important; }
+  .command-bar #sendButton { top:9px!important; right:7px!important; width:40px!important; height:40px!important; }
+  .command-bar .command-button.voice { position:fixed!important; left:50%!important; right:auto!important; top:calc(100vh - 128px)!important; bottom:auto!important; transform:translateX(-50%)!important; width:100px!important; height:100px!important; margin:0!important; z-index:80!important; display:flex!important; visibility:visible!important; opacity:1!important; }
+  .command-bar .command-button.voice::before { font-size:38px!important; }
+  .command-bar .command-button.voice::after { inset:-7px!important; }
+  .command-bar .main-voice-waveform { position:fixed!important; top:calc(100vh - 103px)!important; bottom:auto!important; width:150px!important; height:68px!important; z-index:70!important; opacity:1!important; display:flex!important; }
+  .command-bar .main-voice-waveform.wave-left { left:auto!important; right:calc(50% + 63px)!important; }
+  .command-bar .main-voice-waveform.wave-right { left:calc(50% + 63px)!important; right:auto!important; }
+  .app.sidebar-collapsed .command-bar { left:auto!important; right:2.5%!important; }
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  .command-bar { width:min(420px,39vw)!important; max-width:calc(100vw - 230px)!important; bottom:105px!important; }
+  .command-bar .command-button.voice { top:calc(100vh - 115px)!important; width:82px!important; height:82px!important; }
+  .command-bar .command-button.voice::before { font-size:32px!important; }
+  .command-bar .main-voice-waveform { top:calc(100vh - 91px)!important; width:118px!important; height:52px!important; }
+  .command-bar .main-voice-waveform.wave-left { right:calc(50% + 52px)!important; }
+  .command-bar .main-voice-waveform.wave-right { left:calc(50% + 52px)!important; }
+}
+@media (max-width: 700px) {
+  .command-bar { left:50%!important; right:auto!important; bottom:105px!important; transform:translateX(-50%)!important; width:88vw!important; max-width:none!important; height:46px!important; }
+  .command-bar .command-button.voice { position:absolute!important; left:50%!important; top:42px!important; bottom:auto!important; transform:translateX(-50%)!important; width:62px!important; height:62px!important; z-index:40!important; }
+  .command-bar .main-voice-waveform { position:absolute!important; top:calc(100% + 9px)!important; height:32px!important; width:calc(50% - 39px)!important; z-index:35!important; }
+  .command-bar .main-voice-waveform.wave-left { right:calc(50% + 37px)!important; left:auto!important; }
+  .command-bar .main-voice-waveform.wave-right { left:calc(50% + 37px)!important; right:auto!important; }
+}
+
 </style>
 </head>
 
