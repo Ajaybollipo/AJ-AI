@@ -3306,9 +3306,13 @@ function setupRecognition() {
         }
 
         if (event.error === "no-speech") {
-            setVoiceStatus("NO SPEECH — LISTENING AGAIN");
+            setVoiceStatus("NO SPEECH — TAP VOICE AND SPEAK");
+        } else if (event.error === "network") {
+            setVoiceStatus("VOICE NETWORK ERROR — CHECK INTERNET", "error");
+        } else if (event.error === "audio-capture") {
+            setVoiceStatus("MICROPHONE UNAVAILABLE", "error");
         } else {
-            setVoiceStatus("VOICE READY");
+            setVoiceStatus("VOICE ERROR: " + String(event.error || "UNKNOWN").toUpperCase(), "error");
         }
 
         if (shouldKeepListening &&
@@ -3393,46 +3397,20 @@ async function requestMicrophonePermission() {
     }
 }
 
-async function startListening() {
-
+function startListening() {
     if (!recognition) {
+        setVoiceStatus("VOICE NOT SUPPORTED — OPEN IN CHROME", "error");
         return;
     }
-
-    if (listening || processing || speaking) {
-        return;
-    }
-
-    const microphoneReady =
-        await requestMicrophonePermission();
-
-    if (!microphoneReady) {
-        shouldKeepListening = false;
-        voiceActive = false;
-        return;
-    }
+    if (listening || processing || speaking) return;
 
     try {
-
+        // Start directly from the user's tap. Mobile browsers can lose
+        // the user-activation permission after an awaited getUserMedia call.
         recognition.start();
-
     } catch (error) {
-
-        console.log("Recognition start:", error);
-
-        if (voiceActive &&
-            shouldKeepListening &&
-            !listening) {
-
-            clearTimeout(restartTimer);
-
-            restartTimer = setTimeout(
-                function() {
-                    startListening();
-                },
-                500
-            );
-        }
+        console.warn("Recognition start failed:", error);
+        setVoiceStatus("TAP VOICE AGAIN TO START", "error");
     }
 }
 
@@ -3509,23 +3487,7 @@ if (voiceFloatButton) {
 
         syncVoiceButton();
 
-        setVoiceStatus("CHECKING MICROPHONE...");
-
-        const microphoneReady =
-            await requestMicrophonePermission();
-
-        if (!microphoneReady) {
-
-            shouldKeepListening = false;
-            voiceActive = false;
-
-            syncVoiceButton();
-
-            return;
-        }
-
-        setVoiceStatus("STARTING VOICE...");
-
+        setVoiceStatus("TAP ALLOW IF CHROME ASKS FOR MICROPHONE");
         startListening();
     });
 }
@@ -3548,19 +3510,7 @@ micButton.addEventListener("click", async function() {
     shouldKeepListening = true;
     voiceActive = true;
 
-    setVoiceStatus("CHECKING MICROPHONE...");
-
-    const microphoneReady =
-        await requestMicrophonePermission();
-
-    if (!microphoneReady) {
-        shouldKeepListening = false;
-        voiceActive = false;
-        return;
-    }
-
-    setVoiceStatus("STARTING VOICE...");
-
+    setVoiceStatus("TAP ALLOW IF CHROME ASKS FOR MICROPHONE");
     startListening();
 });
 
