@@ -1,605 +1,189 @@
-import ast
-import operator
-import re
-import requests
-from datetime import datetime
-from urllib.parse import quote_plus
-from zoneinfo import ZoneInfo
-
-from aj_memory import remember, recall, get_all_memory, clear_memory
+import os
+from pathlib import Path
 
 
-OPS = {
-    ast.Add: operator.add,
-    ast.Sub: operator.sub,
-    ast.Mult: operator.mul,
-    ast.Div: operator.truediv,
-    ast.Mod: operator.mod,
-    ast.Pow: operator.pow,
-    ast.FloorDiv: operator.floordiv,
-    ast.USub: operator.neg,
-    ast.UAdd: operator.pos,
+ALLOWED_EXTENSIONS = {
+    ".txt",
+    ".md",
+    ".py",
+    ".js",
+    ".html",
+    ".css",
+    ".json",
+    ".csv",
+    ".xml",
+    ".java",
+    ".c",
+    ".cpp",
+    ".sql",
+    ".pdf",
 }
 
 
-SITES = {
-    "youtube": "https://www.youtube.com/",
-    "google": "https://www.google.com/",
-    "gmail": "https://mail.google.com/",
-    "instagram": "https://www.instagram.com/",
-    "facebook": "https://www.facebook.com/",
-    "whatsapp": "https://web.whatsapp.com/",
-    "github": "https://github.com/",
-    "linkedin": "https://www.linkedin.com/",
-    "spotify": "https://open.spotify.com/",
-    "netflix": "https://www.netflix.com/",
-    "chatgpt": "https://chatgpt.com/",
-    "gemini": "https://gemini.google.com/",
-    "amazon": "https://www.amazon.in/",
-    "x": "https://x.com/",
-    "twitter": "https://x.com/",
-}
+def is_supported_file(filename):
+    """
+    Check whether AJ supports the uploaded file type.
+    """
+
+    extension = Path(filename).suffix.lower()
+
+    return extension in ALLOWED_EXTENSIONS
 
 
-def _calc(node):
+def read_text_file(file_path):
+    """
+    Read normal text/code files.
+    """
 
-    if isinstance(node, ast.Constant):
-        if isinstance(node.value, (int, float)):
-            return node.value
+    with open(
+        file_path,
+        "r",
+        encoding="utf-8",
+        errors="ignore"
+    ) as file:
 
-    if isinstance(node, ast.BinOp):
-
-        if type(node.op) not in OPS:
-            raise ValueError("Unsupported operator")
-
-        left = _calc(node.left)
-        right = _calc(node.right)
-
-        if isinstance(node.op, ast.Pow) and abs(right) > 100:
-            raise ValueError("Power too large")
-
-        return OPS[type(node.op)](left, right)
-
-    if isinstance(node, ast.UnaryOp):
-
-        if type(node.op) not in OPS:
-            raise ValueError("Unsupported operator")
-
-        return OPS[type(node.op)](
-            _calc(node.operand)
-        )
-
-    raise ValueError("Unsupported expression")
+        return file.read()
 
 
-def calculator(text):
-
-    expression = re.sub(
-        r"^(calculate|calc|what is)\s+",
-        "",
-        text.strip(),
-        flags=re.I
-    )
-
-    expression = (
-        expression
-        .replace("×", "*")
-        .replace("÷", "/")
-        .replace("^", "**")
-    )
-
-    if not re.fullmatch(
-        r"[0-9+\-*/().%\s*]+",
-        expression
-    ):
-        return None
+def read_pdf_file(file_path):
+    """
+    Extract text from a PDF.
+    """
 
     try:
 
-        value = _calc(
-            ast.parse(
-                expression,
-                mode="eval"
-            ).body
+        from pypdf import PdfReader
+
+        reader = PdfReader(file_path)
+
+        pages = []
+
+        for page in reader.pages:
+
+            text = page.extract_text()
+
+            if text:
+                pages.append(text)
+
+        return "\n\n".join(pages)
+
+    except Exception as error:
+
+        print(
+            "PDF READ ERROR:",
+            error
         )
 
-        if isinstance(value, float):
-            return f"The answer is {value:g}."
-
-        return f"The answer is {value}."
-
-    except Exception:
-
-        return "I couldn't calculate that."
+        return ""
 
 
-def get_weather(city):
+def read_file(file_path):
+    """
+    Read a supported file and return its text.
+    """
 
-    coordinates = {
+    extension = Path(file_path).suffix.lower()
 
-        "hyderabad": (
-            17.3850,
-            78.4867
-        ),
+    if extension == ".pdf":
 
-        "visakhapatnam": (
-            17.6868,
-            83.2185
-        ),
+        return read_pdf_file(file_path)
 
-        "vijayawada": (
-            16.5062,
-            80.6480
-        ),
+    return read_text_file(file_path)
 
-        "delhi": (
-            28.6139,
-            77.2090
-        ),
 
-        "mumbai": (
-            19.0760,
-            72.8777
-        ),
+def get_file_info(file_path):
+    """
+    Return basic information about a file.
+    """
 
-        "chennai": (
-            13.0827,
-            80.2707
-        ),
+    path = Path(file_path)
 
-        "bengaluru": (
-            12.9716,
-            77.5946
-        ),
+    if not path.exists():
 
-        "bangalore": (
-            12.9716,
-            77.5946
-        ),
+        return {
+            "name": path.name,
+            "exists": False,
+            "size": 0,
+            "extension": path.suffix.lower()
+        }
+
+    return {
+        "name": path.name,
+        "exists": True,
+        "size": path.stat().st_size,
+        "extension": path.suffix.lower()
     }
 
-    key = city.lower().strip()
 
-    if key not in coordinates:
-        return None
-
-    latitude, longitude = coordinates[key]
-
-    response = requests.get(
-        "https://api.open-meteo.com/v1/forecast",
-        params={
-            "latitude": latitude,
-            "longitude": longitude,
-            "current": (
-                "temperature_2m,"
-                "relative_humidity_2m,"
-                "weather_code,"
-                "wind_speed_10m"
-            ),
-        },
-        timeout=8,
-    )
-
-    response.raise_for_status()
-
-    current = response.json()["current"]
-
-    return (
-        f"Weather in {city.title()}: "
-        f"{current['temperature_2m']}°C, "
-        f"humidity {current['relative_humidity_2m']}%, "
-        f"wind {current['wind_speed_10m']} km/h."
-    )
-
-
-def open_url(url):
-    return "__AJ_OPEN_URL__" + url
-
-
-def youtube_search(query):
-    query = query.strip()
-
-    if not query:
-        return None
-
-    return open_url(
-        "https://www.youtube.com/results?search_query="
-        + quote_plus(query)
-    )
-
-
-def google_search(query):
-    query = query.strip()
-
-    if not query:
-        return None
-
-    return open_url(
-        "https://www.google.com/search?q="
-        + quote_plus(query)
-    )
-
-
-
-# ==========================================
-# AJ COMMAND CENTER
-# ==========================================
-
-COMMAND_ALIASES = {
-    "yt": "youtube",
-    "youtube videos": "youtube",
-    "ig": "instagram",
-    "insta": "instagram",
-    "git hub": "github",
-    "open ai": "chatgpt",
-    "chat gpt": "chatgpt",
-    "google mail": "gmail",
-    "mail": "gmail",
-    "email": "gmail",
-    "whats app": "whatsapp",
-    "linked in": "linkedin",
-    "music": "spotify",
-}
-
-
-def get_command_help():
-    return (
-        "AJ Command Center\n\n"
-        "🌐 Open: Google, YouTube, GitHub, Gmail, Instagram, "
-        "WhatsApp, LinkedIn, Spotify, Netflix, ChatGPT, Gemini, Amazon, X\n"
-        "🔎 Search: Google or YouTube\n"
-        "🧮 Calculate: arithmetic expressions\n"
-        "🌤️ Weather: weather in a supported city\n"
-        "🕐 Time and date\n"
-        "🧠 Memory: remember, show memory, clear memory\n"
-        "📚 Study Mode: study mode: <topic>\n"
-        "💻 Coding Mode: coding mode: <task>\n\n"
-        "Examples:\n"
-        "- open youtube\n"
-        "- search python tutorials on youtube\n"
-        "- google data structures\n"
-        "- calculate 125 * 48\n"
-        "- weather in Hyderabad\n"
-        "- study mode: linked lists\n"
-        "- coding mode: binary search in Python"
-    )
-
-
-def get_command_status():
-    return (
-        "AJ Command Center: ONLINE\n\n"
-        "Websites: ON\n"
-        "Google Search: ON\n"
-        "YouTube Search: ON\n"
-        "Calculator: ON\n"
-        "Weather: ON\n"
-        "Time & Date: ON\n"
-        "Memory: ON\n"
-        "Study Mode: ON\n"
-        "Coding Mode: ON"
-    )
-
-
-def normalize_site_name(site):
-    site = site.strip().lower()
-    site = re.sub(r"\s+", " ", site)
-    return COMMAND_ALIASES.get(site, site)
-
-
-def handle_command(message):
-
-    raw = message.strip()
-    lower = raw.lower()
-
-    # ==========================================
-    # COMMAND CENTER HELP / STATUS
-    # ==========================================
-
-    if lower in {
-        "help",
-        "aj help",
-        "command help",
-        "commands",
-        "show commands",
-        "what can you do",
-        "what can aj do",
-    }:
-        return get_command_help()
-
-    if lower in {
-        "command center",
-        "command center status",
-        "status",
-        "aj status",
-    }:
-        return get_command_status()
-
-    # ==========================================
-    # OPEN WEBSITES
-    # ==========================================
-
-    match = re.match(
-        r"^(?:open|launch|start|go to|take me to|visit)\s+(.+)$",
-        lower
-    )
-
-    if match:
-
-        site = normalize_site_name(
-            match.group(1).strip()
-        )
-
-        site = re.sub(
-            r"\s+website$",
-            "",
-            site
-        ).strip()
-
-        if site in SITES:
-            return open_url(SITES[site])
-
-    # ==========================================
-    # YOUTUBE SEARCH / PLAY
-    # ==========================================
-
-    # Examples:
-    # play shape of you on youtube
-    # search python tutorials on youtube
-    # find virat kohli on youtube
-    match = re.match(
-        r"^(?:play|search|find)\s+(.+?)"
-        r"\s+(?:on\s+)?youtube$",
-        raw,
-        re.I
-    )
-
-    if match:
-
-        query = match.group(1).strip()
-        return youtube_search(query)
-
-    # Examples:
-    # youtube search python
-    # youtube python tutorials
-    # search youtube for python
-    match = re.match(
-        r"^(?:search\s+youtube\s+for|youtube\s+search\s+for|"
-        r"youtube\s+search|youtube)\s+(.+)$",
-        raw,
-        re.I
-    )
-
-    if match:
-
-        query = match.group(1).strip()
-        return youtube_search(query)
-
-    # ==========================================
-    # GOOGLE SEARCH
-    # ==========================================
-
-    # Examples:
-    # search for Python
-    # google Python
-    # search google for Python
-    match = re.match(
-        r"^(?:search|google)\s+(?:for\s+)?(.+)$",
-        raw,
-        re.I
-    )
-
-    if match:
-
-        query = match.group(1).strip()
-
-        if query.lower().startswith("google for "):
-            query = query[11:].strip()
-
-        return google_search(query)
-
-    match = re.match(
-        r"^search\s+google\s+for\s+(.+)$",
-        raw,
-        re.I
-    )
-
-    if match:
-
-        query = match.group(1).strip()
-        return google_search(query)
-
-    # ==========================================
-    # TIME
-    # ==========================================
-
-    if lower in {
-        "time",
-        "what time is it",
-        "current time"
-    }:
-
-        return datetime.now(
-            ZoneInfo("Asia/Kolkata")
-        ).strftime(
-            "The current time is %I:%M %p."
-        )
-
-    # ==========================================
-    # DATE
-    # ==========================================
-
-    if lower in {
-        "date",
-        "today",
-        "today's date",
-        "what is today's date"
-    }:
-
-        return datetime.now(
-            ZoneInfo("Asia/Kolkata")
-        ).strftime(
-            "Today is %d %B %Y."
-        )
-
-    # ==========================================
-    # CALCULATOR
-    # ==========================================
-
-    if lower.startswith(
-        (
-            "calculate ",
-            "calc ",
-            "what is "
-        )
-    ):
-
-        result = calculator(raw)
-
-        if result:
-            return result
-
-    # ==========================================
-    # WEATHER
-    # ==========================================
-
-    match = re.match(
-        r"^(?:weather|weather in)\s+(.+)$",
-        raw,
-        re.I
-    )
-
-    if match:
-
-        city = match.group(1).strip()
-
-        try:
-
-            result = get_weather(city)
-
-            if result:
-                return result
-
-        except Exception:
-
-            return (
-                "I couldn't get live weather "
-                "right now."
+def prepare_file_for_ai(
+    file_path,
+    max_characters=50000
+):
+    """
+    Prepare a file's contents for AJ's AI brain.
+    """
+
+    info = get_file_info(file_path)
+
+    if not info["exists"]:
+
+        return {
+            "success": False,
+            "error": "File not found."
+        }
+
+    if not is_supported_file(info["name"]):
+
+        return {
+            "success": False,
+            "error": (
+                f"AJ does not support "
+                f"{info['extension']} files yet."
             )
+        }
 
-    # ==========================================
-    # MEMORY
-    # ==========================================
+    try:
 
-    match = re.match(
-        r"^remember(?: that)?\s+(.+?)"
-        r"\s*(?:is|=)\s*(.+)$",
-        raw,
-        re.I
-    )
+        content = read_file(file_path)
 
-    if match:
+        if not content:
 
-        key = re.sub(
-            r"[^a-z0-9_]+",
-            "_",
-            match.group(1)
-            .strip()
-            .lower()
-        ).strip("_")
+            return {
+                "success": False,
+                "error": (
+                    "AJ could not extract "
+                    "text from this file."
+                )
+            }
 
-        value = match.group(2).strip()
+        truncated = False
 
-        remember(
-            key,
-            value
+        if len(content) > max_characters:
+
+            content = content[:max_characters]
+
+            truncated = True
+
+        return {
+            "success": True,
+            "name": info["name"],
+            "extension": info["extension"],
+            "size": info["size"],
+            "content": content,
+            "truncated": truncated
+        }
+
+    except Exception as error:
+
+        print(
+            "FILE INTELLIGENCE ERROR:",
+            error
         )
 
-        return (
-            f"I'll remember that "
-            f"{match.group(1).strip()} "
-            f"is {value}."
-        )
-
-    # ==========================================
-    # SHOW MEMORY
-    # ==========================================
-
-    if lower in {
-        "show memory",
-        "my memories",
-        "what do you remember about me"
-    }:
-
-        memory = get_all_memory()
-
-        if not memory:
-            return (
-                "I don't have any saved "
-                "memories yet."
+        return {
+            "success": False,
+            "error": (
+                "AJ could not read "
+                "this file."
             )
-
-        return (
-            "Here is what I remember:\n\n"
-            + "\n".join(
-                f"{key}: {value}"
-                for key, value in memory.items()
-            )
-        )
-
-    # ==========================================
-    # CLEAR MEMORY
-    # ==========================================
-
-    if lower in {
-        "clear memory",
-        "forget everything",
-        "delete my memory"
-    }:
-
-        clear_memory()
-
-        return "Saved memory cleared."
-
-    # ==========================================
-    # STUDY MODE
-    # ==========================================
-
-    if lower.startswith(
-        (
-            "study mode",
-            "study:"
-        )
-    ):
-
-        content = raw.split(
-            ":",
-            1
-        )[-1].strip()
-
-        return (
-            "__AJ_MODE_STUDY__"
-            + content
-        )
-
-    # ==========================================
-    # CODING MODE
-    # ==========================================
-
-    if lower.startswith(
-        (
-            "coding mode",
-            "code:"
-        )
-    ):
-
-        content = raw.split(
-            ":",
-            1
-        )[-1].strip()
-
-        return (
-            "__AJ_MODE_CODING__"
-            + content
-        )
-
-    return None
+        }
