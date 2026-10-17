@@ -42,42 +42,6 @@ button,input{font:inherit}
 }
 
 /* TOP BAR */
-.topbar-voice{
-    margin-left:18px;
-    margin-right:auto;
-    height:34px;
-    min-width:92px;
-    padding:0 12px;
-    border:1px solid rgba(0,217,255,.45);
-    background:rgba(0,30,43,.72);
-    color:#9feeff;
-    cursor:pointer;
-    font-size:10px;
-    letter-spacing:1px;
-    transition:.2s;
-}
-.topbar-voice:hover{
-    border-color:var(--cyan);
-    box-shadow:0 0 16px rgba(0,217,255,.22);
-}
-.topbar-voice.listening{
-    color:#fff;
-    border-color:var(--green);
-    box-shadow:0 0 18px rgba(0,255,157,.28);
-    animation:voicePulse 1s infinite;
-}
-.topbar-voice.stop-mode{
-    border-color:var(--green);
-}
-@media (max-width:500px){
-    .topbar-voice{
-        min-width:72px;
-        height:30px;
-        margin-left:10px;
-        padding:0 8px;
-        font-size:8px;
-    }
-}
 .topbar{
     position:absolute;
     top:0;
@@ -1144,58 +1108,6 @@ button,input{font:inherit}
    AJ INTERFACE 2.0 — COMMAND STATUS HUD
 ============================================================ */
 
-.aj-mode-hud{
-    position:absolute;
-    left:38%;
-    top:3.5%;
-    transform:translateX(-50%);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    gap:7px;
-    z-index:22;
-    pointer-events:none;
-}
-
-.aj-mode-chip{
-    min-width:70px;
-    height:24px;
-    padding:0 9px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    border:1px solid rgba(0,217,255,.18);
-    background:rgba(0,12,20,.62);
-    color:#4d7785;
-    font-size:7px;
-    letter-spacing:1.5px;
-    transition:.2s;
-}
-
-.aj-mode-chip.active{
-    color:var(--cyan);
-    border-color:rgba(0,217,255,.55);
-    box-shadow:0 0 12px rgba(0,217,255,.16);
-}
-
-.aj-mode-chip.active.study{
-    color:#00ff9d;
-    border-color:rgba(0,255,157,.55);
-    box-shadow:0 0 12px rgba(0,255,157,.14);
-}
-
-.aj-mode-chip.active.coding{
-    color:#b68cff;
-    border-color:rgba(182,140,255,.55);
-    box-shadow:0 0 12px rgba(182,140,255,.14);
-}
-
-.aj-mode-chip.active.file{
-    color:#ffd166;
-    border-color:rgba(255,209,102,.55);
-    box-shadow:0 0 12px rgba(255,209,102,.14);
-}
-
 .command-panel{
     position:absolute;
     left:25px;
@@ -1229,38 +1141,6 @@ button,input{font:inherit}
     color:var(--state);
 }
 
-@media (max-width:800px){
-    .aj-mode-hud{
-        left:50%;
-        top:1.5%;
-        width:94%;
-        gap:4px;
-    }
-
-    .aj-mode-chip{
-        min-width:0;
-        flex:1;
-        height:21px;
-        padding:0 5px;
-        font-size:6px;
-        letter-spacing:1px;
-    }
-
-    .command-panel{
-        display:none;
-    }
-}
-
-@media (max-width:500px){
-    .aj-mode-hud{
-        top:1.2%;
-    }
-
-    .aj-mode-chip{
-        height:19px;
-        font-size:5.5px;
-    }
-}
 
 
 /* ============================================================
@@ -1572,6 +1452,147 @@ button,input{font:inherit}
 .task-create-submit{border:1px solid rgba(0,217,255,.35);background:rgba(0,217,255,.07);color:#00d9ff;}
 .task-create-submit:disabled{opacity:.45;cursor:wait;}
 @media (max-width:800px){.task-run-all,.task-create{padding:0 6px;font-size:6.5px;}}
+
+/* AJ COMMAND CENTRE SIDEBAR */
+.sidebar-toggle{width:38px;height:38px;margin-left:12px;border:1px solid rgba(0,217,255,.28);border-radius:7px;background:rgba(0,25,36,.55);color:#7feeff;font-size:20px;cursor:pointer;box-shadow:inset 0 0 12px rgba(0,217,255,.04);transition:background .2s,border-color .2s;flex:none}
+.sidebar-toggle:hover{border-color:var(--cyan);background:rgba(0,217,255,.1)}
+.aj-sidebar{position:absolute;left:12px;top:30px;bottom:185px;width:190px;z-index:25;display:flex;flex-direction:column;gap:12px;transition:transform .22s ease,opacity .22s ease;will-change:transform}
+.sidebar-nav{display:flex;flex-direction:column;gap:4px;padding:7px;border:1px solid rgba(0,217,255,.13);border-radius:12px;background:rgba(0,7,12,.58)}
+.sidebar-item{width:100%;height:43px;display:flex;align-items:center;gap:14px;padding:0 12px;border:1px solid transparent;border-radius:8px;background:transparent;color:#b9e8f0;text-align:left;font-size:13px;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+.sidebar-item:hover{background:rgba(0,217,255,.07);color:#fff}
+.sidebar-item.active{border-color:rgba(0,217,255,.72);background:linear-gradient(90deg,rgba(0,217,255,.2),rgba(0,217,255,.035));color:#00eaff;box-shadow:0 0 13px rgba(0,217,255,.12)}
+.nav-icon{width:22px;flex:none;text-align:center;color:#75efff;font-size:21px;line-height:1}
+.app.sidebar-collapsed .aj-sidebar{transform:translateX(-112%);opacity:0;pointer-events:none}
+.app.sidebar-collapsed .command-panel{opacity:0;pointer-events:none;transform:translateX(-112%)}
+.command-panel{transition:opacity .2s,transform .2s}
+/* Slightly smaller core leaves clear space for the handwritten signature. */
+.core-system{width:min(340px,35vw)}
+.creator{top:calc(43% + min(170px,17.5vw))}
+.marker-ring span{transform-origin:0 calc((min(340px,35vw) * .47))}
+.response-panel{border:none!important;outline:none;box-shadow:none!important;background:transparent!important}
+@media (max-width:800px){
+ .sidebar-toggle{width:32px;height:32px;margin-left:8px;font-size:17px}
+ .aj-sidebar{top:12px;bottom:12px;width:min(230px,78vw);z-index:50}
+ .sidebar-nav{box-shadow:0 12px 36px rgba(0,0,0,.45)}
+ .core-system{width:min(205px,54vw)}
+ .creator{top:calc(24% + min(112px,29vw))}
+ .marker-ring span{transform-origin:0 calc((min(410px,42vw) * .47))}
+}
+@media (prefers-reduced-motion:reduce){.aj-sidebar,.sidebar-item,.sidebar-toggle,.command-panel{transition:none!important}}
+
+
+
+/* ============================================================
+   AJ COMMAND CENTRE — APPROVED GALAXY / VOICE-FIRST LAYOUT
+   Visual-only overrides; existing application and voice handlers remain intact.
+============================================================ */
+:root{--cyan:#00eaff;--blue:#168cff;--green:#00ffd0;--line:rgba(0,217,255,.34)}
+.app{
+  background:
+    radial-gradient(ellipse at 27% 42%,rgba(0,113,202,.22),transparent 29%),
+    radial-gradient(ellipse at 78% 73%,rgba(0,89,174,.19),transparent 28%),
+    radial-gradient(ellipse at 50% 45%,rgba(0,26,49,.55),transparent 44%),
+    radial-gradient(circle at 15% 20%,rgba(13,88,149,.18) 0 1px,transparent 2px),
+    radial-gradient(circle at 85% 24%,rgba(26,142,220,.22) 0 1px,transparent 2px),
+    #010308;
+  background-size:auto,auto,auto,83px 79px,117px 109px,auto;
+}
+.app::before{
+  background:
+    radial-gradient(ellipse at 30% 43%,rgba(0,137,255,.16),transparent 27%),
+    radial-gradient(ellipse at 75% 72%,rgba(0,109,225,.13),transparent 30%),
+    radial-gradient(ellipse at 51% 44%,rgba(0,217,255,.045),transparent 40%),
+    repeating-linear-gradient(115deg,transparent 0 3px,rgba(0,175,255,.012) 4px,transparent 5px 8px);
+}
+.topbar{height:90px;padding:0 14px 0 13px;border-bottom:1px solid rgba(0,234,255,.8);background:rgba(0,3,8,.78);backdrop-filter:blur(10px)}
+.brand{gap:24px}
+.brand-mark{width:56px;height:56px;border-radius:10px;font-size:23px;letter-spacing:2px;border-color:rgba(0,234,255,.8);box-shadow:0 0 16px rgba(0,217,255,.18),inset 0 0 14px rgba(0,217,255,.07)}
+.sidebar-toggle{width:52px;height:52px;margin:0;border-radius:10px;font-size:0;background:rgba(0,20,34,.74);border-color:rgba(0,217,255,.28);box-shadow:none;position:relative}
+.sidebar-toggle::before{content:"☰";font-size:28px;line-height:1;color:#00eaff}
+.system-status{padding:11px 18px;font-size:13px;letter-spacing:1.5px;border-color:rgba(0,217,255,.3);background:rgba(0,12,22,.72)}
+.status-dot{width:12px;height:12px}
+.hud{inset:90px 0 0 0}
+.aj-sidebar{left:12px;top:28px;bottom:270px;width:216px;gap:12px}
+.sidebar-nav{gap:3px;padding:8px;border-radius:14px;border-color:rgba(0,217,255,.23);background:rgba(0,4,10,.78);backdrop-filter:blur(12px)}
+.sidebar-item{height:56px;gap:18px;padding:0 15px;border-radius:11px;font-size:16px;color:#e1f7ff}
+.nav-icon{width:26px;font-size:27px;color:#8af5ff}
+.sidebar-item.active{background:linear-gradient(100deg,rgba(0,153,255,.5),rgba(0,217,255,.12));border-color:#00cfff;color:#00efff;box-shadow:0 0 17px rgba(0,204,255,.45),inset 0 0 18px rgba(0,217,255,.12)}
+.command-panel{left:12px;bottom:24px;width:260px;padding:18px 20px 16px;border-radius:13px;border-color:rgba(0,217,255,.55);background:rgba(0,5,12,.78);box-shadow:0 0 20px rgba(0,217,255,.04)}
+.command-panel-title{font-size:12px;letter-spacing:1.7px;color:#b7d8e4;margin-bottom:14px}
+.command-panel-row{margin-top:11px;font-size:12px;letter-spacing:1.2px;color:#d3eaf1}
+.command-panel-value{font-size:13px;color:#00ffd0}
+.command-panel-value::after{content:"";display:inline-block;width:11px;height:11px;margin-left:12px;border-radius:50%;background:#00ffd0;box-shadow:0 0 12px #00ffd0;vertical-align:-1px}
+.voice-status{left:51%;top:3%;width:auto;white-space:nowrap;text-align:center;font-size:9px;letter-spacing:3px;color:#8eb4c5}
+.core-system{left:49%;top:35.5%;width:min(430px,36vw)}
+.core-name{font-size:clamp(32px,3.8vw,52px);letter-spacing:4px}
+.creator{left:49%;top:calc(35.5% + min(220px,18vw));width:190px}
+.creator img{width:145px;max-width:100%;filter:drop-shadow(0 0 10px rgba(0,100,255,.45))}
+.creator-label{margin-top:5px;color:#d5efff;font-size:11px;letter-spacing:2.6px}
+.response-panel{right:3%;top:12%;width:31%;height:50%;min-height:250px;border:0!important;outline:0!important;box-shadow:none!important;background:transparent!important}
+.response-header{height:48px;padding:0 4px}
+.response-title{color:#e8f9ff;font-size:16px;letter-spacing:.5px;font-weight:700}
+.response-state{font-size:14px;letter-spacing:.5px;color:#00ffd0}
+.response-state::after{content:"";display:inline-block;width:12px;height:12px;margin-left:12px;border-radius:50%;background:#00ffd0;box-shadow:0 0 13px #00ffd0;vertical-align:-1px}
+.response-content{padding:20px 4px}
+.response-empty{display:flex;flex-direction:column;justify-content:center;gap:24px;color:#d5e9f6;font-size:18px;letter-spacing:0;line-height:1.55;mask-image:none}
+.response-waveform{height:90px;width:min(100%,360px);display:flex;align-items:center;justify-content:center;gap:5px;position:relative;margin:0 auto}
+.response-waveform::before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:linear-gradient(90deg,transparent,#00cfff,transparent);opacity:.65}
+.response-waveform span{display:block;width:3px;border-radius:4px;background:#00eaff;box-shadow:0 0 8px rgba(0,234,255,.8);height:var(--bar,14px);animation:ajWave 1.35s ease-in-out infinite alternate;animation-delay:calc(var(--i,1)*-55ms)}
+.response-waveform span:nth-child(4n+1){--bar:12px;--i:1}.response-waveform span:nth-child(4n+2){--bar:24px;--i:2}.response-waveform span:nth-child(4n+3){--bar:39px;--i:3}.response-waveform span:nth-child(7n){--bar:58px;--i:4}.response-waveform span:nth-child(11n){--bar:72px;--i:5}
+.command-bar{left:50%;bottom:170px;width:min(890px,62vw);height:64px;padding:5px 7px;border:1px solid rgba(0,234,255,.8);border-radius:36px;background:rgba(0,9,17,.85);box-shadow:0 0 18px rgba(0,217,255,.07);backdrop-filter:blur(12px);overflow:visible}
+#messageInput{height:50px;padding:0 78px 0 26px;border:0!important;border-radius:30px;background:transparent!important;font-size:16px;box-shadow:none!important}
+#messageInput::placeholder{color:#d6e9f3;opacity:.95}
+.command-button{height:44px}
+#sendButton{position:absolute;right:8px;top:9px;width:44px;height:44px;border-radius:50%;font-size:0;border-color:rgba(0,136,255,.7);background:radial-gradient(circle,rgba(0,129,255,.32),rgba(0,12,26,.9));box-shadow:0 0 12px rgba(0,136,255,.24)}
+#sendButton::before{content:"➤";font-size:23px;color:#eafaff;text-shadow:0 0 8px #168cff}
+#fileButton,#selectedFileName,#stopVoiceButton,#historyButton,#taskButton{display:none!important}
+.command-button.voice{position:absolute;left:50%;top:48px;transform:translateX(-50%);width:112px;height:112px;border-radius:50%;z-index:4;display:flex;align-items:center;justify-content:center;font-size:0;border:2px solid #00ffd0;background:radial-gradient(circle,rgba(0,128,255,.38),rgba(0,9,17,.96) 62%);box-shadow:0 0 0 7px rgba(0,255,208,.07),0 0 22px rgba(0,255,208,.72),inset 0 0 20px rgba(0,234,255,.24);overflow:visible}
+.command-button.voice::before{content:"🎙";font-size:48px;filter:drop-shadow(0 0 7px #168cff)}
+.command-button.voice::after{content:"";position:absolute;inset:-9px;border:2px solid rgba(0,255,208,.7);border-radius:50%;box-shadow:0 0 15px rgba(0,255,208,.55);pointer-events:none}
+.command-button.voice.listening{animation:voicePulse 1s infinite;border-color:#fff;box-shadow:0 0 30px #00ffd0,0 0 60px rgba(0,255,208,.5)}
+.main-voice-waveform{position:absolute;top:calc(100% + 35px);height:74px;width:160px;display:flex;align-items:center;justify-content:center;gap:5px;pointer-events:none;z-index:3;mask-image:linear-gradient(90deg,transparent,#000 18%,#000 82%,transparent)}
+.main-voice-waveform.wave-left{right:calc(50% + 55px)}
+.main-voice-waveform.wave-right{left:calc(50% + 55px)}
+.main-voice-waveform span{display:block;width:3px;height:var(--h,18px);border-radius:4px;background:#00cfff;box-shadow:0 0 8px rgba(0,217,255,.85);animation:ajWave .85s ease-in-out infinite alternate;animation-delay:calc(var(--i,1)*-45ms)}
+.main-voice-waveform span:nth-child(5n+1){--h:12px;--i:1}.main-voice-waveform span:nth-child(5n+2){--h:25px;--i:2}.main-voice-waveform span:nth-child(5n+3){--h:42px;--i:3}.main-voice-waveform span:nth-child(5n+4){--h:60px;--i:4}.main-voice-waveform span:nth-child(9n){--h:72px;--i:5}
+@keyframes ajWave{from{transform:scaleY(.42);opacity:.6}to{transform:scaleY(1);opacity:1}}
+.app.sidebar-collapsed .core-system{left:42%}
+.app.sidebar-collapsed .creator{left:42%}
+.app.sidebar-collapsed .command-bar{left:50%}
+@media(max-width:1000px){
+ .topbar{height:68px;padding:0 10px}.brand{gap:10px}.brand-mark{width:42px;height:42px;font-size:18px}.sidebar-toggle{width:42px;height:42px}.sidebar-toggle::before{font-size:23px}.system-status{font-size:10px;padding:8px 11px}
+ .hud{inset:68px 0 0}.aj-sidebar{top:15px;bottom:220px;width:178px}.sidebar-item{height:43px;font-size:13px;gap:12px}.nav-icon{font-size:21px;width:22px}.command-panel{width:210px;padding:13px;bottom:12px}.command-panel-title{font-size:9px}.command-panel-row{font-size:9px;margin-top:8px}.command-panel-value{font-size:10px}
+ .core-system{left:48%;top:34%;width:min(350px,38vw)}.creator{left:48%;top:calc(34% + min(174px,19vw))}.creator img{width:112px}.creator-label{font-size:8px}
+ .response-panel{right:2%;width:32%;top:13%}.response-title{font-size:13px}.response-state{font-size:11px}.response-empty{font-size:14px}.response-waveform{height:72px}
+ .command-bar{bottom:145px;width:min(700px,65vw);height:56px}#messageInput{height:44px;font-size:13px}.command-button.voice{top:42px;width:88px;height:88px}.command-button.voice::before{font-size:38px}.main-voice-waveform{top:calc(100% + 27px);width:125px;height:60px}
+}
+@media(max-width:700px){
+ .topbar{height:58px}.hud{inset:58px 0 0}.aj-sidebar{top:10px;bottom:10px;width:min(250px,78vw);z-index:60}.sidebar-nav{background:rgba(0,5,12,.97);box-shadow:0 15px 40px rgba(0,0,0,.65)}.sidebar-item{height:44px}.command-panel{left:10px;bottom:10px;width:190px;padding:11px}.app.sidebar-collapsed .command-panel{opacity:0;pointer-events:none;transform:translateX(-112%)}
+ .voice-status{top:2%;left:50%;font-size:7px;letter-spacing:1.4px;max-width:90%;white-space:normal}
+ .core-system{left:50%;top:29%;width:min(250px,62vw)}.creator{left:50%;top:calc(29% + min(124px,31vw))}.creator img{width:82px}.creator-label{font-size:7px}
+ .response-panel{left:50%;right:auto;transform:translateX(-50%);top:49%;width:88%;height:22%;min-height:110px}.response-header{height:25px}.response-title{font-size:10px}.response-state{font-size:9px}.response-state::after{width:7px;height:7px;margin-left:6px}.response-content{padding:4px}.response-empty{gap:4px;font-size:10px}.response-waveform{height:40px;width:80%}.response-waveform span{width:2px}
+ .command-bar{left:50%;bottom:118px;width:calc(100% - 28px);height:49px;padding:3px 5px}#messageInput{height:41px;padding-left:13px;padding-right:51px;font-size:11px}#sendButton{top:4px;right:4px;width:38px;height:38px}#sendButton::before{font-size:19px}
+ .command-button.voice{top:38px;width:74px;height:74px}.command-button.voice::before{font-size:32px}.command-button.voice::after{inset:-6px}.main-voice-waveform{top:calc(100% + 25px);width:calc(50% - 35px);height:48px;gap:3px}.main-voice-waveform.wave-left{right:calc(50% + 36px)}.main-voice-waveform.wave-right{left:calc(50% + 36px)}.main-voice-waveform span{width:2px}
+ .app.sidebar-collapsed .core-system,.app.sidebar-collapsed .creator{left:50%}
+}
+@media(prefers-reduced-motion:reduce){.response-waveform span,.main-voice-waveform span{animation:none!important}}
+
+
+.top-actions{display:flex;align-items:center;gap:12px;position:relative}
+.top-action{width:48px;height:48px;border:1px solid rgba(0,217,255,.28);border-radius:12px;background:rgba(0,16,29,.75);color:#e8fbff;font-size:27px;cursor:pointer;transition:background .2s,border-color .2s,box-shadow .2s}
+.top-action:hover,.top-action[aria-expanded="true"]{border-color:#00eaff;background:rgba(0,217,255,.1);box-shadow:0 0 14px rgba(0,217,255,.12)}
+.status-chevron{font-size:22px;line-height:10px;margin-left:5px;color:#dffaff}
+.quick-settings{position:absolute;right:155px;top:68px;width:250px;padding:16px;border:1px solid rgba(0,217,255,.45);border-radius:12px;background:rgba(0,7,15,.97);box-shadow:0 18px 45px rgba(0,0,0,.55);z-index:100;color:#d8f6ff;font-size:12px}
+.quick-settings[hidden]{display:none}
+.quick-settings-title{font-size:10px;letter-spacing:1.5px;color:#00eaff;margin-bottom:13px}
+.quick-settings label{display:flex;align-items:center;gap:9px;cursor:pointer}
+.quick-settings input{accent-color:#00d9ff}
+.quick-settings p{margin-top:12px;font-size:10px;line-height:1.5;color:#779eac}
+.app.bright-mode{filter:brightness(1.18)}
+.app.reduce-motion *, .app.reduce-motion *::before, .app.reduce-motion *::after{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}
+@media(max-width:1000px){.top-action{width:38px;height:38px;font-size:22px}.top-actions{gap:7px}.quick-settings{top:52px;right:125px}}
+@media(max-width:700px){.top-action{width:31px;height:31px;border-radius:8px;font-size:18px}.top-actions{gap:5px}.system-status{font-size:8px;padding:7px 8px;gap:5px}.status-dot{width:8px;height:8px}.status-chevron{font-size:16px}.quick-settings{top:48px;right:0;width:min(250px,90vw)}}
+
 </style>
 </head>
 
@@ -1582,35 +1603,40 @@ button,input{font:inherit}
     <div class="topbar">
         <div class="brand">
             <div class="brand-mark">AJ</div>
-            <div>
-            </div>
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Toggle sidebar" aria-expanded="true" title="Toggle sidebar">☰</button>
         </div>
 
-        <button
-            class="topbar-voice"
-            id="voiceFloatButton"
-            type="button"
-            title="Voice control">
-            🎙 VOICE
-        </button>
 
-        <div class="system-status">
-            <span class="status-dot" id="statusDot"></span>
-            <span id="topStatus">ONLINE</span>
+        <div class="top-actions">
+            <button class="top-action" id="brightnessToggle" type="button" aria-label="Toggle interface brightness" title="Toggle brightness">☼</button>
+            <button class="top-action" id="settingsToggle" type="button" aria-label="Open interface settings" aria-expanded="false" title="Interface settings">⚙</button>
+            <div class="system-status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="topStatus">ONLINE</span>
+                <span class="status-chevron">⌄</span>
+            </div>
+        </div>
+        <div class="quick-settings" id="quickSettings" hidden>
+            <div class="quick-settings-title">INTERFACE SETTINGS</div>
+            <label><input type="checkbox" id="reduceMotionToggle"> Reduce animations</label>
+            <p>Visual preferences are stored for this page session.</p>
         </div>
     </div>
 
     <div class="hud">
 
-
-        <!-- AJ INTERFACE 2.0 STATUS -->
-        <div class="aj-mode-hud" id="ajModeHud">
-            <div class="aj-mode-chip active" id="modeCore">CORE</div>
-            <div class="aj-mode-chip" id="modeStudy">STUDY</div>
-            <div class="aj-mode-chip" id="modeCoding">CODING</div>
-            <div class="aj-mode-chip" id="modeSearch">SEARCH</div>
-            <div class="aj-mode-chip" id="modeFile">FILE</div>
-        </div>
+        <aside class="aj-sidebar" id="ajSidebar" aria-label="AJ navigation">
+            <nav class="sidebar-nav">
+                <button class="sidebar-item active" type="button" data-nav="home"><span class="nav-icon">⌂</span><span>Home</span></button>
+                <button class="sidebar-item" type="button" data-nav="study"><span class="nav-icon">▤</span><span>Study</span></button>
+                <button class="sidebar-item" type="button" data-nav="coding"><span class="nav-icon">‹/›</span><span>Coding</span></button>
+                <button class="sidebar-item" type="button" data-nav="search"><span class="nav-icon">⌕</span><span>Search</span></button>
+                <button class="sidebar-item" type="button" data-nav="files"><span class="nav-icon">▱</span><span>Files</span></button>
+                <button class="sidebar-item" type="button" data-nav="tools"><span class="nav-icon">⚒</span><span>Tools</span></button>
+                <button class="sidebar-item" type="button" data-nav="memory"><span class="nav-icon">◉</span><span>Memory</span></button>
+                <button class="sidebar-item" type="button" data-nav="tasks"><span class="nav-icon">☑</span><span>Tasks</span></button>
+            </nav>
+        </aside>
 
         <div class="command-panel">
             <div class="command-panel-title">AJ COMMAND CENTER</div>
@@ -1628,6 +1654,10 @@ button,input{font:inherit}
             </div>
             <div class="command-panel-row">
                 <span>TOOLS</span>
+                <span class="command-panel-value">ON</span>
+            </div>
+            <div class="command-panel-row">
+                <span>AI MODEL</span>
                 <span class="command-panel-value">ON</span>
             </div>
         </div>
@@ -1672,7 +1702,8 @@ button,input{font:inherit}
 
             <div class="response-content" id="responseContent">
                 <div class="response-empty" id="responseEmpty">
-                    ASK BOSS
+                    <div class="response-waveform" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+                    <p>Your conversation with AJ<br>will appear here...</p>
                 </div>
             </div>
 
@@ -1706,10 +1737,11 @@ button,input{font:inherit}
                 class="command-button voice"
                 id="micButton"
                 type="button"
-                title="Voice input"
-                style="display:none;">
+                title="Voice input">
                 🎙
             </button>
+            <div class="main-voice-waveform wave-left" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <div class="main-voice-waveform wave-right" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
 
             <button
                 class="command-button"
@@ -1847,6 +1879,67 @@ button,input{font:inherit}
 </div>
 
 <script>
+/* Lightweight sidebar toggle and navigation highlighting */
+(function(){
+    const app = document.querySelector('.app');
+    const toggle = document.getElementById('sidebarToggle');
+    const items = document.querySelectorAll('.sidebar-item');
+    if (toggle && app) {
+        toggle.addEventListener('click', function(){
+            const collapsed = app.classList.toggle('sidebar-collapsed');
+            toggle.setAttribute('aria-expanded', String(!collapsed));
+            toggle.setAttribute('aria-label', collapsed ? 'Show sidebar' : 'Hide sidebar');
+        });
+    }
+    items.forEach(function(item){
+        item.addEventListener('click', function(){
+            items.forEach(function(other){ other.classList.remove('active'); });
+            item.classList.add('active');
+            const nav = item.dataset.nav;
+            const input = document.getElementById('messageInput');
+            if (nav === 'study' && input) input.placeholder = 'Ask AJ to explain a topic or help you study...';
+            else if (nav === 'coding' && input) input.placeholder = 'Ask AJ to write or debug code...';
+            else if (nav === 'search' && input) input.placeholder = 'Ask AJ to search for information...';
+            else if (nav === 'files' && input) { const picker = document.getElementById('fileInput'); if (picker) picker.click(); }
+            else if (nav === 'tasks') { const task = document.getElementById('taskButton'); if (task) task.click(); }
+            else if (nav === 'tools' && input) input.placeholder = 'Ask AJ to use a tool...';
+            else if (nav === 'memory' && input) input.placeholder = 'Ask AJ about saved memory...';
+            else if (nav === 'home' && input) input.placeholder = 'Talk to AJ • study mode / coding mode / search...';
+            if (window.matchMedia('(max-width: 800px)').matches && app) {
+                app.classList.add('sidebar-collapsed');
+                if (toggle) toggle.setAttribute('aria-expanded','false');
+            }
+        });
+    });
+})();
+
+/* Lightweight top-bar preferences */
+(function(){
+    const app = document.querySelector('.app');
+    const brightness = document.getElementById('brightnessToggle');
+    const settings = document.getElementById('settingsToggle');
+    const panel = document.getElementById('quickSettings');
+    const motion = document.getElementById('reduceMotionToggle');
+    if (brightness && app) brightness.addEventListener('click', function(){
+        app.classList.toggle('bright-mode');
+        brightness.setAttribute('aria-pressed', String(app.classList.contains('bright-mode')));
+    });
+    if (settings && panel) settings.addEventListener('click', function(){
+        const open = panel.hidden;
+        panel.hidden = !open;
+        settings.setAttribute('aria-expanded', String(open));
+    });
+    if (motion && app) motion.addEventListener('change', function(){
+        app.classList.toggle('reduce-motion', motion.checked);
+    });
+    document.addEventListener('click', function(event){
+        if (panel && settings && !panel.hidden && !panel.contains(event.target) && !settings.contains(event.target)) {
+            panel.hidden = true;
+            settings.setAttribute('aria-expanded', 'false');
+        }
+    });
+})();
+
 /* ============================================================
    ELEMENTS
 ============================================================ */
@@ -1854,7 +1947,7 @@ button,input{font:inherit}
 const input = document.getElementById("messageInput");
 const sendButton = document.getElementById("sendButton");
 const micButton = document.getElementById("micButton");
-const voiceFloatButton = document.getElementById("voiceFloatButton");
+const voiceFloatButton = null; // Top voice button intentionally removed; use the main microphone.
 const fileButton = document.getElementById("fileButton");
 const fileInput = document.getElementById("fileInput");
 const selectedFileName = document.getElementById("selectedFileName");
@@ -3457,41 +3550,6 @@ function scheduleListening() {
         startListening();
     }, 800);
 }
-
-if (voiceFloatButton) {
-    voiceFloatButton.addEventListener("click", async function() {
-
-        if (!recognition) {
-            setVoiceStatus("USE CHROME FOR VOICE", "error");
-            return;
-        }
-
-        if (listening || voiceActive) {
-
-            shouldKeepListening = false;
-            voiceActive = false;
-
-            stopListening();
-            stopSpeaking();
-
-            setStatus("ONLINE");
-            setVoiceStatus("VOICE STOPPED");
-
-            syncVoiceButton();
-
-            return;
-        }
-
-        shouldKeepListening = true;
-        voiceActive = true;
-
-        syncVoiceButton();
-
-        setVoiceStatus("TAP ALLOW IF CHROME ASKS FOR MICROPHONE");
-        startListening();
-    });
-}
-
 
 micButton.addEventListener("click", async function() {
 
