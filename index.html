@@ -1593,6 +1593,112 @@ button,input{font:inherit}
 @media(max-width:1000px){.top-action{width:38px;height:38px;font-size:22px}.top-actions{gap:7px}.quick-settings{top:52px;right:125px}}
 @media(max-width:700px){.top-action{width:31px;height:31px;border-radius:8px;font-size:18px}.top-actions{gap:5px}.system-status{font-size:8px;padding:7px 8px;gap:5px}.status-dot{width:8px;height:8px}.status-chevron{font-size:16px}.quick-settings{top:48px;right:0;width:min(250px,90vw)}}
 
+
+/* ============================================================
+   AJ COMMAND CENTRE — APPROVED VISUAL PASS (index.html only)
+   Keeps existing app markup, controls and JavaScript intact.
+============================================================ */
+:root{
+  --cyan:#18e5ff;
+  --blue:#278dff;
+  --green:#00ffc2;
+  --line:rgba(24,229,255,.22);
+}
+html,body,.app{background:#02050c;}
+.app{
+  background:
+    radial-gradient(ellipse at 47% 45%,rgba(0,91,135,.20) 0%,rgba(0,22,42,.14) 26%,transparent 54%),
+    radial-gradient(ellipse at 75% 12%,rgba(12,45,112,.17),transparent 36%),
+    radial-gradient(ellipse at 13% 88%,rgba(0,105,127,.12),transparent 35%),
+    linear-gradient(135deg,#02040a 0%,#030b17 48%,#01040a 100%);
+}
+.app:before{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;opacity:.48;
+  background-image:radial-gradient(1px 1px at 8% 19%,#b6f8ff 98%,transparent),radial-gradient(1px 1px at 21% 74%,#68dfff 98%,transparent),radial-gradient(1.5px 1.5px at 43% 13%,#fff 98%,transparent),radial-gradient(1px 1px at 59% 80%,#8beaff 98%,transparent),radial-gradient(1px 1px at 79% 34%,#fff 98%,transparent),radial-gradient(1px 1px at 92% 68%,#68dfff 98%,transparent),radial-gradient(1px 1px at 67% 23%,#fff 98%,transparent),radial-gradient(1px 1px at 32% 42%,#68dfff 98%,transparent);
+}
+.topbar{background:rgba(2,6,14,.76);border-bottom-color:rgba(24,229,255,.17);}
+.brand-mark{border-radius:50%;background:radial-gradient(circle,rgba(0,190,255,.18),rgba(0,0,0,.1));box-shadow:0 0 22px rgba(0,217,255,.24);}
+.hud{z-index:1;}
+.aj-sidebar{background:linear-gradient(180deg,rgba(3,12,24,.92),rgba(2,7,16,.78));border-right:1px solid rgba(24,229,255,.13);backdrop-filter:blur(12px);}
+.sidebar-item{transition:background .18s ease,border-color .18s ease,color .18s ease;}
+.sidebar-item.active,.sidebar-item:hover{background:rgba(0,199,255,.09);border-color:rgba(24,229,255,.25);color:#dffaff;}
+.command-panel{border:1px solid rgba(24,229,255,.16);border-radius:8px;background:rgba(2,10,20,.72);box-shadow:0 8px 28px rgba(0,0,0,.22);backdrop-filter:blur(8px);}
+.command-panel-title{color:#76c9d9;font-size:8px;letter-spacing:1.8px;white-space:nowrap;}
+.core-system{width:min(350px,35vw);left:38%;top:42%;filter:drop-shadow(0 0 25px rgba(0,174,255,.09));}
+.marker-ring span{transform-origin:0 calc((min(350px,35vw) * .47));}
+.ai-core{width:38%;}
+.core-name{font-size:clamp(23px,3.2vw,38px);letter-spacing:6px;}
+.creator{left:38%;top:calc(42% + min(175px,17.5vw));}
+.creator img{width:136px;max-width:19vw;filter:drop-shadow(0 0 9px rgba(0,217,255,.32));}
+.creator-label{letter-spacing:2.4px;color:#6a9eae;}
+.response-panel{top:17%;right:3.2%;width:min(450px,38vw);height:59%;}
+.response-title{font-size:10px;letter-spacing:3.5px;text-shadow:0 0 12px rgba(24,229,255,.2);}
+.response-state{letter-spacing:2.2px;}
+.response-empty{gap:18px;color:#4d7c8c;flex-direction:column;}
+.response-content{scrollbar-color:rgba(24,229,255,.35) transparent;}
+.command-bar{left:38%;width:min(570px,48vw);bottom:24px;gap:8px;}
+#messageInput{height:48px;border-radius:24px;padding:0 18px;background:rgba(2,12,23,.9);border-color:rgba(24,229,255,.26);}
+.command-button{height:48px;border-radius:50%;}
+.command-button.voice{width:54px;}
+.command-button:hover{transform:translateY(-1px);}
+.voice-status{letter-spacing:2.4px;}
+@media(max-width:900px){
+ .core-system{width:min(300px,42vw);left:38%;}
+ .marker-ring span{transform-origin:0 calc((min(300px,42vw) * .47));}
+ .creator{top:calc(42% + min(150px,21vw));}
+ .response-panel{right:2%;width:38vw;}
+ .command-bar{width:48vw;}
+}
+@media(max-width:650px){
+ .core-system{left:50%;top:34%;width:min(260px,68vw);}
+ .marker-ring span{transform-origin:0 calc((min(260px,68vw) * .47));}
+ .creator{left:50%;top:calc(34% + min(130px,34vw));}
+ .response-panel{top:54%;left:7%;right:7%;width:auto;height:25%;min-height:120px;}
+ .command-bar{left:50%;width:88vw;bottom:12px;}
+ .command-panel{left:10px;bottom:auto;top:78px;width:155px;padding:9px;}
+ .voice-status{left:50%;top:48%;width:90%;text-align:center;font-size:7px;}
+ .topbar{padding:0 12px;}
+ .brand-title{letter-spacing:2px;}
+}
+
+
+
+/* ============================================================
+   AJ COMMAND CENTRE — COMPACT TYPOGRAPHY PASS
+   Typography-only adjustment; preserves layout, icons, effects,
+   navigation, sidebar behavior, and existing application logic.
+============================================================ */
+.sidebar-item{font-size:14px;}
+.system-status{font-size:11px;}
+.response-title{font-size:9px;}
+.response-state{font-size:12px;}
+#messageInput{font-size:14px;}
+.command-panel-title{font-size:8px;}
+.command-panel-row{font-size:10px;}
+.command-panel-value{font-size:11px;}
+.voice-status{font-size:8px;}
+
+@media(max-width:1000px){
+  .sidebar-item{font-size:12px;}
+  .system-status{font-size:9px;}
+  .response-title{font-size:9px;}
+  .response-state{font-size:10px;}
+  #messageInput{font-size:12px;}
+  .command-panel-title{font-size:8px;}
+  .command-panel-row{font-size:8px;}
+  .command-panel-value{font-size:9px;}
+}
+@media(max-width:700px){
+  .sidebar-item{font-size:12px;}
+  .system-status{font-size:8px;}
+  .response-title{font-size:9px;}
+  .response-state{font-size:9px;}
+  #messageInput{font-size:11px;}
+  .command-panel-title{font-size:8px;}
+  .command-panel-row{font-size:8px;}
+  .command-panel-value{font-size:9px;}
+}
+
 </style>
 </head>
 
@@ -1639,7 +1745,7 @@ button,input{font:inherit}
         </aside>
 
         <div class="command-panel">
-            <div class="command-panel-title">AJ COMMAND CENTER</div>
+            <div class="command-panel-title">AJ COMMANDS CENTER</div>
             <div class="command-panel-row">
                 <span>VOICE</span>
                 <span class="command-panel-value" id="panelVoice">READY</span>
