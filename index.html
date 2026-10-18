@@ -4978,5 +4978,147 @@ window.addEventListener("load", function() {
 
 </script>
 
+<script>
+/* AJ VOICE BUTTON RELIABILITY PATCH
+   Independent capture-phase handler so the visible mic works even if an older
+   listener failed to initialize. Uses the existing /api/voice backend. */
+(function () {
+  const mic = document.getElementById('micButton');
+  if (!mic || mic.dataset.ajVoiceFallback === '1') return;
+  mic.dataset.ajVoiceFallback = '1';
+
+  let recognition = null;
+  let active = false;
+  let busy = false;
+  const statusEl = document.getElementById('voiceStatus');
+  const responseEl = document.getElementById('responseContent');
+  const responseStateEl = document.getElementById('responseState');
+
+  function status(message, state) {
+    if (statusEl) statusEl.textContent = message;
+    if (responseStateEl && state) responseStateEl.textContent = state;
+  }
+  function showExchange(question, answer) {
+    if (!responseEl) return;
+    responseEl.innerHTML = '';
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'padding:18px 20px;display:flex;flex-direction:column;gap:14px;overflow:auto;max-height:100%;';
+    const q = document.createElement('div');
+    q.style.cssText = 'color:#65eaff;font-weight:600;line-height:1.5;';
+    q.textContent = 'YOU: ' + question;
+    const a = document.createElement('div');
+    a.style.cssText = 'color:#e9fbff;line-height:1.6;white-space:pre-wrap;';
+    a.textContent = 'AJ: ' + answer;
+    wrap.append(q, a);
+    responseEl.appendChild(wrap);
+  }
+  function speakAnswer(text) {
+    if (!('speechSynthesis' in window) || !text) return;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'en-IN';
+      utterance.rate = 0.96;
+      utterance.onstart = () => status('AJ IS SPEAKING', 'SPEAKING');
+      utterance.onend = () => { busy = false; active = false; mic.classList.remove('listening'); status('PRESS VOICE TO START', 'READY'); };
+      utterance.onerror = () => { busy = false; active = false; mic.classList.remove('listening'); status('VOICE READY', 'READY'); };
+      window.speechSynthesis.speak(utterance);
+    } catch (e) { console.error('AJ speech output failed:', e); }
+  }
+  async function processTranscript(text) {
+    if (!text || busy) return;
+    busy = true;
+    active = false;
+    mic.classList.remove('listening');
+    status('AJ IS THINKING…', 'THINKING');
+    try {
+      const response = await fetch('/api/voice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text, history: [], client: 'AJ 2.0' })
+      });
+      const raw = await response.text();
+      let data;
+      try { data = JSON.parse(raw); } catch (_) { throw new Error('The /api/voice endpoint returned a non-JSON response. Check the backend route and server logs.'); }
+      if (!response.ok) throw new Error(data.response || data.error || ('Voice API returned HTTP ' + response.status));
+      const answer = String(data.response || data.answer || 'AJ received your message, but returned an empty answer.');
+      showExchange(text, answer);
+      status('AJ RESPONSE READY', 'READY');
+      speakAnswer(answer);
+      if (!('speechSynthesis' in window)) { busy = false; }
+    } catch (error) {
+      console.error('AJ voice request failed:', error);
+      showExchange(text, 'I could hear you, but could not get a response from the server. ' + (error.message || 'Check the /api/voice backend.'));
+      status('AJ VOICE REQUEST FAILED — CHECK SERVER', 'ERROR');
+      busy = false;
+    }
+  }
+  function startRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      status('VOICE REQUIRES GOOGLE CHROME AND HTTPS', 'VOICE ERROR');
+      return;
+    }
+    try {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-IN';
+      recognition.continuous = false;
+      recognition.interimResults = true;
+      recognition.maxAlternatives = 1;
+      recognition.onstart = () => { active = true; mic.classList.add('listening'); status('LISTENING — SPEAK NOW', 'LISTENING'); };
+      recognition.onresult = (event) => {
+        let finalText = '';
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript || '';
+          if (event.results[i].isFinal) finalText += transcript;
+          else interim += transcript;
+        }
+        if (interim) status('HEARING: ' + interim, 'LISTENING');
+        if (finalText.trim()) {
+          try { recognition.stop(); } catch (_) {}
+          processTranscript(finalText.trim());
+        }
+      };
+      recognition.onerror = (event) => {
+        active = false; mic.classList.remove('listening');
+        const messages = {
+          'not-allowed': 'ALLOW MICROPHONE PERMISSION IN CHROME',
+          'service-not-allowed': 'ALLOW MICROPHONE PERMISSION IN CHROME',
+          'no-speech': 'NO SPEECH DETECTED — TAP MIC AND TRY AGAIN',
+          'audio-capture': 'NO WORKING MICROPHONE WAS FOUND',
+          'network': 'SPEECH SERVICE NETWORK ERROR — CHECK INTERNET'
+        };
+        status(messages[event.error] || ('VOICE ERROR: ' + (event.error || 'unknown')), 'VOICE ERROR');
+      };
+      recognition.onend = () => {
+        active = false;
+        mic.classList.remove('listening');
+        if (!busy && statusEl && statusEl.textContent === 'LISTENING — SPEAK NOW') status('NO SPEECH DETECTED — TAP MIC AND TRY AGAIN', 'READY');
+      };
+      recognition.start();
+    } catch (error) {
+      active = false;
+      console.error('Could not start speech recognition:', error);
+      status('COULD NOT START MIC — CHECK CHROME PERMISSIONS', 'VOICE ERROR');
+    }
+  }
+
+  mic.addEventListener('click', function (event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (active && recognition) {
+      try { recognition.stop(); } catch (_) {}
+      active = false;
+      mic.classList.remove('listening');
+      status('VOICE STOPPED', 'READY');
+      return;
+    }
+    if (busy) return;
+    startRecognition();
+  }, true);
+})();
+
+</script>
 </body>
 </html>
