@@ -142,6 +142,106 @@ def login_required(view):
         return view(*args, **kwargs)
 
     return wrapped_view
+
+
+import secrets
+import hmac
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if not app.config.get("SECRET_KEY"):
+        return "AJ login is not configured. Contact the administrator.", 503
+
+    if request.method == "POST":
+        token = session.get("login_csrf_token", "")
+        submitted_token = request.form.get("csrf_token", "")
+
+        if not token or not hmac.compare_digest(token, submitted_token):
+            return "Invalid login request. Please refresh and try again.", 400
+
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+
+        try:
+            users = load_invited_users()
+        except RuntimeError:
+            app.logger.exception("Invalid invited-user configuration")
+            return "AJ login is not configured correctly.", 503
+
+        password_hash = users.get(username)
+
+        if (
+            isinstance(password_hash, str)
+            and check_password_hash(password_hash, password)
+        ):
+            session.clear()
+            session["aj_username"] = username
+            session.permanent = True
+            return redirect(url_for("home"))
+
+        return (
+            "Invalid username or password. "
+            '<a href="/login">Try again</a>',
+            401,
+        )
+
+    session["login_csrf_token"] = secrets.token_urlsafe(32)
+
+    return """
+    <!doctype html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Sign in | AJ</title>
+      <style>
+        body {
+          margin: 0; min-height: 100vh; display: grid;
+          place-items: center; background: #071116;
+          color: #e7ffff; font-family: Arial, sans-serif;
+        }
+        form {
+          width: min(340px, calc(100% - 48px));
+          padding: 28px; border: 1px solid #087e8b;
+          border-radius: 14px; background: #0b1b22;
+        }
+        h1 { color: #54f4e8; }
+        input, button {
+          box-sizing: border-box; width: 100%; padding: 12px;
+          margin: 8px 0; border-radius: 7px;
+        }
+        input {
+          color: white; background: #071116;
+          border: 1px solid #31545b;
+        }
+        button {
+          border: 0; background: #36e6d4;
+          color: #061116; font-weight: bold; cursor: pointer;
+        }
+      </style>
+    </head>
+    <body>
+      <form method="post" action="/login">
+        <h1>AJ</h1>
+        <p>Sign in to your invited account</p>
+        <input type="hidden" name="csrf_token"
+               value="{{CSRF_TOKEN}}">
+        <label for="username">Username</label>
+        <input id="username" name="username"
+               autocomplete="username" required>
+        <label for="password">Password</label>
+        <input id="password" name="password" type="password"
+               autocomplete="current-password" required>
+        <button type="submit">Sign in</button>
+      </form>
+    </body>
+    </html>
+    """.replace(
+        "{{CSRF_TOKEN}}",
+        session["login_csrf_token"],
+    )
+
 def rate_limited(name):
     limit, window = RATE_LIMITS[name]
     now = time.time()
