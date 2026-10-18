@@ -3225,20 +3225,28 @@ function setVoicePanelState(value) {
 function setStatus(state) {
     const value = String(state || "ONLINE").toUpperCase();
 
-    topStatus.textContent = value;
-    if (value === "ERROR") {
-        statusDot.style.background = "#ff1744";
-        statusDot.style.boxShadow = "0 0 12px #ff1744";
-    } else if (value === "THINKING" || value === "SEARCHING" || value === "EXECUTING") {
-        statusDot.style.background = "#00d9ff";
-        statusDot.style.boxShadow = "0 0 12px #00d9ff";
-    } else {
-        statusDot.style.background = "var(--state)";
-        statusDot.style.boxShadow = "0 0 12px var(--state)";
+    // Some responsive layouts omit these optional status elements.
+    // Never let a missing HUD element prevent chat/voice API requests.
+    if (topStatus) {
+        topStatus.textContent = value;
+    }
+
+    if (statusDot) {
+        if (value === "ERROR") {
+            statusDot.style.background = "#ff1744";
+            statusDot.style.boxShadow = "0 0 12px #ff1744";
+        } else if (value === "THINKING" || value === "SEARCHING" || value === "EXECUTING") {
+            statusDot.style.background = "#00d9ff";
+            statusDot.style.boxShadow = "0 0 12px #00d9ff";
+        } else {
+            statusDot.style.background = "var(--state)";
+            statusDot.style.boxShadow = "0 0 12px var(--state)";
+        }
     }
 }
 
 function setVoiceStatus(text, type="") {
+    if (!voiceStatus) return;
     voiceStatus.textContent = text;
     voiceStatus.className = "voice-status " + type;
 }
