@@ -2642,30 +2642,41 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
   .main-voice-waveform { bottom:88px!important; }
   .command-bar { width:calc(100% - 20px)!important; }
 }
+</style>
 
-/* MOBILE SIDEBAR TOGGLE FIX: keep the edge tab above all panels and tappable. */
+
+<style id="aj-mobile-overlap-final-fix">
+/* Mobile-only repair: prevent the sidebar/status card, mic, waveforms and input from stacking on top of one another. */
 @media (max-width:700px) {
-  #sidebarEdgeToggle.sidebar-edge-toggle {
-    position: fixed !important;
-    z-index: 10050 !important;
-    pointer-events: auto !important;
-    touch-action: manipulation !important;
-    top: 92px !important;
-    left: min(calc(80vw + 8px), 270px) !important;
-  }
-  .app.sidebar-collapsed #sidebarEdgeToggle.sidebar-edge-toggle {
-    left: 8px !important;
-    top: 92px !important;
-    z-index: 10050 !important;
-  }
-  #ajSidebar { z-index: 10040 !important; }
+  html, body { width:100% !important; min-width:0 !important; overflow-x:hidden !important; }
+  .app { width:100% !important; min-width:0 !important; height:100dvh !important; min-height:100dvh !important; overflow:hidden !important; }
+  .topbar { position:fixed !important; top:0 !important; left:0 !important; right:0 !important; height:48px !important; min-height:48px !important; z-index:100 !important; }
+  .hud { position:fixed !important; top:48px !important; left:0 !important; right:0 !important; bottom:0 !important; height:auto !important; overflow:hidden !important; }
+  /* On phones, keep navigation tucked away until the hamburger/edge control is used. */
+  .aj-sidebar { z-index:110 !important; max-height:calc(100dvh - 72px) !important; }
+  .app:not(.sidebar-collapsed) .aj-sidebar { transform:translateX(calc(-100% - 18px)) !important; opacity:0 !important; pointer-events:none !important; }
+  .sidebar-edge-toggle { z-index:115 !important; }
+  .core-system { top:24% !important; left:50% !important; width:min(210px,54vw) !important; transform:translate(-50%,-50%) !important; }
+  .creator { top:calc(24% + min(118px,29vw)) !important; left:50% !important; width:132px !important; transform:translateX(-50%) !important; z-index:20 !important; }
+  .creator img { max-width:78px !important; max-height:44px !important; object-fit:contain !important; }
+  .creator-label { font-size:7px !important; margin-top:2px !important; }
+  .response-panel { top:55% !important; left:7% !important; right:7% !important; width:auto !important; height:22% !important; z-index:10 !important; }
+  .response-title { font-size:9px !important; }
+  .response-state { font-size:10px !important; }
+  .response-empty { font-size:11px !important; line-height:1.4 !important; }
+  .response-waveform { height:24px !important; }
+  /* Hide the separate desktop status card on mobile; it was overlapping the composer. */
+  .command-panel { display:none !important; }
+  .command-bar { position:fixed !important; left:50% !important; right:auto !important; top:auto !important; bottom:calc(12px + env(safe-area-inset-bottom, 0px)) !important; transform:translateX(-50%) !important; width:calc(100% - 24px) !important; max-width:none !important; height:48px !important; min-height:48px !important; z-index:120 !important; }
+  .command-bar #messageInput { width:100% !important; min-width:0 !important; height:40px !important; padding:0 48px 0 10px !important; font-size:13px !important; }
+  .command-bar #sendButton { top:5px !important; right:5px !important; width:36px !important; height:36px !important; }
+  .command-bar .command-button.voice { position:fixed !important; left:50% !important; right:auto !important; top:auto !important; bottom:calc(74px + env(safe-area-inset-bottom, 0px)) !important; transform:translateX(-50%) !important; width:58px !important; height:58px !important; min-width:58px !important; min-height:58px !important; z-index:125 !important; pointer-events:auto !important; }
+  .command-bar .command-button.voice::before { font-size:24px !important; }
+  .command-bar .main-voice-waveform { position:fixed !important; top:auto !important; bottom:calc(91px + env(safe-area-inset-bottom, 0px)) !important; height:26px !important; width:calc(50% - 48px) !important; max-width:calc(50% - 48px) !important; z-index:121 !important; pointer-events:none !important; }
+  .command-bar .main-voice-waveform.wave-left { left:12px !important; right:auto !important; }
+  .command-bar .main-voice-waveform.wave-right { right:12px !important; left:auto !important; }
+  .voice-status { top:6px !important; left:50% !important; width:calc(100% - 90px) !important; transform:translateX(-50%) !important; font-size:7px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
 }
-
-/* VOICE BUTTON INTERACTION FIX: keep the mic above decorative layers on touch devices */
-#micButton.command-button.voice{position:absolute!important;z-index:999!important;pointer-events:auto!important;touch-action:manipulation!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent!important}
-#micButton.command-button.voice::before,#micButton.command-button.voice::after{pointer-events:none!important}
-.main-voice-waveform,.main-voice-waveform *{pointer-events:none!important}
-@media(max-width:700px){#micButton.command-button.voice{z-index:999!important;pointer-events:auto!important;touch-action:manipulation!important}}
 </style>
 
 </head>
@@ -2950,24 +2961,6 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
     const items = document.querySelectorAll('.sidebar-item');
     function positionEdgeToggle(){
         if(!app || !edgeToggle) return;
-        if(window.matchMedia('(max-width:700px)').matches){
-            edgeToggle.style.position = 'fixed';
-            edgeToggle.style.zIndex = '10050';
-            edgeToggle.style.pointerEvents = 'auto';
-            edgeToggle.style.touchAction = 'manipulation';
-            if(app.classList.contains('sidebar-collapsed')){
-                edgeToggle.style.left = '8px';
-                edgeToggle.style.top = '92px';
-                return;
-            }
-            const sidebar = document.getElementById('ajSidebar');
-            if(!sidebar) return;
-            const sideRect = sidebar.getBoundingClientRect();
-            edgeToggle.style.left = Math.max(8, Math.min(window.innerWidth - 32, sideRect.right - 1)) + 'px';
-            edgeToggle.style.top = Math.max(76, sideRect.top + 15) + 'px';
-            return;
-        }
-        edgeToggle.style.position = 'absolute';
         if(app.classList.contains('sidebar-collapsed')){
             edgeToggle.style.left = '8px';
             return;
@@ -2977,6 +2970,7 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
         if(!sidebar || !hud) return;
         const sideRect = sidebar.getBoundingClientRect();
         const hudRect = hud.getBoundingClientRect();
+        /* Place the tab flush against the sidebar border, regardless of zoom or responsive width. */
         edgeToggle.style.left = Math.max(0, sideRect.right - hudRect.left - 1) + 'px';
         edgeToggle.style.top = Math.max(8, sideRect.top - hudRect.top + 15) + 'px';
     }
@@ -4663,8 +4657,7 @@ micButton.addEventListener("click", async function() {
     shouldKeepListening = true;
     voiceActive = true;
 
-    setVoiceStatus("STARTING MICROPHONE…");
-    setVoicePanelState("LISTENING");
+    setVoiceStatus("TAP ALLOW IF CHROME ASKS FOR MICROPHONE");
     startListening();
 });
 
