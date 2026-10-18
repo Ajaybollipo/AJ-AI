@@ -94,12 +94,54 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "openrouter/free"
 
+# =========================================================
+# INVITE-ONLY AUTHENTICATION CONFIGURATION
+# =========================================================
 
-def get_client_ip():
-    # Do not trust arbitrary X-Forwarded-For values.
-    return request.remote_addr or "unknown"
+import json
+from functools import wraps
+from werkzeug.security import check_password_hash
+
+# User accounts are supplied through Render environment variables.
+# Never store passwords directly in this source file.
+def load_invited_users():
+    raw_users = os.getenv("AJ_USERS_JSON", "{}")
+
+    try:
+        users = json.loads(raw_users)
+    except (json.JSONDecodeError, TypeError):
+        raise RuntimeError("AJ_USERS_JSON must contain valid JSON.")
+
+    if not isinstance(users, dict):
+        raise RuntimeError("AJ_USERS_JSON must be a JSON object.")
+
+    for username, password_hash in users.items():
+        if (
+            not isinstance(username, str)
+            or not username.strip()
+            or not isinstance(password_hash, str)
+            or not password_hash.startswith(("scrypt:", "pbkdf2:"))
+        ):
+            raise RuntimeError(
+                "Each invited user needs a username and a Werkzeug password hash."
+            )
+
+    return users
 
 
+def login_required(view):
+    @wraps(view)
+    def wrapped_view(*args, **kwargs):
+        if not session.get("aj_username"):
+            return jsonify({
+                "assistant": "AJ",
+                "response": "Please sign in to access AJ.",
+                "state": "UNAUTHENTICATED"
+            }), 401
+
+        return view(*args, **kwargs)
+
+    return wrapped_view
 def rate_limited(name):
     limit, window = RATE_LIMITS[name]
     now = time.time()
