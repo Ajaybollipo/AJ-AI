@@ -2677,6 +2677,19 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
   .command-bar .main-voice-waveform.wave-right { right:12px !important; left:auto !important; }
   .voice-status { top:6px !important; left:50% !important; width:calc(100% - 90px) !important; transform:translateX(-50%) !important; font-size:7px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
 }
+
+/* MOBILE VOICE BUTTON INTERACTION FIX: keep the mic above overlapping bars/panels */
+@media (max-width: 700px) {
+  #micButton.command-button.voice {
+    position: fixed !important;
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+  }
+  #micButton.command-button.voice::before,
+  #micButton.command-button.voice::after { pointer-events: none !important; }
+}
 </style>
 
 </head>
@@ -4640,11 +4653,21 @@ function scheduleListening() {
     }, 800);
 }
 
-micButton.addEventListener("click", async function() {
+micButton.addEventListener("click", function() {
 
+    // Re-detect speech support on tap in case mobile Chrome initialized late.
     if (!recognition) {
-        setVoiceStatus("USE CHROME FOR VOICE", "error");
-        return;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            const supported = setupRecognition();
+            if (!supported || !recognition) {
+                setVoiceStatus("VOICE COULD NOT START — RELOAD AND TRY AGAIN", "error");
+                return;
+            }
+        } else {
+            setVoiceStatus("OPEN THIS PAGE IN CHROME AND ALLOW MICROPHONE", "error");
+            return;
+        }
     }
 
     if (listening) {
@@ -4657,8 +4680,13 @@ micButton.addEventListener("click", async function() {
     shouldKeepListening = true;
     voiceActive = true;
 
-    setVoiceStatus("TAP ALLOW IF CHROME ASKS FOR MICROPHONE");
-    startListening();
+    setVoiceStatus("STARTING MICROPHONE…");
+    try {
+        startListening();
+    } catch (error) {
+        console.error("AJ microphone start failed:", error);
+        setVoiceStatus("MIC FAILED — CHECK CHROME SITE PERMISSIONS", "error");
+    }
 });
 
 stopVoiceButton.addEventListener("click", function() {
