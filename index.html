@@ -2355,6 +2355,69 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 }
 </style>
 
+
+<style id="aj-voice-reference-position-final">
+/* Keep voice control independent of .command-bar transforms/overflow. */
+#micButton.command-button.voice {
+  position: fixed !important;
+  left: 50% !important;
+  top: 80.5vh !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  width: 78px !important;
+  height: 78px !important;
+  min-width: 78px !important;
+  min-height: 78px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  z-index: 9999 !important;
+  font-size: 0 !important;
+  border: 2px solid #55fff0 !important;
+  background: radial-gradient(circle, rgba(0,150,255,.38), rgba(0,9,17,.97) 68%) !important;
+  box-shadow: 0 0 0 6px rgba(0,255,208,.08), 0 0 24px rgba(0,255,208,.6), inset 0 0 18px rgba(0,234,255,.22) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+#micButton.command-button.voice::before { content: "🎙" !important; display:block !important; font-size: 34px !important; line-height:1 !important; }
+#micButton.command-button.voice::after { content:"" !important; position:absolute !important; inset:-6px !important; border:1px solid rgba(0,255,208,.55) !important; border-radius:50% !important; pointer-events:none !important; }
+#micButton.command-button.voice.listening { animation: voicePulse 1s infinite !important; }
+.main-voice-waveform {
+  position: fixed !important;
+  top: 80.5vh !important;
+  bottom: auto !important;
+  height: 54px !important;
+  width: 145px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  transform: translateY(-50%) !important;
+  z-index: 9998 !important;
+  opacity:1 !important;
+  pointer-events:none !important;
+}
+.main-voice-waveform.wave-left { left:auto !important; right:calc(50% + 48px) !important; }
+.main-voice-waveform.wave-right { left:calc(50% + 48px) !important; right:auto !important; }
+.main-voice-waveform span { display:block !important; width:3px !important; height:var(--h,18px) !important; border-radius:4px !important; background:#00dfff !important; box-shadow:0 0 8px rgba(0,217,255,.85) !important; animation:ajWave .85s ease-in-out infinite alternate !important; }
+@media (min-width:701px) and (max-width:1100px) {
+  #micButton.command-button.voice { width:68px !important; height:68px !important; }
+  #micButton.command-button.voice::before { font-size:29px !important; }
+  .main-voice-waveform { width:100px !important; height:44px !important; }
+  .main-voice-waveform.wave-left { right:calc(50% + 42px) !important; }
+  .main-voice-waveform.wave-right { left:calc(50% + 42px) !important; }
+}
+@media (max-width:700px) {
+  #micButton.command-button.voice { top:79vh !important; width:60px !important; height:60px !important; min-width:60px !important; min-height:60px !important; }
+  #micButton.command-button.voice::before { font-size:26px !important; }
+  .main-voice-waveform { top:79vh !important; width:calc(50vw - 42px) !important; height:34px !important; }
+  .main-voice-waveform.wave-left { right:calc(50% + 34px) !important; }
+  .main-voice-waveform.wave-right { left:calc(50% + 34px) !important; }
+  .main-voice-waveform span { width:2px !important; }
+}
+</style>
+
 </head>
 
 <body>
@@ -2446,6 +2509,11 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
             <div class="creator-label">AJAY BOLLIPO</div>
         </div>
 
+        <!-- Reference-layout voice control: centered below the signature -->
+        <button class="command-button voice" id="micButton" type="button" title="Voice input" aria-label="Start voice input">🎙</button>
+        <div class="main-voice-waveform wave-left" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+        <div class="main-voice-waveform wave-right" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+
         <!-- RIGHT-SIDE ANSWERS ONLY -->
         <section class="response-panel">
 
@@ -2487,15 +2555,8 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
             </button>
             <span class="selected-file-name" id="selectedFileName" aria-live="polite"></span>
 
-            <button
-                class="command-button voice"
-                id="micButton"
-                type="button"
-                title="Voice input">
-                🎙
-            </button>
-            <div class="main-voice-waveform wave-left" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-            <div class="main-voice-waveform wave-right" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+            <!-- Voice control is placed outside the chat bar so the bar's layout/overflow
+                 cannot hide it. The existing #micButton ID and voice event handlers stay intact. -->
 
             <button
                 class="command-button"
