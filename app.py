@@ -334,6 +334,7 @@ def set_status(state, message):
 # =========================================================
 
 @app.route("/")
+@login_required
 def home():
     return send_file(
         os.path.join(
@@ -341,7 +342,6 @@ def home():
             "index.html"
         )
     )
-
 
 # =========================================================
 # SIGNATURE / STATIC IMAGES
