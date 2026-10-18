@@ -38,12 +38,21 @@ app = Flask(
     static_url_path="/static"
 )
 
-# =========================================================
 # CONFIGURATION / SECURITY
 # =========================================================
 
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024
 
+# Secure session configuration.
+# The secret must be configured in Render environment variables.
+app.config["SECRET_KEY"] = os.getenv("AJ_SESSION_SECRET")
+
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.getenv("AJ_COOKIE_SECURE", "true").lower() == "true"
+)
+app.config["PERMANENT_SESSION_LIFETIME"] = 43200  # 12 hours
 # Production security headers.
 # Compatible with the current AJ interface and browser speech APIs.
 @app.after_request
