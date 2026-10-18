@@ -3096,6 +3096,7 @@ const taskLiveIndicator = document.getElementById("taskLiveIndicator");
 ============================================================ */
 
 let recognition = null;
+let recognitionStarting = false;
 let listening = false;
 let speaking = false;
 let processing = false;
@@ -4381,20 +4382,25 @@ function speak(text) {
 
     utterance.onend = function() {
         speaking = false;
+        setVoicePanelState(shouldKeepListening ? "LISTENING" : "READY");
 
         if (shouldKeepListening && !processing) {
             setStatus("LISTENING");
+            setVoiceStatus("VOICE LISTENING", "listening");
             scheduleListening();
         } else {
             setStatus("ONLINE");
             setVoiceStatus("VOICE READY");
+            syncVoiceButton();
         }
     };
 
     utterance.onerror = function() {
         speaking = false;
+        setVoicePanelState(shouldKeepListening ? "LISTENING" : "READY");
         setStatus("ONLINE");
-        setVoiceStatus("VOICE READY");
+        setVoiceStatus("VOICE OUTPUT INTERRUPTED", "error");
+        if (shouldKeepListening && !processing) scheduleListening();
     };
 
     window.speechSynthesis.speak(utterance);
@@ -4454,9 +4460,11 @@ function setupRecognition() {
     recognition.maxAlternatives = 1;
 
     recognition.onstart = function() {
+        recognitionStarting = false;
         listening = true;
         micButton.classList.add("listening");
-        setVoiceStatus("LISTENING FOR AJ...", "listening");
+        syncVoiceButton();
+        setVoiceStatus("LISTENING — SPEAK NOW", "listening");
         setVoicePanelState("LISTENING");
         setStatus("LISTENING");
     };
@@ -4496,10 +4504,15 @@ function setupRecognition() {
         micButton.classList.remove("listening");
         syncVoiceButton();
 
+        recognitionStarting = false;
+
         if (event.error === "not-allowed" ||
             event.error === "service-not-allowed") {
 
             shouldKeepListening = false;
+            voiceActive = false;
+            setVoicePanelState("READY");
+            syncVoiceButton();
             setVoiceStatus(
                 "MICROPHONE PERMISSION REQUIRED",
                 "error"
@@ -4509,34 +4522,40 @@ function setupRecognition() {
         }
 
         if (event.error === "no-speech") {
-            setVoiceStatus("NO SPEECH — TAP VOICE AND SPEAK");
+            setVoiceStatus("NO SPEECH — LISTENING AGAIN", "listening");
         } else if (event.error === "network") {
             setVoiceStatus("VOICE NETWORK ERROR — CHECK INTERNET", "error");
+            shouldKeepListening = false;
+            voiceActive = false;
         } else if (event.error === "audio-capture") {
             setVoiceStatus("MICROPHONE UNAVAILABLE", "error");
-        } else {
+            shouldKeepListening = false;
+            voiceActive = false;
+        } else if (event.error !== "aborted") {
             setVoiceStatus("VOICE ERROR: " + String(event.error || "UNKNOWN").toUpperCase(), "error");
         }
 
-        if (shouldKeepListening &&
-            !processing &&
-            !speaking) {
+        syncVoiceButton();
+        if (!shouldKeepListening) setVoicePanelState("READY");
 
+        if (shouldKeepListening && !processing && !speaking) {
             scheduleListening();
         }
     };
 
     recognition.onend = function() {
 
+        recognitionStarting = false;
         listening = false;
         micButton.classList.remove("listening");
         syncVoiceButton();
 
-        if (shouldKeepListening &&
-            !processing &&
-            !speaking) {
-
+        if (shouldKeepListening && !processing && !speaking) {
+            setVoicePanelState("LISTENING");
             scheduleListening();
+        } else if (!processing && !speaking) {
+            setVoicePanelState("READY");
+            if (!voiceActive) setVoiceStatus("VOICE READY");
         }
     };
 
@@ -4605,21 +4624,25 @@ function startListening() {
         setVoiceStatus("VOICE NOT SUPPORTED — OPEN IN CHROME", "error");
         return;
     }
-    if (listening || processing || speaking) return;
+    if (listening || recognitionStarting || processing || speaking) return;
 
     try {
         // Start directly from the user's tap. Mobile browsers can lose
-        // the user-activation permission after an awaited getUserMedia call.
+        // user activation after an awaited permission request.
+        recognitionStarting = true;
+        setVoiceStatus("STARTING MICROPHONE…", "listening");
         recognition.start();
     } catch (error) {
+        recognitionStarting = false;
         console.warn("Recognition start failed:", error);
-        setVoiceStatus("TAP VOICE AGAIN TO START", "error");
+        setVoiceStatus("MIC BUSY — TAP VOICE TO RETRY", "error");
     }
 }
 
 function stopListening() {
 
     listening = false;
+    recognitionStarting = false;
     clearTimeout(restartTimer);
 
     if (recognition) {
