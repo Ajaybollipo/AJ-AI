@@ -1,13 +1,4 @@
-from flask import (
-    Flask,
-    jsonify,
-    request,
-    send_file,
-    send_from_directory,
-    session,
-    redirect,
-    url_for,
-)
+from flask import Flask, jsonify, request, send_file, send_from_directory
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from collections import defaultdict, deque
@@ -38,21 +29,12 @@ app = Flask(
     static_url_path="/static"
 )
 
+# =========================================================
 # CONFIGURATION / SECURITY
 # =========================================================
 
 app.config["MAX_CONTENT_LENGTH"] = 6 * 1024 * 1024
 
-# Secure session configuration.
-# The secret must be configured in Render environment variables.
-app.config["SECRET_KEY"] = os.getenv("AJ_SESSION_SECRET")
-
-app.config["SESSION_COOKIE_HTTPONLY"] = True
-app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-app.config["SESSION_COOKIE_SECURE"] = (
-    os.getenv("AJ_COOKIE_SECURE", "true").lower() == "true"
-)
-app.config["PERMANENT_SESSION_LIFETIME"] = 43200  # 12 hours
 # Production security headers.
 # Compatible with the current AJ interface and browser speech APIs.
 @app.after_request
@@ -94,153 +76,11 @@ OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "openrouter/free"
 
-# =========================================================
-# INVITE-ONLY AUTHENTICATION CONFIGURATION
-# =========================================================
 
-import json
-from functools import wraps
-from werkzeug.security import check_password_hash
+def get_client_ip():
+    # Do not trust arbitrary X-Forwarded-For values.
+    return request.remote_addr or "unknown"
 
-# User accounts are supplied through Render environment variables.
-# Never store passwords directly in this source file.
-def load_invited_users():
-    raw_users = os.getenv("AJ_USERS_JSON", "{}")
-
-    try:
-        users = json.loads(raw_users)
-    except (json.JSONDecodeError, TypeError):
-        raise RuntimeError("AJ_USERS_JSON must contain valid JSON.")
-
-    if not isinstance(users, dict):
-        raise RuntimeError("AJ_USERS_JSON must be a JSON object.")
-
-    for username, password_hash in users.items():
-        if (
-            not isinstance(username, str)
-            or not username.strip()
-            or not isinstance(password_hash, str)
-            or not password_hash.startswith(("scrypt:", "pbkdf2:"))
-        ):
-            raise RuntimeError(
-                "Each invited user needs a username and a Werkzeug password hash."
-            )
-
-    return users
-
-
-def login_required(view):
-    @wraps(view)
-    def wrapped_view(*args, **kwargs):
-        if not session.get("aj_username"):
-            return jsonify({
-                "assistant": "AJ",
-                "response": "Please sign in to access AJ.",
-                "state": "UNAUTHENTICATED"
-            }), 401
-
-        return view(*args, **kwargs)
-
-    return wrapped_view
-
-
-import secrets
-import hmac
-
-
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if not app.config.get("SECRET_KEY"):
-        return "AJ login is not configured. Contact the administrator.", 503
-
-    if request.method == "POST":
-        token = session.get("login_csrf_token", "")
-        submitted_token = request.form.get("csrf_token", "")
-
-        if not token or not hmac.compare_digest(token, submitted_token):
-            return "Invalid login request. Please refresh and try again.", 400
-
-        username = request.form.get("username", "").strip()
-        password = request.form.get("password", "")
-
-        try:
-            users = load_invited_users()
-        except RuntimeError:
-            app.logger.exception("Invalid invited-user configuration")
-            return "AJ login is not configured correctly.", 503
-
-        password_hash = users.get(username)
-
-        if (
-            isinstance(password_hash, str)
-            and check_password_hash(password_hash, password)
-        ):
-            session.clear()
-            session["aj_username"] = username
-            session.permanent = True
-            return redirect(url_for("home"))
-
-        return (
-            "Invalid username or password. "
-            '<a href="/login">Try again</a>',
-            401,
-        )
-
-    session["login_csrf_token"] = secrets.token_urlsafe(32)
-
-    return """
-    <!doctype html>
-    <html lang="en">
-    <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>Sign in | AJ</title>
-      <style>
-        body {
-          margin: 0; min-height: 100vh; display: grid;
-          place-items: center; background: #071116;
-          color: #e7ffff; font-family: Arial, sans-serif;
-        }
-        form {
-          width: min(340px, calc(100% - 48px));
-          padding: 28px; border: 1px solid #087e8b;
-          border-radius: 14px; background: #0b1b22;
-        }
-        h1 { color: #54f4e8; }
-        input, button {
-          box-sizing: border-box; width: 100%; padding: 12px;
-          margin: 8px 0; border-radius: 7px;
-        }
-        input {
-          color: white; background: #071116;
-          border: 1px solid #31545b;
-        }
-        button {
-          border: 0; background: #36e6d4;
-          color: #061116; font-weight: bold; cursor: pointer;
-        }
-      </style>
-    </head>
-    <body>
-      <form method="post" action="/login">
-        <h1>AJ</h1>
-        <p>Sign in to your invited account</p>
-        <input type="hidden" name="csrf_token"
-               value="{{CSRF_TOKEN}}">
-        <label for="username">Username</label>
-        <input id="username" name="username"
-               autocomplete="username" required>
-        <label for="password">Password</label>
-        <input id="password" name="password" type="password"
-               autocomplete="current-password" required>
-        <button type="submit">Sign in</button>
-      </form>
-    </body>
-    </html>
-    """.replace(
-        "{{CSRF_TOKEN}}",
-        session["login_csrf_token"],
-    )
 
 def rate_limited(name):
     limit, window = RATE_LIMITS[name]
@@ -334,7 +174,6 @@ def set_status(state, message):
 # =========================================================
 
 @app.route("/")
-@login_required
 def home():
     return send_file(
         os.path.join(
@@ -342,6 +181,7 @@ def home():
             "index.html"
         )
     )
+
 
 # =========================================================
 # SIGNATURE / STATIC IMAGES
