@@ -2281,6 +2281,80 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 }
 .app::after { background-image: none !important; }
 </style>
+
+<style id="aj-reference-layout-final">
+/* AJ reference preview match: center the core, signature, and microphone as one visual column. */
+@media (min-width: 701px) {
+  .core-system {
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .creator {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .command-bar {
+    position: absolute !important;
+    left: auto !important;
+    right: 2.7% !important;
+    bottom: 16% !important;
+    transform: none !important;
+    width: min(510px, 31vw) !important;
+    max-width: calc(100vw - 300px) !important;
+    height: 60px !important;
+    border-radius: 32px !important;
+    z-index: 25 !important;
+  }
+  #micButton.command-button.voice {
+    position: fixed !important;
+    left: 50% !important;
+    top: 74.5vh !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 78px !important;
+    height: 78px !important;
+    min-width: 78px !important;
+    min-height: 78px !important;
+    z-index: 70 !important;
+  }
+  #micButton.command-button.voice::before { font-size: 34px !important; }
+  #micButton.command-button.voice::after { inset: -6px !important; }
+  .command-bar .main-voice-waveform {
+    position: fixed !important;
+    top: 80.5vh !important;
+    bottom: auto !important;
+    width: 145px !important;
+    height: 54px !important;
+    transform: translateY(-50%) !important;
+    z-index: 65 !important;
+    opacity: 1 !important;
+  }
+  .command-bar .main-voice-waveform.wave-left {
+    left: auto !important;
+    right: calc(50% + 48px) !important;
+  }
+  .command-bar .main-voice-waveform.wave-right {
+    left: calc(50% + 48px) !important;
+    right: auto !important;
+  }
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  #micButton.command-button.voice { width: 68px !important; height: 68px !important; top: 75vh !important; }
+  #micButton.command-button.voice::before { font-size: 29px !important; }
+  .command-bar .main-voice-waveform { width: 100px !important; height: 44px !important; top: 80vh !important; }
+  .command-bar .main-voice-waveform.wave-left { right: calc(50% + 42px) !important; }
+  .command-bar .main-voice-waveform.wave-right { left: calc(50% + 42px) !important; }
+}
+@media (max-width: 700px) {
+  /* Preserve the compact mobile composition and keep all controls on-screen. */
+  .core-system { left: 50% !important; }
+  .creator { left: 50% !important; }
+  .command-bar { left: 50% !important; right: auto !important; transform: translateX(-50%) !important; }
+  #micButton.command-button.voice { position: absolute !important; left: 50% !important; top: 49px !important; transform: translateX(-50%) !important; }
+}
+</style>
+
 </head>
 
 <body>
