@@ -2263,10 +2263,6 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
   .command-bar #messageInput { font-size:11px!important; }
 }
 
-
-/* Small requested adjustment: response placeholder text only */
-.response-empty p { font-size: 12px !important; line-height: 1.45 !important; }
-@media (max-width: 700px) { .response-empty p { font-size: 10px !important; line-height: 1.4 !important; } }
 </style>
 
 <style id="aj-remove-background-dots">
@@ -2586,6 +2582,68 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 @media (max-width: 1000px) { .topbar { height: 46px !important; min-height: 46px !important; padding-left: 10px !important; padding-right: 10px !important; } .hud { inset: 46px 0 0 !important; } .response-title { font-size: 11px !important; } }
 @media (max-width: 700px) { .topbar { height: 44px !important; min-height: 44px !important; padding-left: 8px !important; padding-right: 8px !important; } .hud { inset: 44px 0 0 !important; } .response-title { font-size: 10px !important; } }
 </style>
+
+<style id="approved-compact-topbar-response-font">
+/* Final approved refinements only: compact top bar and smaller response heading. */
+.topbar { height: 44px !important; min-height: 44px !important; padding: 0 12px !important; }
+.hud { inset: 44px 0 0 !important; }
+.topbar .brand-mark { width: 34px !important; height: 34px !important; font-size: 15px !important; }
+.topbar .sidebar-toggle { display: none !important; }
+.response-title { font-size: 10px !important; letter-spacing: .5px !important; line-height: 1.2 !important; }
+@media (max-width: 1000px) {
+  .topbar { height: 44px !important; min-height: 44px !important; padding: 0 10px !important; }
+  .hud { inset: 44px 0 0 !important; }
+}
+@media (max-width: 700px) {
+  .topbar { height: 48px !important; min-height: 48px !important; padding: 0 8px !important; }
+  .hud { inset: 48px 0 0 !important; }
+  .response-title { font-size: 9px !important; }
+}
+</style>
+
+<style id="aj-mobile-layout-fix-2026">
+/* Mobile-only layout repair: desktop design and application logic remain unchanged. */
+@media (max-width: 700px) {
+  html, body { width:100%; min-width:0; overflow-x:hidden; }
+  .app { min-height:100dvh; height:100dvh; overflow:hidden; }
+  .topbar { position:absolute!important; top:0!important; left:0!important; right:0!important; height:48px!important; min-height:48px!important; padding:0 10px!important; z-index:80!important; }
+  .hud { position:absolute!important; inset:48px 0 0!important; height:calc(100dvh - 48px)!important; min-height:0!important; overflow:hidden!important; }
+  /* Keep navigation available through the edge tab without covering the dashboard on load. */
+  .aj-sidebar { position:absolute!important; top:10px!important; bottom:10px!important; left:8px!important; width:min(245px,82vw)!important; max-height:calc(100% - 20px)!important; z-index:70!important; }
+  .app:not(.sidebar-collapsed) .aj-sidebar { transform:translateX(calc(-100% - 16px))!important; opacity:0!important; pointer-events:none!important; }
+  .sidebar-edge-toggle { position:absolute!important; top:12px!important; left:8px!important; z-index:75!important; }
+  .core-system { position:absolute!important; left:50%!important; top:24%!important; width:min(225px,56vw)!important; transform:translate(-50%,-50%)!important; }
+  .creator { position:absolute!important; left:50%!important; top:calc(24% + min(124px,30vw))!important; width:145px!important; transform:translateX(-50%)!important; }
+  .creator img { width:min(88px,24vw)!important; max-width:100%!important; }
+  .creator-label { font-size:7px!important; letter-spacing:1.5px!important; margin-top:3px!important; }
+  .response-panel { position:absolute!important; left:8%!important; right:8%!important; top:57%!important; width:auto!important; height:21%!important; min-height:0!important; transform:none!important; overflow:hidden!important; }
+  .response-header { height:24px!important; }
+  .response-title { font-size:10px!important; }
+  .response-content { padding:8px 0!important; overflow:auto!important; }
+  .response-empty { gap:5px!important; font-size:11px!important; line-height:1.45!important; }
+  .response-empty p { margin:4px 0 0!important; }
+  .response-waveform { height:27px!important; max-width:100%!important; }
+  .command-panel { display:none!important; }
+  .command-bar { position:absolute!important; left:50%!important; right:auto!important; bottom:12px!important; top:auto!important; width:calc(100% - 28px)!important; max-width:none!important; height:46px!important; min-height:46px!important; transform:translateX(-50%)!important; z-index:40!important; padding:3px 5px 3px 10px!important; border-radius:24px!important; }
+  .command-bar #messageInput { min-width:0!important; width:100%!important; height:38px!important; padding:0 48px 0 7px!important; font-size:12px!important; }
+  .command-bar #sendButton { right:4px!important; top:4px!important; width:36px!important; height:36px!important; }
+  .command-button.voice { position:absolute!important; left:50%!important; right:auto!important; top:auto!important; bottom:76px!important; width:52px!important; height:52px!important; transform:translateX(-50%)!important; z-index:45!important; }
+  .command-button.voice::before { font-size:22px!important; }
+  .main-voice-waveform { position:absolute!important; top:auto!important; bottom:89px!important; height:22px!important; width:calc(50% - 43px)!important; max-width:calc(50% - 43px)!important; z-index:35!important; }
+  .main-voice-waveform.wave-left { left:10px!important; right:auto!important; }
+  .main-voice-waveform.wave-right { right:10px!important; left:auto!important; }
+  .voice-status { top:7px!important; left:50%!important; width:calc(100% - 100px)!important; transform:translateX(-50%)!important; font-size:7px!important; letter-spacing:1px!important; white-space:nowrap!important; overflow:hidden!important; text-overflow:ellipsis!important; }
+  .app.sidebar-collapsed .core-system,.app.sidebar-collapsed .creator { left:50%!important; }
+}
+@media (max-width:380px) {
+  .core-system { width:190px!important; }
+  .response-panel { top:55%!important; height:22%!important; }
+  .command-button.voice { width:48px!important; height:48px!important; bottom:76px!important; }
+  .main-voice-waveform { bottom:88px!important; }
+  .command-bar { width:calc(100% - 20px)!important; }
+}
+</style>
+
 </head>
 
 <body>
