@@ -2372,6 +2372,77 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
     black 100%
   );
 }
+
+
+/* AJ Command Centre — black sci-fi grid background */
+html,
+body {
+  background-color: #020608 !important;
+  background-image: none !important;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+}
+
+/* Cyan horizon and perspective grid */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 42%,
+      rgba(0, 225, 255, 0.07) 54%,
+      transparent 72%
+    ),
+    linear-gradient(
+      rgba(0, 225, 255, 0.13) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(0, 225, 255, 0.13) 1px,
+      transparent 1px
+    );
+  background-size:
+    100% 100%,
+    100% 36px,
+    36px 100%;
+  transform-origin: center bottom;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 42%,
+    black 65%,
+    black 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 42%,
+    black 65%,
+    black 100%
+  );
+}
+
+/* Subtle cyan horizon glow */
+body::after {
+  content: "";
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 54%;
+  height: 2px;
+  z-index: -1;
+  pointer-events: none;
+  background: #00e5ff;
+  opacity: 0.45;
+  box-shadow: 0 0 18px 4px rgba(0, 229, 255, 0.25);
+}
+
 </style>
 </head>
 
