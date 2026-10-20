@@ -2375,6 +2375,113 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 </style>
 </head>
 
+
+<style id="aj-sci-fi-background">
+/* AJ COMMAND CENTRE — BLACK SCI-FI HORIZON
+   Background only. Preserve existing layout and functionality. */
+
+.app {
+  background:
+    radial-gradient(
+      ellipse at 50% 59%,
+      rgba(0, 225, 255, 0.18) 0%,
+      rgba(0, 125, 190, 0.09) 20%,
+      transparent 48%
+    ),
+    linear-gradient(
+      180deg,
+      #010307 0%,
+      #020810 48%,
+      #03111c 75%,
+      #010408 100%
+    ) !important;
+}
+
+/* Cyan atmospheric horizon and perspective grid */
+.app::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 1 !important;
+  background:
+    /* Horizon glow */
+    radial-gradient(
+      ellipse 60% 15% at 50% 61%,
+      rgba(0, 235, 255, 0.24),
+      rgba(0, 125, 220, 0.10) 40%,
+      transparent 100%
+    ),
+
+    /* Horizon light line */
+    linear-gradient(
+      180deg,
+      transparent 59.5%,
+      rgba(0, 225, 255, 0.02) 60%,
+      rgba(0, 225, 255, 0.48) 60.2%,
+      rgba(0, 160, 255, 0.16) 60.5%,
+      transparent 62%
+    ),
+
+    /* Perspective floor — horizontal grid lines */
+    repeating-linear-gradient(
+      180deg,
+      transparent 0px,
+      transparent 22px,
+      rgba(0, 205, 255, 0.15) 23px,
+      transparent 24px,
+      transparent 45px
+    ),
+
+    /* Perspective floor — vertical grid lines */
+    repeating-linear-gradient(
+      90deg,
+      transparent 0px,
+      transparent 49px,
+      rgba(0, 195, 255, 0.14) 50px,
+      transparent 51px,
+      transparent 99px
+    ),
+
+    /* Dark cinematic side lighting */
+    radial-gradient(
+      ellipse at 50% 100%,
+      rgba(0, 90, 150, 0.16),
+      transparent 65%
+    );
+
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+
+  background-repeat: no-repeat;
+  mix-blend-mode: screen;
+}
+
+/* Keep the original interface above the background */
+.app > * {
+  /* No layout, position, or interaction changes */
+}
+
+/* Subtle black cinematic vignette */
+.app::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(
+    ellipse at center,
+    transparent 42%,
+    rgba(0, 0, 0, 0.32) 100%
+  );
+}
+</style>
+</body>
+
 </style>
 
 <style id="aj-remove-background-dots">
