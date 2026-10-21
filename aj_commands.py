@@ -38,6 +38,7 @@ SITES = {
     "amazon": "https://www.amazon.in/",
     "x": "https://x.com/",
     "twitter": "https://x.com/",
+    "ajai": "https://ajai-in.up.railway.app/",
 }
 
 
