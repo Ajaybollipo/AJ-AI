@@ -37,8 +37,38 @@ button,input{font:inherit}
     width:100%;
     height:100vh;
     position:relative;
+    isolation:isolate;
     overflow:hidden;
-    background:#000;
+    background:
+      radial-gradient(ellipse at 50% 55%, rgba(0,104,139,.16) 0%, rgba(0,30,48,.10) 28%, transparent 62%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,217,255,.12) 0%, transparent 43%),
+      #000;
+}
+
+/* BACKDROP: dark sci-fi circuitry and a restrained cyan horizon glow.
+   Kept behind the existing AJ interface; no floor/grid plane. */
+.app::before{
+    content:"";
+    position:absolute;
+    inset:0;
+    z-index:-1;
+    pointer-events:none;
+    opacity:.72;
+    background:
+      radial-gradient(ellipse at 50% 64%, transparent 0 20%, rgba(0,217,255,.045) 20.2%, transparent 20.8% 31%, rgba(0,217,255,.035) 31.2%, transparent 31.8%),
+      radial-gradient(ellipse at 50% 100%, rgba(0,217,255,.16) 0%, rgba(0,91,130,.07) 20%, transparent 48%),
+      linear-gradient(90deg, transparent 0 8%, rgba(0,217,255,.055) 8.1%, transparent 8.25% 16%, rgba(0,217,255,.035) 16.1%, transparent 16.25% 83.7%, rgba(0,217,255,.035) 83.85%, transparent 84% 91.7%, rgba(0,217,255,.05) 91.85%, transparent 92%),
+      linear-gradient(180deg, transparent 0 15%, rgba(0,217,255,.035) 15.1%, transparent 15.25% 31%, rgba(0,217,255,.025) 31.1%, transparent 31.25% 74%, rgba(0,217,255,.04) 74.1%, transparent 74.25%);
+    mask-image:linear-gradient(to bottom, rgba(0,0,0,.5), #000 24%, #000 78%, rgba(0,0,0,.8));
+}
+.app::after{
+    content:"";
+    position:absolute;
+    left:12%; right:12%; bottom:17%; height:1px;
+    z-index:-1;
+    pointer-events:none;
+    background:linear-gradient(90deg,transparent,rgba(0,217,255,.12),rgba(0,217,255,.48),rgba(0,217,255,.12),transparent);
+    box-shadow:0 0 22px rgba(0,217,255,.12);
 }
 
 /* TOP BAR */
@@ -2372,186 +2402,8 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
     black 100%
   );
 }
-
-
-/* AJ Command Centre — black sci-fi grid background */
-html,
-body {
-  background-color: #020608 !important;
-  background-image: none !important;
-}
-
-body {
-  position: relative;
-  isolation: isolate;
-}
-
-/* Cyan horizon and perspective grid */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    linear-gradient(
-      to bottom,
-      transparent 42%,
-      rgba(0, 225, 255, 0.07) 54%,
-      transparent 72%
-    ),
-    linear-gradient(
-      rgba(0, 225, 255, 0.13) 1px,
-      transparent 1px
-    ),
-    linear-gradient(
-      90deg,
-      rgba(0, 225, 255, 0.13) 1px,
-      transparent 1px
-    );
-  background-size:
-    100% 100%,
-    100% 36px,
-    36px 100%;
-  transform-origin: center bottom;
-  -webkit-mask-image: linear-gradient(
-    to bottom,
-    transparent 42%,
-    black 65%,
-    black 100%
-  );
-  mask-image: linear-gradient(
-    to bottom,
-    transparent 42%,
-    black 65%,
-    black 100%
-  );
-}
-
-/* Subtle cyan horizon glow */
-body::after {
-  content: "";
-  position: fixed;
-  left: 0;
-  right: 0;
-  top: 54%;
-  height: 2px;
-  z-index: -1;
-  pointer-events: none;
-  background: #00e5ff;
-  opacity: 0.45;
-  box-shadow: 0 0 18px 4px rgba(0, 229, 255, 0.25);
-}
-
 </style>
 </head>
-
-
-<style id="aj-sci-fi-background">
-/* AJ COMMAND CENTRE — BLACK SCI-FI HORIZON
-   Background only. Preserve existing layout and functionality. */
-
-.app {
-  background:
-    radial-gradient(
-      ellipse at 50% 59%,
-      rgba(0, 225, 255, 0.18) 0%,
-      rgba(0, 125, 190, 0.09) 20%,
-      transparent 48%
-    ),
-    linear-gradient(
-      180deg,
-      #010307 0%,
-      #020810 48%,
-      #03111c 75%,
-      #010408 100%
-    ) !important;
-}
-
-/* Cyan atmospheric horizon and perspective grid */
-.app::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 1 !important;
-  background:
-    /* Horizon glow */
-    radial-gradient(
-      ellipse 60% 15% at 50% 61%,
-      rgba(0, 235, 255, 0.24),
-      rgba(0, 125, 220, 0.10) 40%,
-      transparent 100%
-    ),
-
-    /* Horizon light line */
-    linear-gradient(
-      180deg,
-      transparent 59.5%,
-      rgba(0, 225, 255, 0.02) 60%,
-      rgba(0, 225, 255, 0.48) 60.2%,
-      rgba(0, 160, 255, 0.16) 60.5%,
-      transparent 62%
-    ),
-
-    /* Perspective floor — horizontal grid lines */
-    repeating-linear-gradient(
-      180deg,
-      transparent 0px,
-      transparent 22px,
-      rgba(0, 205, 255, 0.15) 23px,
-      transparent 24px,
-      transparent 45px
-    ),
-
-    /* Perspective floor — vertical grid lines */
-    repeating-linear-gradient(
-      90deg,
-      transparent 0px,
-      transparent 49px,
-      rgba(0, 195, 255, 0.14) 50px,
-      transparent 51px,
-      transparent 99px
-    ),
-
-    /* Dark cinematic side lighting */
-    radial-gradient(
-      ellipse at 50% 100%,
-      rgba(0, 90, 150, 0.16),
-      transparent 65%
-    );
-
-  background-size:
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%,
-    100% 100%;
-
-  background-repeat: no-repeat;
-  mix-blend-mode: screen;
-}
-
-/* Keep the original interface above the background */
-.app > * {
-  /* No layout, position, or interaction changes */
-}
-
-/* Subtle black cinematic vignette */
-.app::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    ellipse at center,
-    transparent 42%,
-    rgba(0, 0, 0, 0.32) 100%
-  );
-}
-</style>
-</body>
 
 </style>
 
