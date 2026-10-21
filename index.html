@@ -383,6 +383,23 @@ button,input{font:inherit}
     padding-left:0;
 }
 
+/* Clickable links in AJ responses */
+.response-aj .aj-response-link {
+    color: #55eaff;
+    text-decoration: underline;
+    text-decoration-color: rgba(85,234,255,.7);
+    text-underline-offset: 3px;
+    overflow-wrap: anywhere;
+    cursor: pointer;
+    pointer-events: auto;
+}
+.response-aj .aj-response-link:hover,
+.response-aj .aj-response-link:focus-visible {
+    color: #ffffff;
+    text-shadow: 0 0 8px rgba(85,234,255,.75);
+    outline: none;
+}
+
 /* INPUT */
 .selected-file-name{
     max-width:180px;
@@ -3049,13 +3066,21 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
             <span class="selected-file-name" id="selectedFileName" aria-live="polite"></span>
 
             <!-- Voice control is placed outside the chat bar so the bar's layout/overflow
-                 cannot hide it. The existing #micButton toggles listening and stops speech/listening on a second tap. -->
+                 cannot hide it. The existing #micButton ID and voice event handlers stay intact. -->
 
             <button
                 class="command-button"
                 id="sendButton"
                 type="button"
                 title="Send" aria-label="Send message">
+            </button>
+
+            <button
+                class="command-button stop"
+                id="stopVoiceButton"
+                type="button"
+                title="Stop voice">
+                ■
             </button>
 
             <button
@@ -3265,6 +3290,7 @@ const voiceFloatButton = null; // Top voice button intentionally removed; use th
 const fileButton = document.getElementById("fileButton");
 const fileInput = document.getElementById("fileInput");
 const selectedFileName = document.getElementById("selectedFileName");
+const stopVoiceButton = document.getElementById("stopVoiceButton");
 const historyButton = document.getElementById("historyButton");
 
 const voiceStatus = document.getElementById("voiceStatus");
@@ -3473,7 +3499,44 @@ function escapeHTML(text) {
     return String(text)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+/* Render safe, clickable HTTP(S) links in AJ responses. Supports both
+   raw URLs and Markdown-style links such as [YouTube](https://youtube.com). */
+function renderResponseLinks(value) {
+    let text = escapeHTML(value);
+    const links = [];
+
+    // Temporarily protect Markdown links while escaping their labels and URLs.
+    text = text.replace(/\[([^\]\n]+)\]\((https?:\/\/[^\s)]+)\)/gi, function(_, label, url) {
+        const index = links.length;
+        links.push({ label: label, url: url });
+        return "__AJ_LINK_" + index + "__";
+    });
+
+    // Turn plain URLs into links, trimming common trailing punctuation.
+    text = text.replace(/https?:\/\/[^\s<]+/gi, function(rawUrl) {
+        let url = rawUrl;
+        let trailing = "";
+        while (/[.,!?;:)]$/.test(url)) {
+            trailing = url.slice(-1) + trailing;
+            url = url.slice(0, -1);
+        }
+        if (!/^https?:\/\//i.test(url)) return rawUrl;
+        return '<a class="aj-response-link" href="' + url + '" target="_blank" rel="noopener noreferrer">' + url + '</a>' + trailing;
+    });
+
+    // Restore Markdown links using escaped labels and validated HTTP(S) URLs.
+    text = text.replace(/__AJ_LINK_(\d+)__/g, function(_, indexText) {
+        const link = links[Number(indexText)];
+        if (!link || !/^https?:\/\//i.test(link.url)) return link ? escapeHTML(link.label) : "";
+        return '<a class="aj-response-link" href="' + escapeHTML(link.url) + '" target="_blank" rel="noopener noreferrer">' + escapeHTML(link.label) + '</a>';
+    });
+
+    return text;
 }
 
 function addResponse(userText, ajText) {
@@ -3493,7 +3556,7 @@ function addResponse(userText, ajText) {
 
     const ajMessage = document.createElement("div");
     ajMessage.className = "response-aj";
-    ajMessage.textContent = ajText;
+    ajMessage.innerHTML = renderResponseLinks(ajText);
 
     block.appendChild(userLabel);
     block.appendChild(userMessage);
@@ -4897,20 +4960,7 @@ function scheduleListening() {
 
 micButton.addEventListener("click", function() {
 
-    // The existing microphone is also the stop control. One tap stops
-    // speech and listening; another tap starts voice input again.
-    if (listening || recognitionStarting || speaking || voiceActive || shouldKeepListening) {
-        shouldKeepListening = false;
-        voiceActive = false;
-        stopListening();
-        stopSpeaking();
-        setVoicePanelState("READY");
-        setStatus("ONLINE");
-        setVoiceStatus("VOICE STOPPED");
-        return;
-    }
-
-    // Re-detect speech support on tap in case Chrome initialized late.
+    // Re-detect speech support on tap in case mobile Chrome initialized late.
     if (!recognition) {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (SpeechRecognition) {
@@ -4925,17 +4975,32 @@ micButton.addEventListener("click", function() {
         }
     }
 
+    if (listening) {
+        shouldKeepListening = false;
+        voiceActive = false;
+        stopListening();
+        return;
+    }
+
     shouldKeepListening = true;
     voiceActive = true;
-    setVoiceStatus("STARTING MICROPHONE…", "listening");
+
+    setVoiceStatus("STARTING MICROPHONE…");
     try {
         startListening();
     } catch (error) {
-        shouldKeepListening = false;
-        voiceActive = false;
         console.error("AJ microphone start failed:", error);
         setVoiceStatus("MIC FAILED — CHECK CHROME SITE PERMISSIONS", "error");
     }
+});
+
+stopVoiceButton.addEventListener("click", function() {
+    shouldKeepListening = false;
+    voiceActive = false;
+    stopListening();
+    stopSpeaking();
+    setStatus("ONLINE");
+    setVoiceStatus("VOICE STOPPED");
 });
 
 
