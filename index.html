@@ -5499,5 +5499,30 @@ window.addEventListener("load", function() {
 
 </script>
 
+
+<style id="aj-final-circuit-wall-fix">
+/* FINAL BACKGROUND FIX: fixed wall-style circuitry, no floor grid. */
+html, body { background:#020407 !important; }
+.app {
+  background-color:#020407 !important;
+  background-image:
+    radial-gradient(ellipse at 50% 42%, rgba(0,150,205,.12), transparent 42%),
+    linear-gradient(90deg, transparent 0 11%, rgba(0,180,220,.16) 11.08%, transparent 11.2% 23%, rgba(0,180,220,.10) 23.08%, transparent 23.2% 77%, rgba(0,180,220,.10) 77.08%, transparent 77.2% 89%, rgba(0,180,220,.16) 89.08%, transparent 89.2%),
+    linear-gradient(0deg, transparent 0 18%, rgba(0,180,220,.12) 18.08%, transparent 18.2% 34%, rgba(0,180,220,.08) 34.08%, transparent 34.2% 68%, rgba(0,180,220,.08) 68.08%, transparent 68.2% 83%, rgba(0,180,220,.12) 83.08%, transparent 83.2%),
+    linear-gradient(135deg, transparent 0 19%, rgba(0,170,220,.16) 19.08%, transparent 19.25% 31%, rgba(0,170,220,.10) 31.08%, transparent 31.25% 69%, rgba(0,170,220,.10) 69.08%, transparent 69.25% 81%, rgba(0,170,220,.16) 81.08%, transparent 81.25%),
+    linear-gradient(45deg, transparent 0 14%, rgba(0,170,220,.10) 14.08%, transparent 14.25% 38%, rgba(0,170,220,.08) 38.08%, transparent 38.25% 62%, rgba(0,170,220,.08) 62.08%, transparent 62.25% 86%, rgba(0,170,220,.10) 86.08%, transparent 86.25%),
+    linear-gradient(180deg,#03070a 0%,#020407 100%) !important;
+  background-size:100% 100% !important;
+  background-attachment:fixed !important;
+}
+.app::before {
+  content:"" !important; position:absolute !important; inset:0 !important; pointer-events:none !important; z-index:0 !important; opacity:1 !important;
+  background:
+    radial-gradient(ellipse at 50% 45%, transparent 0 20%, rgba(0,190,230,.12) 20.15%, transparent 20.45% 22%, rgba(0,150,205,.08) 22.15%, transparent 22.45%),
+    linear-gradient(90deg, transparent 0 7%, rgba(0,190,230,.26) 7.1%, transparent 7.3% 15%, rgba(0,190,230,.15) 15.1%, transparent 15.3% 85%, rgba(0,190,230,.15) 85.1%, transparent 85.3% 93%, rgba(0,190,230,.26) 93.1%, transparent 93.3%),
+    linear-gradient(0deg, transparent 0 27%, rgba(0,190,230,.12) 27.1%, transparent 27.3% 73%, rgba(0,190,230,.12) 73.1%, transparent 73.3%);
+}
+.app::after { background:none !important; background-image:none !important; opacity:0 !important; }
+</style>
 </body>
 </html>
