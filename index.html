@@ -5594,3 +5594,53 @@ html, body { background:#020407 !important; }
 </style>
 </body>
 </html>
+
+<style id="aj-final-mobile-sidebar-toggle-fix">
+/* Restore the existing mobile sidebar toggle; do not add another button. */
+.sidebar-edge-toggle {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (max-width: 800px) {
+  .aj-sidebar {
+    transition: transform .22s ease, opacity .22s ease !important;
+    z-index: 9998 !important;
+    pointer-events: auto;
+  }
+  /* In the expanded state, show the sidebar; collapsed means hidden. */
+  .app:not(.sidebar-collapsed) .aj-sidebar {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+  .app.sidebar-collapsed .aj-sidebar {
+    transform: translateX(calc(-100% - 18px)) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .sidebar-edge-toggle {
+    top: 25px !important;
+    left: auto;
+    width: 36px !important;
+    height: 42px !important;
+    min-width: 36px !important;
+    border-left: 1px solid rgba(0,217,255,.48) !important;
+    border-radius: 0 8px 8px 0 !important;
+  }
+  .app.sidebar-collapsed .sidebar-edge-toggle {
+    left: 8px !important;
+    border-radius: 8px !important;
+  }
+  .app:not(.sidebar-collapsed) .sidebar-edge-toggle {
+    left: min(232px, calc(80vw - 4px)) !important;
+  }
+}
+</style>
