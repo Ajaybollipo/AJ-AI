@@ -15,12 +15,14 @@ BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "models" / "vosk-model"
 
 SAMPLE_RATE = 16000
-WAKE_PHRASES = (
+
+WAKE_GRAMMAR = json.dumps([
     "hey aj",
     "hey a j",
-    "okay aj",
-    "ok aj",
-)
+    "hey age",
+    "hey jay",
+    "[unk]"
+])
 
 audio_queue = queue.Queue()
 
@@ -41,11 +43,12 @@ def speak(text):
     engine.stop()
 
 
-def contains_wake_phrase(text):
-    normalized = " ".join(
-        text.lower().replace(",", " ").replace(".", " ").split()
+def create_wake_recognizer(model):
+    return KaldiRecognizer(
+        model,
+        SAMPLE_RATE,
+        WAKE_GRAMMAR
     )
-    return any(phrase in normalized for phrase in WAKE_PHRASES)
 
 
 def clear_audio_queue():
@@ -60,7 +63,6 @@ def main():
     if not MODEL_DIR.is_dir():
         print("AJ speech model is missing.")
         print(f"Expected model folder: {MODEL_DIR}")
-        print("We will install the model in the next step.")
         return
 
     print("Loading AJ speech model...")
@@ -94,19 +96,25 @@ def main():
 
                 print(f"Heard: {spoken_text}")
 
-                if not contains_wake_phrase(spoken_text):
+                # Wake-word grammar limits recognition to likely phrases.
+                if spoken_text not in (
+                    "hey aj",
+                    "hey a j",
+                    "hey age",
+                    "hey jay",
+                ):
                     continue
 
-                # Reset before AJ speaks so its reply isn't treated
-                # as part of the wake phrase.
                 clear_audio_queue()
-                recognizer = KaldiRecognizer(model, SAMPLE_RATE)
+                recognizer = create_wake_recognizer(model)
 
                 speak("Yes, Boss?")
                 print("AJ: Yes, Boss? Listening for your command...")
 
+                # Listen for a normal spoken command for up to 10 seconds.
                 command_recognizer = KaldiRecognizer(
-                    model, SAMPLE_RATE
+                    model,
+                    SAMPLE_RATE
                 )
 
                 command_text = ""
@@ -148,16 +156,14 @@ def main():
                     speak("I didn't catch that, Boss.")
 
                 clear_audio_queue()
-                recognizer = KaldiRecognizer(model, SAMPLE_RATE)
+                recognizer = create_wake_recognizer(model)
 
     except KeyboardInterrupt:
         print("\nAJ voice agent stopped, Boss.")
 
     except Exception as error:
         print(f"\nAJ encountered an error: {error}")
-        print(
-            "Check your microphone permissions and audio device."
-        )
+        print("Check your microphone permissions and audio device.")
 
 
 if __name__ == "__main__":
