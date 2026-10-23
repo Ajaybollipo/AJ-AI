@@ -3,6 +3,7 @@ import json
 import queue
 import sys
 import time
+from difflib import SequenceMatcher
 from pathlib import Path
 
 import sounddevice as sd
@@ -19,32 +20,27 @@ MODEL_DIR = BASE_DIR / "models" / "vosk-model"
 
 SAMPLE_RATE = 16000
 WAKE_TIMEOUT = 10
+WAKE_SIMILARITY = 0.72
 
-# Common Vosk interpretations of "Hey AJ".
-# These are transcript matches, not separate wake-word models.
-WAKE_PHRASES = {
+audio_queue = queue.Queue()
+
+
+# Common Vosk misrecognitions of "Hey AJ".
+# Short phrases only are considered for wake detection.
+WAKE_ALIASES = {
     "hey aj",
     "hey a j",
     "hey age",
     "hey jay",
     "hey easy",
     "he easy",
-    "hey rg",
-    "he rg",
     "hey eg",
+    "he eg",
     "yeah aj",
     "yeah a j",
     "yeah age",
     "yeah eg",
-    "a j",
-    "aj",
 }
-
-WAKE_GRAMMAR = json.dumps(
-    sorted(WAKE_PHRASES) + ["[unk]"]
-)
-
-audio_queue = queue.Queue()
 
 
 def audio_callback(indata, frames, time_info, status):
@@ -64,16 +60,12 @@ def speak(text):
 
 
 def create_wake_recognizer(model):
-    """Recognizer restricted to likely wake-word transcripts."""
-    return KaldiRecognizer(
-        model,
-        SAMPLE_RATE,
-        WAKE_GRAMMAR,
-    )
+    # Use normal recognition to avoid grammar restrictions
+    # forcing inaccurate transcripts.
+    return KaldiRecognizer(model, SAMPLE_RATE)
 
 
 def create_command_recognizer(model):
-    """Normal recognizer for spoken commands."""
     return KaldiRecognizer(model, SAMPLE_RATE)
 
 
@@ -86,7 +78,6 @@ def clear_audio_queue():
 
 
 def normalize_text(text):
-    """Normalize punctuation and spacing for transcript matching."""
     return " ".join(
         "".join(
             char.lower() if char.isalnum() else " "
@@ -96,17 +87,43 @@ def normalize_text(text):
 
 
 def is_wake_phrase(text):
+    """
+    Match only short transcripts against known wake phrases.
+    Longer sentences are ignored to reduce false activations.
+    """
     normalized = normalize_text(text)
-    return normalized in WAKE_PHRASES
+
+    if not normalized:
+        return False
+
+    words = normalized.split()
+
+    # Do not wake on an entire unrelated sentence.
+    if len(words) > 3:
+        return False
+
+    if normalized in WAKE_ALIASES:
+        return True
+
+    # Allow small recognition differences for short phrases.
+    # The threshold reduces accidental matches but cannot
+    # eliminate false activations.
+    for phrase in WAKE_ALIASES:
+        similarity = SequenceMatcher(
+            None, normalized, phrase
+        ).ratio()
+
+        if similarity >= WAKE_SIMILARITY:
+            return True
+
+    return False
 
 
 def listen_for_command(model):
-    """Listen for one command for up to WAKE_TIMEOUT seconds."""
     recognizer = create_command_recognizer(model)
     deadline = time.monotonic() + WAKE_TIMEOUT
-    command_text = ""
 
-    print("AJ: Listening for your command...")
+    print(f"AJ: Listening for your command ({WAKE_TIMEOUT} seconds)...")
 
     while time.monotonic() < deadline:
         try:
@@ -121,8 +138,8 @@ def listen_for_command(model):
             if command_text:
                 return command_text
 
-    final_result = json.loads(recognizer.FinalResult())
-    return final_result.get("text", "").strip()
+    result = json.loads(recognizer.FinalResult())
+    return result.get("text", "").strip()
 
 
 def main():
@@ -143,7 +160,7 @@ def main():
     try:
         with sd.RawInputStream(
             samplerate=SAMPLE_RATE,
-            blocksize=8000,
+            blocksize=4000,
             dtype="int16",
             channels=1,
             callback=audio_callback,
@@ -165,14 +182,14 @@ def main():
                 if not is_wake_phrase(spoken_text):
                     continue
 
-                # Reset wake recognition before AJ speaks.
+                # Clear pending microphone audio before responding.
                 clear_audio_queue()
-                recognizer = create_wake_recognizer(model)
 
+                print("\nWake phrase detected.")
                 speak("Yes, Boss?")
                 print("AJ: Yes, Boss?")
 
-                # Give the microphone a moment after speech playback.
+                # Discard audio captured while AJ was speaking.
                 clear_audio_queue()
 
                 command_text = listen_for_command(model)
