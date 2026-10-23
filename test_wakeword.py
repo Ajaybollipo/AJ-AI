@@ -23,7 +23,7 @@ def main():
     print("Loading wake-word detector...")
     detector = Model(
         wakeword_models=[str(MODEL_PATH)],
-        inference_framework="tflite",
+        inference_framework="onnx",
     )
 
     print('Ready! Say "Hey Jarvis" to test.')
