@@ -6,8 +6,11 @@ import time
 from difflib import SequenceMatcher
 from pathlib import Path
 
+import numpy as np
 import sounddevice as sd
 import pyttsx3
+from scipy.signal import resample_poly
+from math import gcd
 from vosk import Model, KaldiRecognizer
 
 
@@ -18,15 +21,17 @@ from vosk import Model, KaldiRecognizer
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "models" / "vosk-model"
 
+INPUT_DEVICE = 1
+INPUT_RATE = 44100
+INPUT_CHANNELS = 2
 SAMPLE_RATE = 16000
+
 WAKE_TIMEOUT = 10
 WAKE_SIMILARITY = 0.72
 
 audio_queue = queue.Queue()
 
 
-# Common Vosk misrecognitions of "Hey AJ".
-# Short phrases only are considered for wake detection.
 WAKE_ALIASES = {
     "hey aj",
     "hey a j",
@@ -51,7 +56,6 @@ def audio_callback(indata, frames, time_info, status):
 
 
 def speak(text):
-    """Speak through the Windows default voice."""
     engine = pyttsx3.init()
     engine.setProperty("rate", 178)
     engine.say(text)
@@ -59,9 +63,32 @@ def speak(text):
     engine.stop()
 
 
+def convert_audio(raw_audio):
+    """Convert 44.1 kHz stereo int16 audio to 16 kHz mono int16."""
+    audio = np.frombuffer(raw_audio, dtype=np.int16)
+
+    if audio.size == 0:
+        return b""
+
+    # Two interleaved channels -> mono.
+    audio = audio[: audio.size - (audio.size % INPUT_CHANNELS)]
+    if audio.size == 0:
+        return b""
+
+    audio = audio.reshape(-1, INPUT_CHANNELS).astype(np.float32)
+    mono = audio.mean(axis=1)
+
+    # Resample 44,100 Hz to 16,000 Hz.
+    divisor = gcd(INPUT_RATE, SAMPLE_RATE)
+    up = SAMPLE_RATE // divisor
+    down = INPUT_RATE // divisor
+    converted = resample_poly(mono, up, down)
+
+    converted = np.clip(converted, -32768, 32767)
+    return converted.astype(np.int16).tobytes()
+
+
 def create_wake_recognizer(model):
-    # Use normal recognition to avoid grammar restrictions
-    # forcing inaccurate transcripts.
     return KaldiRecognizer(model, SAMPLE_RATE)
 
 
@@ -87,33 +114,19 @@ def normalize_text(text):
 
 
 def is_wake_phrase(text):
-    """
-    Match only short transcripts against known wake phrases.
-    Longer sentences are ignored to reduce false activations.
-    """
     normalized = normalize_text(text)
 
     if not normalized:
         return False
 
-    words = normalized.split()
-
-    # Do not wake on an entire unrelated sentence.
-    if len(words) > 3:
+    if len(normalized.split()) > 3:
         return False
 
     if normalized in WAKE_ALIASES:
         return True
 
-    # Allow small recognition differences for short phrases.
-    # The threshold reduces accidental matches but cannot
-    # eliminate false activations.
     for phrase in WAKE_ALIASES:
-        similarity = SequenceMatcher(
-            None, normalized, phrase
-        ).ratio()
-
-        if similarity >= WAKE_SIMILARITY:
+        if SequenceMatcher(None, normalized, phrase).ratio() >= WAKE_SIMILARITY:
             return True
 
     return False
@@ -127,8 +140,12 @@ def listen_for_command(model):
 
     while time.monotonic() < deadline:
         try:
-            audio = audio_queue.get(timeout=0.5)
+            raw_audio = audio_queue.get(timeout=0.5)
         except queue.Empty:
+            continue
+
+        audio = convert_audio(raw_audio)
+        if not audio:
             continue
 
         if recognizer.AcceptWaveform(audio):
@@ -148,27 +165,42 @@ def main():
         print(f"Expected model folder: {MODEL_DIR}")
         return
 
+    try:
+        sd.check_input_settings(
+            device=INPUT_DEVICE,
+            samplerate=INPUT_RATE,
+            channels=INPUT_CHANNELS,
+            dtype="int16",
+        )
+    except Exception as error:
+        print(f"Microphone settings error: {error}")
+        return
+
     print("Loading AJ speech model...")
     model = Model(str(MODEL_DIR))
-
     recognizer = create_wake_recognizer(model)
 
     print("\nAJ is ready, Boss.")
     print('Say "Hey AJ" to wake AJ.')
-    print("Press Ctrl+C to stop the microphone.\n")
+    print("Press Ctrl+C to stop.\n")
 
     try:
         with sd.RawInputStream(
-            samplerate=SAMPLE_RATE,
-            blocksize=4000,
+            device=INPUT_DEVICE,
+            samplerate=INPUT_RATE,
+            blocksize=4096,
             dtype="int16",
-            channels=1,
+            channels=INPUT_CHANNELS,
             callback=audio_callback,
         ):
             while True:
-                data = audio_queue.get()
+                raw_audio = audio_queue.get()
+                audio = convert_audio(raw_audio)
 
-                if not recognizer.AcceptWaveform(data):
+                if not audio:
+                    continue
+
+                if not recognizer.AcceptWaveform(audio):
                     continue
 
                 result = json.loads(recognizer.Result())
@@ -182,16 +214,13 @@ def main():
                 if not is_wake_phrase(spoken_text):
                     continue
 
-                # Clear pending microphone audio before responding.
                 clear_audio_queue()
 
                 print("\nWake phrase detected.")
                 speak("Yes, Boss?")
                 print("AJ: Yes, Boss?")
 
-                # Discard audio captured while AJ was speaking.
                 clear_audio_queue()
-
                 command_text = listen_for_command(model)
 
                 if command_text:
