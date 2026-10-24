@@ -49,6 +49,11 @@ WAKE_ALIASES = {
     "yeah a j",
     "yeah age",
     "yeah eg",
+    # Preferred wake phrase and common speech-recognition variants.
+    "hey i am your boss",
+    "hey im your boss",
+    "hey i m your boss",
+    "hey i am the boss",
 }
 
 
@@ -161,7 +166,8 @@ def is_wake_phrase(text):
     if not normalized:
         return False
 
-    if len(normalized.split()) > 3:
+    # The preferred wake phrase has five words, so allow longer phrases.
+    if len(normalized.split()) > 7:
         return False
 
     if normalized in WAKE_ALIASES:
@@ -350,7 +356,7 @@ def main():
     recognizer = create_wake_recognizer(model)
 
     print("\nAJ is ready, Boss.")
-    print('Say "Hey AJ" to wake AJ.')
+    print('Say "Hey, I am your boss" to wake AJ.')
     print("Press Ctrl+C to stop.\n")
 
     try:
