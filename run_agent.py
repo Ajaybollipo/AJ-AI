@@ -37,6 +37,7 @@ conversation_history = []
 
 
 WAKE_ALIASES = {
+    # Original wake phrase and common recognition variations
     "hey aj",
     "hey a j",
     "hey age",
@@ -49,13 +50,16 @@ WAKE_ALIASES = {
     "yeah a j",
     "yeah age",
     "yeah eg",
-    # Preferred wake phrase and common speech-recognition variants.
-    "hey i am your boss",
-    "hey im your boss",
-    "hey i m your boss",
-    "hey i am the boss",
-}
 
+    # Your preferred wake phrase
+    "hey i am your boss",
+    "hey i m your boss",
+    "hey im your boss",
+    "hey i am boss",
+    "hey your boss",
+    "hey i am the boss",
+    "hey boss",
+}
 
 # ==========================================
 # MICROPHONE
@@ -166,8 +170,7 @@ def is_wake_phrase(text):
     if not normalized:
         return False
 
-    # The preferred wake phrase has five words, so allow longer phrases.
-    if len(normalized.split()) > 7:
+    if len(normalized.split()) > 6:
         return False
 
     if normalized in WAKE_ALIASES:
