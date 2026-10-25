@@ -4763,26 +4763,20 @@ function setupRecognition() {
 
         transcript = transcript.trim();
         if (!speaking) input.value = transcript;
+        if (!transcript) return;
 
-        if (!event.results[event.results.length - 1].isFinal) {
-            setVoiceStatus("HEARING: " + transcript, "listening");
-            return;
-        }
-
-        if (!transcript) {
-            return;
-        }
-
-        // Handle short spoken interruption phrases locally. Do not send them to
-        // the backend. Allow common natural variations such as "AJ, stop now".
+        // Check interim AND final recognition results. Waiting for isFinal can
+        // delay "stop" until the utterance finishes, defeating interruption.
         const normalizedTranscript = transcript
             .toLowerCase()
             .replace(/[^a-z0-9\s']/g, " ")
             .replace(/\s+/g, " ")
             .trim();
+        const isFinalResult = event.results[event.results.length - 1].isFinal;
         const stopCommand = /^(?:(?:hey )?a?j[ ,]*)?(?:please )?(?:stop|stop speaking|stop talking|be quiet|quiet|silence|cancel speech|enough|stop now|that's enough|that is enough)(?: now| please)?$/i.test(normalizedTranscript)
             || /^(?:(?:hey )?a?j[ ,]*)?please stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript)
-            || /^(?:aj )?stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript);
+            || /^(?:aj )?stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript)
+            || (speaking && /^(?:hey )?(?:aj )?stop(?:\s+(?:speaking|talking|now|please))*$/i.test(normalizedTranscript));
         if (stopCommand) {
             shouldKeepListening = false;
             voiceActive = false;
@@ -4797,11 +4791,14 @@ function setupRecognition() {
             return;
         }
 
-        // While AJ is speaking, only accept interruption commands. Recognition may
-        // hear AJ's own speaker output; never send that audio back to the AI.
-        if (speaking) {
+        if (!isFinalResult) {
+            if (!speaking) setVoiceStatus("HEARING: " + transcript, "listening");
             return;
         }
+
+        // While AJ is speaking, only accept interruption commands. Recognition may
+        // hear AJ's own speaker output; never send that audio back to the AI.
+        if (speaking) return;
 
         listening = false;
 
