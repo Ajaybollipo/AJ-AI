@@ -4754,36 +4754,81 @@ function setupRecognition() {
     };
 
     recognition.onresult = function(event) {
+        // Web Speech may return a growing/interleaved transcript while AJ is
+        // talking. Inspect each changed result separately instead of joining
+        // the whole event (which can include older words and fail an exact match).
+        let latestTranscript = "";
+        let finalTranscript = "";
+        let stopDetected = false;
 
-        let transcript = "";
-
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-            transcript += event.results[i][0].transcript;
+        function normalizeVoiceText(value) {
+            return String(value || "")
+                .toLowerCase()
+                .replace(/[^a-z0-9\s']/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
         }
 
-        transcript = transcript.trim();
-        if (!speaking) input.value = transcript;
+        function isStopPhrase(value) {
+            const phrase = normalizeVoiceText(value)
+                .replace(/^(?:hey\s+)?(?:aj|a j)\s+/, "")
+                .replace(/^(?:please\s+)/, "")
+                .replace(/\s+(?:please|now)$/, "")
+                .trim();
+
+            return /^(?:stop|stop speaking|stop talking|stop it|stop now|be quiet|quiet|silence|cancel speech|cancel that|enough|that's enough|that is enough)$/i.test(phrase)
+                || /^(?:please\s+)?stop(?:\s+(?:speaking|talking|it|now|please))*$/i.test(phrase)
+                // Interim results sometimes contain extra leading/trailing words.
+                || /\b(?:stop speaking|stop talking|stop it|be quiet|cancel speech|cancel that|that's enough|that is enough)\b/i.test(normalizeVoiceText(value));
+        }
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const result = event.results[i];
+            const heard = result && result[0] ? result[0].transcript : "";
+            if (heard) {
+                latestTranscript = heard.trim();
+                if (result.isFinal) finalTranscript += (finalTranscript ? " " : "") + heard.trim();
+                if (isStopPhrase(heard)) stopDetected = true;
+            }
+        }
+
+        const transcript = (finalTranscript || latestTranscript).trim();
         if (!transcript) return;
 
-        // Check interim AND final recognition results. Waiting for isFinal can
-        // delay "stop" until the utterance finishes, defeating interruption.
-        const normalizedTranscript = transcript
-            .toLowerCase()
-            .replace(/[^a-z0-9\s']/g, " ")
-            .replace(/\s+/g, " ")
-            .trim();
-        const isFinalResult = event.results[event.results.length - 1].isFinal;
-        const stopCommand = /^(?:(?:hey )?a?j[ ,]*)?(?:please )?(?:stop|stop speaking|stop talking|be quiet|quiet|silence|cancel speech|enough|stop now|that's enough|that is enough)(?: now| please)?$/i.test(normalizedTranscript)
-            || /^(?:(?:hey )?a?j[ ,]*)?please stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript)
-            || /^(?:aj )?stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript)
-            || (speaking && /^(?:hey )?(?:aj )?stop(?:\s+(?:speaking|talking|now|please))*$/i.test(normalizedTranscript));
-        if (stopCommand) {
+        // During speech playback, accept only a stop phrase. Never send AJ's
+        // own speaker output back to the server as a new user prompt.
+        if (speaking) {
+            if (stopDetected || isStopPhrase(transcript)) {
+                shouldKeepListening = false;
+                voiceActive = false;
+                clearTimeout(restartTimer);
+                // Cancel output first, before changing any UI state.
+                stopSpeaking();
+                try { if (recognition) recognition.stop(); } catch (error) {}
+                listening = false;
+                recognitionStarting = false;
+                setVoicePanelState("READY");
+                setStatus("ONLINE");
+                setVoiceStatus("OK, STOPPED");
+                syncVoiceButton();
+            }
+            return;
+        }
+
+        input.value = transcript;
+        if (!event.results[event.results.length - 1].isFinal) {
+            setVoiceStatus("HEARING: " + transcript, "listening");
+            return;
+        }
+
+        // Handle stop even when AJ is not speaking, without calling the backend.
+        if (stopDetected || isStopPhrase(transcript)) {
             shouldKeepListening = false;
             voiceActive = false;
             clearTimeout(restartTimer);
-            try { recognition.stop(); } catch (error) {}
-            listening = false;
             stopSpeaking();
+            try { if (recognition) recognition.stop(); } catch (error) {}
+            listening = false;
             setVoicePanelState("READY");
             setStatus("ONLINE");
             setVoiceStatus("OK, STOPPED");
@@ -4791,21 +4836,8 @@ function setupRecognition() {
             return;
         }
 
-        if (!isFinalResult) {
-            if (!speaking) setVoiceStatus("HEARING: " + transcript, "listening");
-            return;
-        }
-
-        // While AJ is speaking, only accept interruption commands. Recognition may
-        // hear AJ's own speaker output; never send that audio back to the AI.
-        if (speaking) return;
-
         listening = false;
-
-        try {
-            recognition.stop();
-        } catch (error) {}
-
+        try { recognition.stop(); } catch (error) {}
         sendVoiceMessage(transcript);
     };
 
