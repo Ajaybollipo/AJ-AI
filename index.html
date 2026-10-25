@@ -3076,6 +3076,14 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
             </button>
 
             <button
+                class="command-button stop"
+                id="stopVoiceButton"
+                type="button"
+                title="Stop voice">
+                ■
+            </button>
+
+            <button
                 class="command-button history"
                 id="historyButton"
                 type="button"
@@ -3282,7 +3290,7 @@ const voiceFloatButton = null; // Top voice button intentionally removed; use th
 const fileButton = document.getElementById("fileButton");
 const fileInput = document.getElementById("fileInput");
 const selectedFileName = document.getElementById("selectedFileName");
-const stopVoiceButton = null; // Voice is controlled by spoken commands; no separate Stop button.
+const stopVoiceButton = document.getElementById("stopVoiceButton");
 const historyButton = document.getElementById("historyButton");
 
 const voiceStatus = document.getElementById("voiceStatus");
@@ -4755,19 +4763,18 @@ function setupRecognition() {
             return;
         }
 
-        // Spoken interruption: handle stop phrases locally without sending them
-        // to the AI backend. This works whenever the microphone recognizer is active.
-        const stopCommand = /^(hey\s+aj[,. ]*)?(please\s+)?(stop|stop speaking|quiet|be quiet|cancel speech|shut up)[.! ]*$/i;
-        if (stopCommand.test(transcript)) {
-            input.value = "";
+        // Spoken interruption commands are handled locally and never sent to the AI backend.
+        const stopCommand = /^(hey aj[,. ]*)?(please )?(stop|stop speaking|be quiet|quiet|silence|cancel speech|enough)[.! ]*$/i.test(transcript);
+        if (stopCommand) {
+            listening = false;
+            try { recognition.stop(); } catch (error) {}
             shouldKeepListening = false;
             voiceActive = false;
-            listening = false;
-            stopListening();
+            clearTimeout(restartTimer);
             stopSpeaking();
             setVoicePanelState("READY");
             setStatus("ONLINE");
-            setVoiceStatus("AJ STOPPED BY VOICE COMMAND");
+            setVoiceStatus("OK, STOPPED");
             syncVoiceButton();
             return;
         }
@@ -5017,7 +5024,16 @@ micButton.addEventListener("click", function() {
     }
 });
 
-// No separate Stop button: use a spoken stop command.
+if (stopVoiceButton) {
+    stopVoiceButton.addEventListener("click", function() {
+        shouldKeepListening = false;
+        voiceActive = false;
+        stopListening();
+        stopSpeaking();
+        setStatus("ONLINE");
+        setVoiceStatus("VOICE STOPPED");
+    });
+}
 
 
 /* ============================================================
@@ -5646,31 +5662,11 @@ html, body { background:#020407 !important; }
   }
 }
 </style>
-
-/* AJ targeted mobile sidebar reliability fix */
+<style id="aj-mobile-sidebar-overlay-reliability">
 @media (max-width: 800px) {
-  .aj-sidebar {
-    position: fixed !important;
-    top: 68px !important;
-    left: 8px !important;
-    bottom: 12px !important;
-    width: min(270px, 82vw) !important;
-    z-index: 9999 !important;
-    overflow-y: auto !important;
-    background: rgba(0, 5, 12, .97) !important;
-    border: 1px solid rgba(0, 217, 255, .45) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 18px 50px rgba(0, 0, 0, .72), 0 0 20px rgba(0, 217, 255, .12) !important;
-  }
-  .app.sidebar-collapsed .aj-sidebar {
-    transform: translateX(calc(-100% - 24px)) !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-  }
-  .app:not(.sidebar-collapsed) .aj-sidebar {
-    transform: translateX(0) !important;
-    opacity: 1 !important;
-    pointer-events: auto !important;
-  }
-  .sidebar-toggle { position: relative !important; z-index: 10000 !important; touch-action: manipulation; }
+  .aj-sidebar { z-index: 10020 !important; }
+  .sidebar-edge-toggle { z-index: 10030 !important; touch-action: manipulation !important; }
+  .app.sidebar-collapsed .aj-sidebar { visibility: hidden !important; pointer-events: none !important; }
+  .app:not(.sidebar-collapsed) .aj-sidebar { visibility: visible !important; pointer-events: auto !important; }
 }
+</style>
