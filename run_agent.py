@@ -24,20 +24,21 @@ from aj_brain import ask_aj
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "models" / "vosk-model"
 
-INPUT_DEVICE = 1
-INPUT_RATE = 44100
+INPUT_DEVICE = 5
+INPUT_RATE = 48000
 INPUT_CHANNELS = 2
 SAMPLE_RATE = 16000
 
 WAKE_TIMEOUT = 10
 WAKE_SIMILARITY = 0.72
 
-audio_queue = queue.Queue()
+# Keep the queue bounded so old audio cannot build up if recognition is busy.
+# Dropping the oldest chunk is preferable to processing stale microphone audio.
+audio_queue = queue.Queue(maxsize=20)
 conversation_history = []
 
 
 WAKE_ALIASES = {
-    # Original wake phrase and common recognition variations
     "hey aj",
     "hey a j",
     "hey age",
@@ -50,26 +51,36 @@ WAKE_ALIASES = {
     "yeah a j",
     "yeah age",
     "yeah eg",
-
-    # Your preferred wake phrase
+    # Preferred wake phrase and common speech-recognition variants.
     "hey i am your boss",
-    "hey i m your boss",
     "hey im your boss",
-    "hey i am boss",
-    "hey your boss",
+    "hey i m your boss",
     "hey i am the boss",
-    "hey boss",
 }
+
 
 # ==========================================
 # MICROPHONE
 # ==========================================
 
 def audio_callback(indata, frames, time_info, status):
-    if status:
-        print(f"Microphone status: {status}", file=sys.stderr)
+    # Keep callback work short to reduce the chance of PortAudio input overflow.
+    if status and getattr(status, "input_overflow", False):
+        print("Microphone input overflow: audio was dropped.", file=sys.stderr)
 
-    audio_queue.put(bytes(indata))
+    chunk = bytes(indata)
+    try:
+        audio_queue.put_nowait(chunk)
+    except queue.Full:
+        # Remove one stale chunk and enqueue the newest audio.
+        try:
+            audio_queue.get_nowait()
+        except queue.Empty:
+            pass
+        try:
+            audio_queue.put_nowait(chunk)
+        except queue.Full:
+            pass
 
 
 def clear_audio_queue():
@@ -170,21 +181,31 @@ def is_wake_phrase(text):
     if not normalized:
         return False
 
-    if len(normalized.split()) > 6:
-        return False
-
-    if normalized in WAKE_ALIASES:
+    # Accept a wake phrase even if Vosk adds a short extra word around it.
+    if any(phrase in normalized for phrase in WAKE_ALIASES):
         return True
 
-    for phrase in WAKE_ALIASES:
-        similarity = SequenceMatcher(
-            None,
-            normalized,
-            phrase
-        ).ratio()
+    words = normalized.split()
+    if len(words) > 9:
+        return False
 
-        if similarity >= WAKE_SIMILARITY:
-            return True
+    # Compare short word windows, not the entire transcript, so a small
+    # recognition mistake or an extra word does not defeat wake detection.
+    for phrase in WAKE_ALIASES:
+        phrase_words = phrase.split()
+        min_size = max(1, len(phrase_words) - 1)
+        max_size = min(len(words), len(phrase_words) + 1)
+
+        for size in range(min_size, max_size + 1):
+            for start in range(0, len(words) - size + 1):
+                candidate = " ".join(words[start:start + size])
+                similarity = SequenceMatcher(
+                    None,
+                    candidate,
+                    phrase
+                ).ratio()
+                if similarity >= WAKE_SIMILARITY:
+                    return True
 
     return False
 
@@ -360,13 +381,14 @@ def main():
 
     print("\nAJ is ready, Boss.")
     print('Say "Hey, I am your boss" to wake AJ.')
+    print("Tip: speak naturally and pause briefly after the wake phrase.")
     print("Press Ctrl+C to stop.\n")
 
     try:
         with sd.RawInputStream(
             device=INPUT_DEVICE,
             samplerate=INPUT_RATE,
-            blocksize=4096,
+            blocksize=8192,
             dtype="int16",
             channels=INPUT_CHANNELS,
             callback=audio_callback,
