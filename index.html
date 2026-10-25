@@ -4652,6 +4652,9 @@ function speak(text) {
         setVoiceStatus("AJ SPEAKING", "speaking");
         setVoicePanelState("SPEAKING");
         setStatus("SPEAKING");
+        if (voiceActive && shouldKeepListening && !listening && !recognitionStarting && !processing) {
+            scheduleListening();
+        }
     };
 
     utterance.onend = function() {
@@ -4660,7 +4663,7 @@ function speak(text) {
 
         if (shouldKeepListening && !processing) {
             setStatus("LISTENING");
-            setVoiceStatus("VOICE LISTENING", "listening");
+            setVoiceStatus("VOICE LISTENING — SAY “STOP” TO INTERRUPT", "listening");
             scheduleListening();
         } else {
             setStatus("ONLINE");
@@ -4729,7 +4732,8 @@ function setupRecognition() {
     recognition = new SpeechRecognition();
 
     recognition.lang = "en-IN";
-    recognition.continuous = false;
+    // Keep recognition alive across short pauses so spoken "stop" can interrupt TTS.
+    recognition.continuous = true;
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
@@ -4738,9 +4742,15 @@ function setupRecognition() {
         listening = true;
         micButton.classList.add("listening");
         syncVoiceButton();
-        setVoiceStatus("LISTENING — SPEAK NOW", "listening");
-        setVoicePanelState("LISTENING");
-        setStatus("LISTENING");
+        if (speaking) {
+            setVoiceStatus("AJ SPEAKING — SAY “STOP” TO INTERRUPT", "speaking");
+            setVoicePanelState("SPEAKING");
+            setStatus("SPEAKING");
+        } else {
+            setVoiceStatus("LISTENING — SPEAK NOW", "listening");
+            setVoicePanelState("LISTENING");
+            setStatus("LISTENING");
+        }
     };
 
     recognition.onresult = function(event) {
@@ -4752,7 +4762,7 @@ function setupRecognition() {
         }
 
         transcript = transcript.trim();
-        input.value = transcript;
+        if (!speaking) input.value = transcript;
 
         if (!event.results[event.results.length - 1].isFinal) {
             setVoiceStatus("HEARING: " + transcript, "listening");
@@ -4763,19 +4773,33 @@ function setupRecognition() {
             return;
         }
 
-        // Spoken interruption commands are handled locally and never sent to the AI backend.
-        const stopCommand = /^(hey aj[,. ]*)?(please )?(stop|stop speaking|be quiet|quiet|silence|cancel speech|enough)[.! ]*$/i.test(transcript);
+        // Handle short spoken interruption phrases locally. Do not send them to
+        // the backend. Allow common natural variations such as "AJ, stop now".
+        const normalizedTranscript = transcript
+            .toLowerCase()
+            .replace(/[^a-z0-9\s']/g, " ")
+            .replace(/\s+/g, " ")
+            .trim();
+        const stopCommand = /^(?:(?:hey )?a?j[ ,]*)?(?:please )?(?:stop|stop speaking|stop talking|be quiet|quiet|silence|cancel speech|enough|stop now|that's enough|that is enough)(?: now| please)?$/i.test(normalizedTranscript)
+            || /^(?:(?:hey )?a?j[ ,]*)?please stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript)
+            || /^(?:aj )?stop(?: speaking| talking)?(?: now)?$/i.test(normalizedTranscript);
         if (stopCommand) {
-            listening = false;
-            try { recognition.stop(); } catch (error) {}
             shouldKeepListening = false;
             voiceActive = false;
             clearTimeout(restartTimer);
+            try { recognition.stop(); } catch (error) {}
+            listening = false;
             stopSpeaking();
             setVoicePanelState("READY");
             setStatus("ONLINE");
             setVoiceStatus("OK, STOPPED");
             syncVoiceButton();
+            return;
+        }
+
+        // While AJ is speaking, only accept interruption commands. Recognition may
+        // hear AJ's own speaker output; never send that audio back to the AI.
+        if (speaking) {
             return;
         }
 
@@ -4828,7 +4852,7 @@ function setupRecognition() {
         syncVoiceButton();
         if (!shouldKeepListening) setVoicePanelState("READY");
 
-        if (shouldKeepListening && !processing && !speaking) {
+        if (shouldKeepListening && !processing) {
             scheduleListening();
         }
     };
@@ -4840,8 +4864,8 @@ function setupRecognition() {
         micButton.classList.remove("listening");
         syncVoiceButton();
 
-        if (shouldKeepListening && !processing && !speaking) {
-            setVoicePanelState("LISTENING");
+        if (shouldKeepListening && !processing) {
+            setVoicePanelState(speaking ? "SPEAKING · SAY STOP TO INTERRUPT" : "LISTENING");
             scheduleListening();
         } else if (!processing && !speaking) {
             setVoicePanelState("READY");
@@ -4914,7 +4938,9 @@ function startListening() {
         setVoiceStatus("VOICE NOT SUPPORTED — OPEN IN CHROME", "error");
         return;
     }
-    if (listening || recognitionStarting || processing || speaking) return;
+    if (listening || recognitionStarting || processing) return;
+    // Keep speech recognition eligible while AJ is speaking so a spoken "stop"
+    // can interrupt the current utterance. Browser/device support may vary.
 
     try {
         // Start directly from the user's tap. Mobile browsers can lose
@@ -4963,7 +4989,6 @@ function scheduleListening() {
 
     if (!voiceActive || !shouldKeepListening ||
         processing ||
-        speaking ||
         listening) {
 
         return;
