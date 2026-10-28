@@ -5221,7 +5221,7 @@ function speak(text) {
                 if (voiceActive && shouldKeepListening && speaking && !listening && !recognitionStarting && !processing) {
                     startListening();
                 }
-            }, 250);
+            }, 180);
         }
     };
 
@@ -5353,22 +5353,30 @@ function setupRecognition() {
             return /^(?:stop|stop speaking|stop talking|stop it|stop now|be quiet|quiet|silence|cancel speech|cancel that|enough|that's enough|that is enough)$/i.test(phrase)
                 || /^(?:please\s+)?stop(?:\s+(?:speaking|talking|it|now|please))*$/i.test(phrase)
                 // Recognition can prepend a few words to interim results.
-                || /\b(?:hey\s+(?:a\s*j|aj|jay)\s+)?stop(?:\s+(?:speaking|talking|it|now))?\b/i.test(normalized)
-                || /\b(?:be quiet|cancel speech|cancel that|that's enough|that is enough)\b/i.test(normalized);
+                || /\b(?:hey\s+(?:a\s*j|aj|jay)\s+)?stop(?:\s+(?:speaking|talking|it|now|please))?\b/i.test(normalized)
+                || /\b(?:be quiet|cancel speech|cancel that|that's enough|that is enough)\b/i.test(normalized)
+                // While AJ is talking, a standalone "stop" is always an interrupt,
+                // even if Chrome prefixes it with one or two recognition artifacts.
+                || (speaking && /\bstop\b/i.test(normalized));
         }
 
-        for (let i = event.resultIndex; i < event.results.length; i++) {
+        // Inspect the complete active result list, not only resultIndex. Some
+        // Chrome builds report a late resultIndex while retaining the useful
+        // interim "stop" transcript in an earlier result slot.
+        for (let i = 0; i < event.results.length; i++) {
             const result = event.results[i];
             const heard = result && result[0] ? result[0].transcript : "";
-            if (heard) {
-                latestTranscript = heard.trim();
-                if (result.isFinal) finalTranscript += (finalTranscript ? " " : "") + heard.trim();
-                if (isStopPhrase(heard)) stopDetected = true;
-            }
+            if (!heard) continue;
+            const cleaned = heard.trim();
+            latestTranscript = cleaned;
+            if (result.isFinal) finalTranscript += (finalTranscript ? " " : "") + cleaned;
+            if (isStopPhrase(cleaned)) stopDetected = true;
         }
 
-        const transcript = (finalTranscript || latestTranscript).trim();
-        if (!transcript) return;
+        // Prefer the freshest interim result for the interrupt check. Final
+        // results can contain earlier conversation words before the stop word.
+        const transcript = (latestTranscript || finalTranscript).trim();
+        if (!transcript && !stopDetected) return;
 
         // During speech playback, accept only a stop phrase. Never send AJ's
         // own speaker output back to the server as a new user prompt.
@@ -5379,13 +5387,15 @@ function setupRecognition() {
                 shouldKeepListening = true;
                 voiceActive = true;
                 clearTimeout(restartTimer);
+                clearTimeout(ajFocusRecoveryTimer);
                 stopSpeaking();
                 setStatus("ONLINE");
-                setVoiceStatus("OK, STOPPED — LISTENING");
+                setVoiceStatus("STOPPED — I'M LISTENING, AJAY BOSS", "listening");
                 setVoicePanelState("LISTENING");
                 syncVoiceButton();
 
-                // If Chrome ended recognition during TTS, restart it.
+                // Keep the recognition session if it is alive; if Chrome ended
+                // it during TTS, schedule a fresh session without user interaction.
                 if (!listening && !recognitionStarting && !processing) {
                     scheduleListening();
                 }
