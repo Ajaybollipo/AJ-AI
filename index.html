@@ -4649,7 +4649,6 @@ function speak(text) {
 
     utterance.onstart = function() {
         speaking = true;
-        console.info("[AJ VOICE DEBUG] speech started; voiceActive=", voiceActive, "shouldKeepListening=", shouldKeepListening, "listening=", listening);
         setVoiceStatus("AJ SPEAKING", "speaking");
         setVoicePanelState("SPEAKING");
         setStatus("SPEAKING");
@@ -4659,7 +4658,6 @@ function speak(text) {
     };
 
     utterance.onend = function() {
-        console.info("[AJ VOICE DEBUG] speech ended");
         speaking = false;
         setVoicePanelState(shouldKeepListening ? "LISTENING" : "READY");
 
@@ -4674,8 +4672,7 @@ function speak(text) {
         }
     };
 
-    utterance.onerror = function(event) {
-        console.warn("[AJ VOICE DEBUG] speech synthesis error:", event && event.error);
+    utterance.onerror = function() {
         speaking = false;
         setVoicePanelState(shouldKeepListening ? "LISTENING" : "READY");
         setStatus("ONLINE");
@@ -4741,7 +4738,6 @@ function setupRecognition() {
     recognition.maxAlternatives = 1;
 
     recognition.onstart = function() {
-        console.info("[AJ VOICE DEBUG] speech recognition started; speaking=", speaking);
         recognitionStarting = false;
         listening = true;
         micButton.classList.add("listening");
@@ -4790,7 +4786,6 @@ function setupRecognition() {
             const result = event.results[i];
             const heard = result && result[0] ? result[0].transcript : "";
             if (heard) {
-                console.info("[AJ VOICE DEBUG] recognition result:", { transcript: heard.trim(), final: !!result.isFinal, speaking: speaking });
                 latestTranscript = heard.trim();
                 if (result.isFinal) finalTranscript += (finalTranscript ? " " : "") + heard.trim();
                 if (isStopPhrase(heard)) stopDetected = true;
@@ -4803,9 +4798,7 @@ function setupRecognition() {
         // During speech playback, accept only a stop phrase. Never send AJ's
         // own speaker output back to the server as a new user prompt.
         if (speaking) {
-            console.info("[AJ VOICE DEBUG] during speech:", { transcript: transcript, stopDetected: stopDetected, isStopPhrase: isStopPhrase(transcript) });
             if (stopDetected || isStopPhrase(transcript)) {
-                console.info("[AJ VOICE DEBUG] stop phrase accepted during speech");
                 shouldKeepListening = false;
                 voiceActive = false;
                 clearTimeout(restartTimer);
@@ -4849,7 +4842,6 @@ function setupRecognition() {
     };
 
     recognition.onerror = function(event) {
-        console.warn("[AJ VOICE DEBUG] recognition error:", event && event.error, "speaking=", speaking);
 
         listening = false;
         micButton.classList.remove("listening");
@@ -4895,7 +4887,6 @@ function setupRecognition() {
     };
 
     recognition.onend = function() {
-        console.info("[AJ VOICE DEBUG] recognition ended; speaking=", speaking, "shouldKeepListening=", shouldKeepListening, "processing=", processing);
 
         recognitionStarting = false;
         listening = false;
@@ -5036,6 +5027,36 @@ function scheduleListening() {
         startListening();
     }, 800);
 }
+
+/* ============================================================
+   VOICE RECOVERY AFTER DEVTOOLS / WINDOW FOCUS CHANGES
+   Keeps the existing UI and voice controls unchanged.
+============================================================ */
+let ajFocusRecoveryTimer = null;
+
+function recoverVoiceAfterFocusChange() {
+    if (!voiceActive || !shouldKeepListening || !recognition || !speaking || processing) {
+        return;
+    }
+
+    // Chrome can leave Web Speech recognition in a stale session after
+    // DevTools takes focus. Recycle recognition so spoken "Stop" is heard again.
+    clearTimeout(restartTimer);
+    clearTimeout(ajFocusRecoveryTimer);
+    try { recognition.abort(); } catch (error) {}
+    listening = false;
+    recognitionStarting = false;
+    ajFocusRecoveryTimer = setTimeout(function() {
+        if (voiceActive && shouldKeepListening && speaking && !processing) {
+            startListening();
+        }
+    }, 500);
+}
+
+window.addEventListener("focus", recoverVoiceAfterFocusChange);
+document.addEventListener("visibilitychange", function() {
+    if (!document.hidden) recoverVoiceAfterFocusChange();
+});
 
 micButton.addEventListener("click", function() {
 
