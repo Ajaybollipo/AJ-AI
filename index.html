@@ -4951,29 +4951,44 @@ function setupRecognition() {
             .replace(/\\s+/g, " ")
             .trim();
         const wakePatterns = [
-            /^hey\\s+a?j$/,
-            /^hey\\s+aj$/,
-            /^okay\\s+aj$/,
-            /^ok\\s+aj$/,
-            /^hey\\s+jay$/
+            /^(?:hey|hello|hi)\s+(?:a\s*j|aj|jay)$/,
+            /^okay\s+aj$/,
+            /^ok\s+aj$/,
+            /^yeah\s+aj$/
         ];
-        const wakePrefix = /^(?:hey\\s+(?:a\\s*j|aj|jay)|okay\\s+aj|ok\\s+aj)[,\\s.!?-]*/i;
+        const wakePrefix = /^(?:(?:hey|hello|hi)\s+(?:a\s*j|aj|jay)|okay\s+aj|ok\s+aj|yeah\s+aj)[,\s.!?-]*/i;
         const isWakeOnly = wakePatterns.some(function(pattern) {
             return pattern.test(wakeNormalized);
         });
 
         if (isWakeOnly) {
-            setVoiceStatus("YES, BOSS — I'M LISTENING", "listening");
+            setVoiceStatus("YES, AJAY? — I'M LISTENING", "listening");
             setVoicePanelState("LISTENING");
             setStatus("LISTENING");
-            // Do not send the wake phrase to the AI as a normal question.
-            // Leave voice mode armed for the user's next command.
+            // Natural spoken acknowledgement; keep voice mode armed for the next command.
+            speak("Yes, Ajay?");
             return;
         }
 
         const commandTranscript = transcript.replace(wakePrefix, "").trim();
         if (!commandTranscript) {
-            setVoiceStatus("YES, BOSS — I'M LISTENING", "listening");
+            setVoiceStatus("YES, AJAY? — I'M LISTENING", "listening");
+            speak("Yes, Ajay?");
+            return;
+        }
+
+        const normalizedCommand = normalizeVoiceText(commandTranscript);
+        if (/^(?:sleep|go to sleep|lock voice|sleep mode|go quiet)$/.test(normalizedCommand)) {
+            shouldKeepListening = false;
+            voiceActive = false;
+            listening = false;
+            clearTimeout(restartTimer);
+            try { recognition.stop(); } catch (error) {}
+            stopSpeaking();
+            setVoicePanelState("READY");
+            setStatus("ONLINE");
+            setVoiceStatus("VOICE LOCKED — TAP MIC TO WAKE");
+            syncVoiceButton();
             return;
         }
 
