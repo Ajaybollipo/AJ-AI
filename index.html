@@ -2891,8 +2891,8 @@ body {
 .command-bar { position:fixed !important; left:calc(18px + 182px + (100% - 220px) * .48) !important; right:auto !important; bottom:34px !important; transform:translateX(-50%) !important; width:min(66vw,1080px) !important; max-width:calc(100vw - 245px) !important; height:56px !important; padding:4px 8px 4px 18px !important; gap:6px !important; border:1px solid #00eaff !important; border-radius:30px !important; background:rgba(0,8,14,.96) !important; box-shadow:0 0 18px rgba(0,220,255,.1) !important; z-index:60 !important; }
 #messageInput { height:46px !important; background:transparent !important; border:0 !important; font-size:16px !important; padding:0 54px 0 8px !important; }
 #sendButton { height:42px !important; width:42px !important; border-radius:50% !important; }
-/* The reference uses wake-word voice; do not show a floating mic over the input. */
-#micButton { position:fixed !important; left:-10000px !important; top:auto !important; width:1px !important; height:1px !important; opacity:0 !important; pointer-events:none !important; }
+/* Keep the primary microphone visible and interactive in the reference layout. */
+#micButton { opacity:1 !important; pointer-events:auto !important; visibility:visible !important; }
 .main-voice-waveform { top:43% !important; width:140px !important; height:44px !important; opacity:.78 !important; }
 .main-voice-waveform.wave-left { left:calc(43.2% - min(300px,22vw)) !important; right:auto !important; }
 .main-voice-waveform.wave-right { left:calc(43.2% + min(300px,22vw) - 140px) !important; right:auto !important; }
@@ -3045,9 +3045,9 @@ body {
 
 <!-- AJ REFERENCE HUD STATUS CARDS -->
 <div class="aj-reference-cards" aria-hidden="true">
-  <div class="aj-ref-card aj-ref-status"><span class="aj-ref-label">STATUS</span><strong><i></i> LISTENING</strong><small>(Conversation Mode)</small><b class="mini-bars">▂ ▅ ▃ ▆ ▄ ▇ ▃</b></div>
+  <div class="aj-ref-card aj-ref-status"><span class="aj-ref-label">STATUS</span><strong id="hudListeningState"><i></i> STANDBY</strong><small id="hudListeningHint">Tap microphone to begin</small><b class="mini-bars">▂ ▅ ▃ ▆ ▄ ▇ ▃</b></div>
   <div class="aj-ref-card aj-ref-mode"><span class="aj-ref-label">MODE</span><strong>◉ ACTIVE</strong><small>You can speak naturally</small></div>
-  <div class="aj-ref-card aj-ref-voice"><span class="aj-ref-label">VOICE</span><strong>▥ READY</strong><small>No button required</small></div>
+  <div class="aj-ref-card aj-ref-voice"><span class="aj-ref-label">VOICE</span><strong id="hudVoiceState">READY</strong><small id="hudVoiceHint">Tap mic to enable voice</small></div>
   <div class="aj-ref-card aj-ref-wake"><span class="aj-ref-label">♙　WAKE WORD</span><strong>“Hey AJ”</strong><small>(to start)</small></div>
   <div class="aj-ref-card aj-ref-stop"><span class="aj-ref-label">♧　STOP</span><strong>“Stop”</strong><small>(to interrupt)</small></div>
   <div class="aj-ref-card aj-ref-sleep"><span class="aj-ref-label">☾　SLEEP</span><strong>“Hey AJ, sleep”</strong><small>(to lock again)</small></div>
@@ -3098,7 +3098,7 @@ body {
         </div>
 
         <div class="voice-status" id="voiceStatus">
-            AJ READY • VOICE • SEARCH • MEMORY • TOOLS
+            AJ READY • TAP MIC TO ENABLE VOICE
         </div>
 
         <!-- CENTRAL AJ CORE -->
@@ -3592,9 +3592,32 @@ function setStatus(state) {
 }
 
 function setVoiceStatus(text, type="") {
-    if (!voiceStatus) return;
-    voiceStatus.textContent = text;
-    voiceStatus.className = "voice-status " + type;
+    if (voiceStatus) {
+        voiceStatus.textContent = text;
+        voiceStatus.className = "voice-status " + type;
+    }
+    // Keep the HUD status cards truthful instead of permanently showing LISTENING.
+    const state = document.getElementById("hudListeningState");
+    const hint = document.getElementById("hudListeningHint");
+    const voiceState = document.getElementById("hudVoiceState");
+    const voiceHint = document.getElementById("hudVoiceHint");
+    const normalized = String(text || "").toUpperCase();
+    let label = "STANDBY", detail = "Tap microphone to begin", voiceLabel = "READY", voiceDetail = "Tap mic to enable voice";
+    if (/LISTENING|HEARING|SPEAK NOW/.test(normalized)) {
+        label = "LISTENING"; detail = "Speak naturally"; voiceLabel = "ACTIVE"; voiceDetail = "Microphone is listening";
+    } else if (/THINKING|UNDERSTANDING|RECEIVED|PROCESSING/.test(normalized)) {
+        label = "THINKING"; detail = "Working on your request"; voiceLabel = "ACTIVE"; voiceDetail = "Processing request";
+    } else if (/SPEAKING|READING/.test(normalized)) {
+        label = "SPEAKING"; detail = "AJ is replying aloud"; voiceLabel = "ACTIVE"; voiceDetail = "Say Stop to interrupt";
+    } else if (/ERROR|FAILED|UNAVAILABLE|REQUIRED|NOT SUPPORTED|NETWORK/.test(normalized) || type === "error") {
+        label = "NEEDS ATTENTION"; detail = String(text || "Check microphone"); voiceLabel = "CHECK MIC"; voiceDetail = "See message above";
+    } else if (/STOPPED|LOCKED|SLEEP/.test(normalized)) {
+        label = "PAUSED"; detail = "Tap microphone to resume"; voiceLabel = "PAUSED"; voiceDetail = "Voice is off";
+    }
+    if (state) state.innerHTML = '<i></i> ' + label;
+    if (hint) hint.textContent = detail;
+    if (voiceState) voiceState.textContent = voiceLabel;
+    if (voiceHint) voiceHint.textContent = voiceDetail;
 }
 
 
@@ -4845,27 +4868,6 @@ function setupRecognition() {
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
-    recognition.onaudiostart = function() {
-        setVoiceStatus("MIC ACTIVE — SPEAK NOW", "listening");
-    };
-
-    recognition.onspeechstart = function() {
-        setVoiceStatus("HEARING YOUR VOICE…", "listening");
-        micButton.classList.add("listening");
-    };
-
-    recognition.onspeechend = function() {
-        if (listening && !processing && !speaking) {
-            setVoiceStatus("PROCESSING SPEECH…", "listening");
-        }
-    };
-
-    recognition.onnomatch = function() {
-        if (voiceActive && shouldKeepListening) {
-            setVoiceStatus("DIDN’T CATCH THAT — TRY AGAIN", "error");
-        }
-    };
-
     recognition.onstart = function() {
         recognitionStarting = false;
         listening = true;
@@ -4945,10 +4947,7 @@ function setupRecognition() {
         }
 
         input.value = transcript;
-        const latestResult = event.results[event.results.length - 1];
-        const hasFinalResult = Boolean(latestResult && latestResult.isFinal);
-
-        if (!hasFinalResult) {
+        if (!event.results[event.results.length - 1].isFinal) {
             setVoiceStatus("HEARING: " + transcript, "listening");
             return;
         }
@@ -5045,7 +5044,7 @@ function setupRecognition() {
         }
 
         if (event.error === "no-speech") {
-            setVoiceStatus("NO SPEECH DETECTED — SPEAK CLOSER TO MIC", "listening");
+            setVoiceStatus("NO SPEECH — LISTENING AGAIN", "listening");
         } else if (event.error === "network") {
             setVoiceStatus("VOICE NETWORK ERROR — CHECK INTERNET", "error");
             shouldKeepListening = false;
@@ -5790,7 +5789,7 @@ function initializeAJ() {
     resetModeHUD();
     setVoicePanelState("READY");
     syncVoiceButton();
-    setVoiceStatus("AJ READY • TAP THE MIC TO TALK", "");
+    setVoiceStatus("AJ READY • TAP MIC TO ENABLE VOICE", "");
 
     const supported =
         setupRecognition();
@@ -5800,14 +5799,14 @@ function initializeAJ() {
         return;
     }
 
-    setVoiceStatus("VOICE READY");
+    setVoiceStatus("AJ READY • TAP MIC TO ENABLE VOICE");
 
     /* Microphone starts only after the user presses VOICE.
        This avoids Chrome blocking speech recognition before
        a user gesture/permission has been granted. */
     shouldKeepListening = false;
     voiceActive = false;
-    setVoiceStatus("AJ READY • TAP THE MIC TO TALK");
+    setVoiceStatus("AJ READY • TAP MIC TO ENABLE VOICE");
 }
 
 
@@ -5874,60 +5873,6 @@ html, body { background:#020407 !important; }
 }
 .app::after { background:none !important; background-image:none !important; opacity:0 !important; }
 </style>
-
-<style id="aj-actual-interface-update-2026">
-/* AJ interface update: cleaner center, clear voice feedback, visible listening state. */
-.core-system .ring,
-.core-system .marker-ring { display:none !important; }
-.core-system {
-  width:clamp(210px, 27vw, 330px) !important;
-  height:clamp(210px, 27vw, 330px) !important;
-  border:1px solid rgba(0,217,255,.18) !important;
-  border-radius:50% !important;
-  background:radial-gradient(circle,rgba(0,217,255,.08),rgba(0,20,35,.12) 52%,transparent 72%) !important;
-  filter:none !important;
-}
-.ai-core {
-  width:clamp(112px, 13vw, 158px) !important;
-  height:clamp(112px, 13vw, 158px) !important;
-  border:1px solid rgba(0,239,255,.9) !important;
-  box-shadow:0 0 18px rgba(0,217,255,.42),inset 0 0 24px rgba(0,217,255,.18) !important;
-  animation:ajCoreBreath 3s ease-in-out infinite !important;
-}
-.core-name { letter-spacing:.08em !important; text-shadow:0 0 16px #00d9ff !important; }
-@keyframes ajCoreBreath {
-  0%,100% { box-shadow:0 0 16px rgba(0,217,255,.35),inset 0 0 18px rgba(0,217,255,.12); transform:scale(1); }
-  50% { box-shadow:0 0 28px rgba(0,217,255,.65),inset 0 0 28px rgba(0,217,255,.22); transform:scale(1.025); }
-}
-.voice-status {
-  min-height:30px !important;
-  padding:8px 13px !important;
-  border:1px solid rgba(0,217,255,.28) !important;
-  border-radius:999px !important;
-  background:rgba(0,12,22,.78) !important;
-  color:#a9f6ff !important;
-  letter-spacing:.06em !important;
-  font-size:11px !important;
-  text-align:center !important;
-}
-.voice-status[data-state="error"] { color:#ff7c91 !important; border-color:rgba(255,23,68,.55) !important; }
-#micButton.listening {
-  border-color:#00ffbd !important;
-  box-shadow:0 0 0 7px rgba(0,255,189,.09),0 0 32px rgba(0,255,189,.75) !important;
-  animation:ajMicListening .85s ease-in-out infinite alternate !important;
-}
-@keyframes ajMicListening {
-  from { filter:brightness(1); transform:translate(-50%,-50%) scale(1); }
-  to { filter:brightness(1.4); transform:translate(-50%,-50%) scale(1.06); }
-}
-#responseState { transition:color .2s ease; }
-@media (max-width:700px) {
-  .core-system { width:190px !important; height:190px !important; }
-  .ai-core { width:104px !important; height:104px !important; }
-  .voice-status { max-width:90vw !important; font-size:10px !important; }
-}
-</style>
-
 </body>
 </html>
 
@@ -5986,31 +5931,5 @@ html, body { background:#020407 !important; }
   .sidebar-edge-toggle { z-index: 10030 !important; touch-action: manipulation !important; }
   .app.sidebar-collapsed .aj-sidebar { visibility: hidden !important; pointer-events: none !important; }
   .app:not(.sidebar-collapsed) .aj-sidebar { visibility: visible !important; pointer-events: auto !important; }
-}
-</style>
-
-<style id="aj-clean-hud-final">
-/* AJ Command Centre: cleaner core, no orbit globe or background dot field. */
-.ring, .marker-ring, .marker-ring span { display:none !important; opacity:0 !important; }
-body::before, body::after, .hud::before, .hud::after, .app::before, .app::after {
-  background-image:none !important;
-}
-.core-system {
-  width:min(245px,24vw) !important;
-  height:min(245px,24vw) !important;
-}
-.ai-core {
-  width:52% !important; height:52% !important;
-  box-shadow:0 0 24px rgba(0,217,255,.35), inset 0 0 22px rgba(0,217,255,.18) !important;
-}
-.voice-status {
-  color:#a9f6ff !important;
-  border-color:rgba(0,217,255,.38) !important;
-}
-.voice-status.listening { color:#00ffd0 !important; border-color:rgba(0,255,208,.7) !important; }
-.voice-status.speaking { color:#00d9ff !important; }
-.voice-status.error { color:#ff7c91 !important; border-color:rgba(255,23,68,.6) !important; }
-@media(max-width:700px) {
-  .core-system { width:155px !important; height:155px !important; }
 }
 </style>
