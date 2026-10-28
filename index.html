@@ -5206,11 +5206,20 @@ function speak(text) {
 
     utterance.onstart = function() {
         speaking = true;
-        setVoiceStatus("AJ SPEAKING", "speaking");
+        setVoiceStatus("AJ SPEAKING — SAY “STOP” TO INTERRUPT", "speaking");
         setVoicePanelState("SPEAKING");
         setStatus("SPEAKING");
+
+        // Keep the speech recognizer active during spoken replies. Chrome may
+        // end a recognition session when speech synthesis begins, so retry
+        // quickly while the assistant is speaking.
         if (voiceActive && shouldKeepListening && !listening && !recognitionStarting && !processing) {
-            scheduleListening();
+            clearTimeout(restartTimer);
+            restartTimer = setTimeout(function() {
+                if (voiceActive && shouldKeepListening && speaking && !listening && !recognitionStarting && !processing) {
+                    startListening();
+                }
+            }, 250);
         }
     };
 
@@ -5327,16 +5336,23 @@ function setupRecognition() {
         }
 
         function isStopPhrase(value) {
-            const phrase = normalizeVoiceText(value)
-                .replace(/^(?:hey\s+)?(?:aj|a j)\s+/, "")
+            const normalized = normalizeVoiceText(value)
+                .replace(/[.,!?]+/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+
+            // Accept common spoken variants, including "Hey AJ, stop".
+            const phrase = normalized
+                .replace(/^(?:(?:hey|okay|ok)\s+)?(?:a\s*j|aj|jay)\s+/, "")
                 .replace(/^(?:please\s+)/, "")
                 .replace(/\s+(?:please|now)$/, "")
                 .trim();
 
             return /^(?:stop|stop speaking|stop talking|stop it|stop now|be quiet|quiet|silence|cancel speech|cancel that|enough|that's enough|that is enough)$/i.test(phrase)
                 || /^(?:please\s+)?stop(?:\s+(?:speaking|talking|it|now|please))*$/i.test(phrase)
-                // Interim results sometimes contain extra leading/trailing words.
-                || /\b(?:stop speaking|stop talking|stop it|be quiet|cancel speech|cancel that|that's enough|that is enough)\b/i.test(normalizeVoiceText(value));
+                // Recognition can prepend a few words to interim results.
+                || /\b(?:hey\s+(?:a\s*j|aj|jay)\s+)?stop(?:\s+(?:speaking|talking|it|now))?\b/i.test(normalized)
+                || /\b(?:be quiet|cancel speech|cancel that|that's enough|that is enough)\b/i.test(normalized);
         }
 
         for (let i = event.resultIndex; i < event.results.length; i++) {
@@ -5500,7 +5516,16 @@ function setupRecognition() {
 
         if (shouldKeepListening && !processing) {
             setVoicePanelState(speaking ? "SPEAKING · SAY STOP TO INTERRUPT" : "LISTENING");
-            scheduleListening();
+            if (speaking && voiceActive) {
+                clearTimeout(restartTimer);
+                restartTimer = setTimeout(function() {
+                    if (shouldKeepListening && voiceActive && speaking && !listening && !recognitionStarting && !processing) {
+                        startListening();
+                    }
+                }, 300);
+            } else {
+                scheduleListening();
+            }
         } else if (!processing && !speaking) {
             setVoicePanelState("READY");
             if (!voiceActive) setVoiceStatus("VOICE READY");
