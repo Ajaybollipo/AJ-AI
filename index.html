@@ -5436,11 +5436,11 @@ function setupRecognition() {
             .replace(/\s+/g, " ")
             .trim();
         const wakePatterns = [
-            /^(?:hey|hello|hi)\s+(?:a\s*j|aj|jay)$/,
+            /^(?:hey|hello|hi|hii)\s+(?:a\s*j|aj|jay)$/,
             /^(?:okay|ok)\s+(?:a\s*j|aj|jay)$/,
-            /^(?:a\s*j|aj)[, ]*hello$/
+            /^(?:a\s*j|aj)[, ]*(?:hello|hi|hii)$/
         ];
-        const wakePrefix = /^(?:(?:hey|hello|hi)\s+(?:a\s*j|aj|jay)|(?:okay|ok)\s+(?:a\s*j|aj|jay))[ ,.!?-]*/i;
+        const wakePrefix = /^(?:(?:hey|hello|hi|hii)\s+(?:a\s*j|aj|jay)|(?:okay|ok)\s+(?:a\s*j|aj|jay))[ ,.!?-]*/i;
         const isWakeOnly = wakePatterns.some(function(pattern) {
             return pattern.test(wakeNormalized);
         });
@@ -5449,9 +5449,7 @@ function setupRecognition() {
             ajWakeArmed = true;
             ajConversationMode = true;
             input.value = "";
-            const greetings = ["Hey Ajay, I’m here. What do you need?", "Hi Ajay. Go ahead, I’m listening.", "Hello Ajay. What can I help you with?", "I’m here, Ajay. Tell me."];
-            const greeting = greetings[ajGreetingIndex % greetings.length];
-            ajGreetingIndex++;
+            const greeting = "Yes, Ajay boss.";
             setVoiceStatus("CONVERSATION MODE — SAY “AJ, GO TO SLEEP” TO LOCK", "listening");
             setVoicePanelState("LISTENING");
             setStatus("LISTENING");
@@ -5471,9 +5469,7 @@ function setupRecognition() {
         if (!commandTranscript) {
             ajWakeArmed = true;
             ajConversationMode = true;
-            const greetings = ["Hey Ajay, I’m here. What do you need?", "Hi Ajay. Go ahead, I’m listening.", "Hello Ajay. What can I help you with?"];
-            const greeting = greetings[ajGreetingIndex % greetings.length];
-            ajGreetingIndex++;
+            const greeting = "Yes, Ajay boss.";
             setVoiceStatus("CONVERSATION MODE", "listening");
             speak(greeting);
             return;
