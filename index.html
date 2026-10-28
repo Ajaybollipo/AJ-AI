@@ -5523,10 +5523,11 @@ async function sendVoiceMessage(message) {
             spokenMessage,
             answer
         );
+        showReady();
 
         processing = false;
 
-        setStatus(data.state || "ONLINE");
+        setStatus("ONLINE");
 
         if (data.wake_word) {
             setVoiceStatus("AJ COMMAND RECEIVED");
@@ -5549,6 +5550,7 @@ async function sendVoiceMessage(message) {
             spokenMessage,
             errorText
         );
+        showReady();
 
         history.push({
             role:"user",
@@ -5667,10 +5669,10 @@ async function sendMessage() {
         });
 
         addResponse(message, answer);
-
-        setStatus(data.state || "ONLINE");
+        showReady();
 
         processing = false;
+        setStatus("ONLINE");
 
         /* AJ SPEAKS EVERY ANSWER */
         speak(answer);
@@ -5683,6 +5685,7 @@ async function sendMessage() {
             "I encountered an error while processing that command.";
 
         addResponse(message, errorText);
+        showReady();
 
         history.push({
             role:"user",
@@ -5747,7 +5750,7 @@ async function updateServerStatus() {
             !speaking &&
             !processing) {
 
-            setStatus(data.state || "ONLINE");
+            setStatus(data.state === "THINKING" ? "ONLINE" : (data.state || "ONLINE"));
         }
 
     } catch (error) {
@@ -5850,8 +5853,7 @@ html, body { background:#020407 !important; }
 }
 .app::after { background:none !important; background-image:none !important; opacity:0 !important; }
 </style>
-</body>
-</html>
+
 
 <style id="aj-final-mobile-sidebar-toggle-fix">
 /* Restore the existing mobile sidebar toggle; do not add another button. */
@@ -5910,3 +5912,15 @@ html, body { background:#020407 !important; }
   .app:not(.sidebar-collapsed) .aj-sidebar { visibility: visible !important; pointer-events: auto !important; }
 }
 </style>
+
+<style id="aj-final-response-state-fix">
+/* Keep the response panel status in sync with the actual request lifecycle. */
+.response-state { transition: color .18s ease; }
+.response-state.ready, #responseState.ready { color: #00ffb0 !important; }
+@media (max-width: 800px) {
+  .response-panel, .response-card, #responsePanel { min-width: 0; max-width: 100%; }
+  #responseContent { overflow-wrap: anywhere; }
+}
+</style>
+</body>
+</html>
