@@ -5413,11 +5413,14 @@ function setupRecognition() {
 
         if (isWakeOnly) {
             ajWakeArmed = true;
-            setVoiceStatus("YES, BOSS — I'M LISTENING", "listening");
+            input.value = "";
+            setVoiceStatus("YES, AJAY. BOSS?", "listening");
             setVoicePanelState("LISTENING");
             setStatus("LISTENING");
-            // Do not send the wake phrase to the AI as a normal question.
-            // Leave voice mode armed for the user's next command.
+            // Speak a short acknowledgement locally; do not send the wake
+            // phrase to the backend as a normal question. Keep wake mode armed
+            // so the user's next spoken sentence is handled as their command.
+            speak("Yes, Ajay. Boss?");
             return;
         }
 
@@ -5432,7 +5435,8 @@ function setupRecognition() {
         const commandTranscript = transcript.replace(wakePrefix, "").trim();
         if (!commandTranscript) {
             ajWakeArmed = true;
-            setVoiceStatus("YES, BOSS — I'M LISTENING", "listening");
+            setVoiceStatus("YES, AJAY. BOSS?", "listening");
+            speak("Yes, Ajay. Boss?");
             return;
         }
 
