@@ -5372,18 +5372,21 @@ function setupRecognition() {
         // own speaker output back to the server as a new user prompt.
         if (speaking) {
             if (stopDetected || isStopPhrase(transcript)) {
-                shouldKeepListening = false;
-                voiceActive = false;
+                // Stop only AJ's current speech. Keep voice mode armed so the
+                // user can immediately speak another command without a button.
+                shouldKeepListening = true;
+                voiceActive = true;
                 clearTimeout(restartTimer);
-                // Cancel output first, before changing any UI state.
                 stopSpeaking();
-                try { if (recognition) recognition.stop(); } catch (error) {}
-                listening = false;
-                recognitionStarting = false;
-                setVoicePanelState("READY");
                 setStatus("ONLINE");
-                setVoiceStatus("OK, STOPPED");
+                setVoiceStatus("OK, STOPPED — LISTENING");
+                setVoicePanelState("LISTENING");
                 syncVoiceButton();
+
+                // If Chrome ended recognition during TTS, restart it.
+                if (!listening && !recognitionStarting && !processing) {
+                    scheduleListening();
+                }
             }
             return;
         }
@@ -5396,16 +5399,19 @@ function setupRecognition() {
 
         // Handle stop even when AJ is not speaking, without calling the backend.
         if (stopDetected || isStopPhrase(transcript)) {
-            shouldKeepListening = false;
-            voiceActive = false;
+            // "Stop" cancels speech, not the hands-free session.
+            shouldKeepListening = true;
+            voiceActive = true;
             clearTimeout(restartTimer);
             stopSpeaking();
-            try { if (recognition) recognition.stop(); } catch (error) {}
-            listening = false;
-            setVoicePanelState("READY");
+            setVoicePanelState("LISTENING");
             setStatus("ONLINE");
-            setVoiceStatus("OK, STOPPED");
+            setVoiceStatus("OK, STOPPED — LISTENING");
             syncVoiceButton();
+
+            if (!listening && !recognitionStarting && !processing) {
+                scheduleListening();
+            }
             return;
         }
 
