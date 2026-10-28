@@ -3098,7 +3098,7 @@ body {
         </div>
 
         <div class="voice-status" id="voiceStatus">
-            PRESS VOICE TO START • VOICE • SEARCH • MEMORY • TOOLS
+            AJ READY • VOICE • SEARCH • MEMORY • TOOLS
         </div>
 
         <!-- CENTRAL AJ CORE -->
@@ -5790,7 +5790,7 @@ function initializeAJ() {
     resetModeHUD();
     setVoicePanelState("READY");
     syncVoiceButton();
-    setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ", "");
+    setVoiceStatus("AJ READY • TAP THE MIC TO TALK", "");
 
     const supported =
         setupRecognition();
@@ -5807,7 +5807,7 @@ function initializeAJ() {
        a user gesture/permission has been granted. */
     shouldKeepListening = false;
     voiceActive = false;
-    setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ");
+    setVoiceStatus("AJ READY • TAP THE MIC TO TALK");
 }
 
 
@@ -5986,5 +5986,31 @@ html, body { background:#020407 !important; }
   .sidebar-edge-toggle { z-index: 10030 !important; touch-action: manipulation !important; }
   .app.sidebar-collapsed .aj-sidebar { visibility: hidden !important; pointer-events: none !important; }
   .app:not(.sidebar-collapsed) .aj-sidebar { visibility: visible !important; pointer-events: auto !important; }
+}
+</style>
+
+<style id="aj-clean-hud-final">
+/* AJ Command Centre: cleaner core, no orbit globe or background dot field. */
+.ring, .marker-ring, .marker-ring span { display:none !important; opacity:0 !important; }
+body::before, body::after, .hud::before, .hud::after, .app::before, .app::after {
+  background-image:none !important;
+}
+.core-system {
+  width:min(245px,24vw) !important;
+  height:min(245px,24vw) !important;
+}
+.ai-core {
+  width:52% !important; height:52% !important;
+  box-shadow:0 0 24px rgba(0,217,255,.35), inset 0 0 22px rgba(0,217,255,.18) !important;
+}
+.voice-status {
+  color:#a9f6ff !important;
+  border-color:rgba(0,217,255,.38) !important;
+}
+.voice-status.listening { color:#00ffd0 !important; border-color:rgba(0,255,208,.7) !important; }
+.voice-status.speaking { color:#00d9ff !important; }
+.voice-status.error { color:#ff7c91 !important; border-color:rgba(255,23,68,.6) !important; }
+@media(max-width:700px) {
+  .core-system { width:155px !important; height:155px !important; }
 }
 </style>
