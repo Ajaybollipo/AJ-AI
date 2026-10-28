@@ -2420,7 +2420,555 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
   );
 }
 </style>
-</head>
+
+<style id="aj-remove-background-dots">
+/* Remove decorative star/dot particles while preserving the blue/cyan ambient glow. */
+.app {
+  background: radial-gradient(ellipse at 28% 45%, rgba(0,108,255,.30) 0%, rgba(0,64,135,.16) 18%, transparent 35%),
+              radial-gradient(ellipse at 77% 73%, rgba(0,108,255,.24) 0%, rgba(0,45,110,.12) 19%, transparent 36%),
+              radial-gradient(ellipse at 51% 42%, rgba(0,44,88,.24), transparent 45%),
+              #010308 !important;
+  background-size: auto !important;
+}
+.app::before {
+  background: radial-gradient(ellipse at 27% 46%, rgba(0,143,255,.14), transparent 30%),
+              radial-gradient(ellipse at 76% 73%, rgba(0,118,255,.12), transparent 31%) !important;
+  opacity: 1 !important;
+}
+.app::after { background-image: none !important; }
+</style>
+<style id="aj-reference-layout-final">
+/* AJ reference preview match: center the core, signature, and microphone as one visual column. */
+@media (min-width: 701px) {
+  .core-system {
+    left: 50% !important;
+    transform: translate(-50%, -50%) !important;
+  }
+  .creator {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+  }
+  .command-bar {
+    position: absolute !important;
+    left: auto !important;
+    right: 2.7% !important;
+    bottom: 16% !important;
+    transform: none !important;
+    width: min(510px, 31vw) !important;
+    max-width: calc(100vw - 300px) !important;
+    height: 60px !important;
+    border-radius: 32px !important;
+    z-index: 25 !important;
+  }
+  #micButton.command-button.voice {
+    position: fixed !important;
+    left: 50% !important;
+    top: 74.5vh !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: translate(-50%, -50%) !important;
+    width: 78px !important;
+    height: 78px !important;
+    min-width: 78px !important;
+    min-height: 78px !important;
+    z-index: 70 !important;
+  }
+  #micButton.command-button.voice::before { font-size: 34px !important; }
+  #micButton.command-button.voice::after { inset: -6px !important; }
+  .command-bar .main-voice-waveform {
+    position: fixed !important;
+    top: 80.5vh !important;
+    bottom: auto !important;
+    width: 145px !important;
+    height: 54px !important;
+    transform: translateY(-50%) !important;
+    z-index: 65 !important;
+    opacity: 1 !important;
+  }
+  .command-bar .main-voice-waveform.wave-left {
+    left: auto !important;
+    right: calc(50% + 48px) !important;
+  }
+  .command-bar .main-voice-waveform.wave-right {
+    left: calc(50% + 48px) !important;
+    right: auto !important;
+  }
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  #micButton.command-button.voice { width: 68px !important; height: 68px !important; top: 75vh !important; }
+  #micButton.command-button.voice::before { font-size: 29px !important; }
+  .command-bar .main-voice-waveform { width: 100px !important; height: 44px !important; top: 80vh !important; }
+  .command-bar .main-voice-waveform.wave-left { right: calc(50% + 42px) !important; }
+  .command-bar .main-voice-waveform.wave-right { left: calc(50% + 42px) !important; }
+}
+@media (max-width: 700px) {
+  /* Preserve the compact mobile composition and keep all controls on-screen. */
+  .core-system { left: 50% !important; }
+  .creator { left: 50% !important; }
+  .command-bar { left: 50% !important; right: auto !important; transform: translateX(-50%) !important; }
+  #micButton.command-button.voice { position: absolute !important; left: 50% !important; top: 49px !important; transform: translateX(-50%) !important; }
+}
+</style>
+<style id="aj-voice-reference-position-final">
+/* Keep voice control independent of .command-bar transforms/overflow. */
+#micButton.command-button.voice {
+  position: fixed !important;
+  left: 50% !important;
+  top: 80.5vh !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: translate(-50%, -50%) !important;
+  width: 78px !important;
+  height: 78px !important;
+  min-width: 78px !important;
+  min-height: 78px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 50% !important;
+  z-index: 9999 !important;
+  font-size: 0 !important;
+  border: 2px solid #55fff0 !important;
+  background: radial-gradient(circle, rgba(0,150,255,.38), rgba(0,9,17,.97) 68%) !important;
+  box-shadow: 0 0 0 6px rgba(0,255,208,.08), 0 0 24px rgba(0,255,208,.6), inset 0 0 18px rgba(0,234,255,.22) !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+#micButton.command-button.voice::before { content: "🎙" !important; display:block !important; font-size: 34px !important; line-height:1 !important; }
+#micButton.command-button.voice::after { content:"" !important; position:absolute !important; inset:-6px !important; border:1px solid rgba(0,255,208,.55) !important; border-radius:50% !important; pointer-events:none !important; }
+#micButton.command-button.voice.listening { animation: voicePulse 1s infinite !important; }
+.main-voice-waveform {
+  position: fixed !important;
+  top: 80.5vh !important;
+  bottom: auto !important;
+  height: 54px !important;
+  width: 145px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  transform: translateY(-50%) !important;
+  z-index: 9998 !important;
+  opacity:1 !important;
+  pointer-events:none !important;
+}
+.main-voice-waveform.wave-left { left:auto !important; right:calc(50% + 48px) !important; }
+.main-voice-waveform.wave-right { left:calc(50% + 48px) !important; right:auto !important; }
+.main-voice-waveform span { display:block !important; width:3px !important; height:var(--h,18px) !important; border-radius:4px !important; background:#00dfff !important; box-shadow:0 0 8px rgba(0,217,255,.85) !important; animation:ajWave .85s ease-in-out infinite alternate !important; }
+@media (min-width:701px) and (max-width:1100px) {
+  #micButton.command-button.voice { width:68px !important; height:68px !important; }
+  #micButton.command-button.voice::before { font-size:29px !important; }
+  .main-voice-waveform { width:100px !important; height:44px !important; }
+  .main-voice-waveform.wave-left { right:calc(50% + 42px) !important; }
+  .main-voice-waveform.wave-right { left:calc(50% + 42px) !important; }
+}
+@media (max-width:700px) {
+  #micButton.command-button.voice { top:79vh !important; width:60px !important; height:60px !important; min-width:60px !important; min-height:60px !important; }
+  #micButton.command-button.voice::before { font-size:26px !important; }
+  .main-voice-waveform { top:79vh !important; width:calc(50vw - 42px) !important; height:34px !important; }
+  .main-voice-waveform.wave-left { right:calc(50% + 34px) !important; }
+  .main-voice-waveform.wave-right { left:calc(50% + 34px) !important; }
+  .main-voice-waveform span { width:2px !important; }
+}
+</style>
+<style id="aj-small-spacing-refinement">
+/* Small refinement: keep the signature label clear of the microphone waveforms. */
+@media (min-width: 1101px) {
+  #micButton.command-button.voice { top: 83vh !important; }
+  .main-voice-waveform { top: 83vh !important; height: 46px !important; width: 132px !important; }
+  .main-voice-waveform.wave-left { right: calc(50% + 46px) !important; }
+  .main-voice-waveform.wave-right { left: calc(50% + 46px) !important; }
+}
+@media (min-width: 701px) and (max-width: 1100px) {
+  #micButton.command-button.voice { top: 82vh !important; }
+  .main-voice-waveform { top: 82vh !important; height: 40px !important; }
+}
+@media (max-width: 700px) {
+  #micButton.command-button.voice { top: 80vh !important; }
+  .main-voice-waveform { top: 80vh !important; }
+}
+</style>
+<style id="aj-cyber-hud-sidebar-only">
+/* CYBER HUD SIDEBAR ONLY — leaves the central HUD, signature, microphone,
+   waveforms, response panel, chat bar, and all JavaScript untouched. */
+.aj-sidebar {
+  width: 224px !important;
+  left: 12px !important;
+  top: 28px !important;
+  bottom: 270px !important;
+  gap: 10px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  filter: drop-shadow(0 0 8px rgba(0, 210, 255, .12));
+}
+.sidebar-nav {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  padding: 10px 9px !important;
+  border: 1px solid rgba(0, 220, 255, .42) !important;
+  border-radius: 3px 15px 3px 15px !important;
+  background: linear-gradient(145deg, rgba(0, 24, 40, .96), rgba(0, 5, 13, .92)) !important;
+  box-shadow: inset 0 0 22px rgba(0, 173, 255, .08), 0 0 15px rgba(0, 194, 255, .08) !important;
+  clip-path: polygon(0 0, calc(100% - 17px) 0, 100% 17px, 100% 100%, 15px 100%, 0 calc(100% - 15px));
+}
+.sidebar-nav::before {
+  content: "AJ  /  COMMAND DECK";
+  display: block;
+  margin: 0 2px 8px;
+  padding: 9px 7px 10px;
+  color: #62efff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  border-bottom: 1px solid rgba(0, 217, 255, .35);
+  text-shadow: 0 0 9px rgba(0, 217, 255, .55);
+}
+.sidebar-item {
+  position: relative !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  min-height: 45px !important;
+  height: 45px !important;
+  gap: 14px !important;
+  padding: 0 12px !important;
+  border: 1px solid transparent !important;
+  border-radius: 3px 11px 3px 11px !important;
+  background: linear-gradient(90deg, rgba(0, 31, 49, .35), rgba(0, 10, 20, .12)) !important;
+  color: #d5f2fa !important;
+  font-size: 14px !important;
+  letter-spacing: .2px !important;
+  text-align: left !important;
+  transition: background .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease !important;
+}
+.sidebar-item::after {
+  content: "";
+  position: absolute;
+  top: 8px;
+  right: 7px;
+  bottom: 8px;
+  width: 2px;
+  background: transparent;
+  box-shadow: none;
+}
+.sidebar-item:hover {
+  border-color: rgba(0, 225, 255, .42) !important;
+  background: linear-gradient(90deg, rgba(0, 161, 255, .22), rgba(0, 217, 255, .035)) !important;
+  box-shadow: inset 0 0 14px rgba(0, 195, 255, .08), 0 0 10px rgba(0, 195, 255, .09) !important;
+  transform: translateX(2px);
+}
+.sidebar-item.active {
+  border: 1px solid #00dfff !important;
+  border-radius: 3px 12px 3px 12px !important;
+  background: linear-gradient(100deg, rgba(0, 151, 255, .48), rgba(0, 217, 255, .11)) !important;
+  color: #35f4ff !important;
+  box-shadow: inset 0 0 17px rgba(0, 217, 255, .13), 0 0 16px rgba(0, 190, 255, .24) !important;
+}
+.sidebar-item.active::after {
+  background: #00efff;
+  box-shadow: 0 0 8px #00dfff;
+}
+.nav-icon {
+  width: 27px !important;
+  flex: 0 0 27px !important;
+  color: #72efff !important;
+  font-size: 24px !important;
+  text-align: center !important;
+  text-shadow: 0 0 8px rgba(0, 217, 255, .35);
+}
+.sidebar-edge-toggle {
+  border-color: rgba(0, 217, 255, .7) !important;
+  border-radius: 3px 10px 3px 10px !important;
+  background: rgba(0, 17, 30, .96) !important;
+  color: #00efff !important;
+  box-shadow: 0 0 12px rgba(0, 217, 255, .15), inset 0 0 10px rgba(0, 217, 255, .06) !important;
+}
+.command-panel {
+  left: 12px !important;
+  bottom: 24px !important;
+  width: 260px !important;
+  box-sizing: border-box !important;
+  padding: 15px 16px 14px !important;
+  border: 1px solid rgba(0, 220, 255, .58) !important;
+  border-radius: 3px 14px 3px 14px !important;
+  background: linear-gradient(145deg, rgba(0, 20, 33, .92), rgba(0, 5, 13, .96)) !important;
+  box-shadow: inset 0 0 20px rgba(0, 173, 255, .07), 0 0 16px rgba(0, 217, 255, .08) !important;
+}
+.command-panel-title {
+  color: #bcecf5 !important;
+  font-size: 10px !important;
+  letter-spacing: 1.6px !important;
+  text-shadow: 0 0 7px rgba(0, 217, 255, .18);
+}
+.command-panel-row {
+  color: #d1edf4 !important;
+  font-size: 11px !important;
+  letter-spacing: .7px !important;
+}
+.command-panel-value {
+  color: #00ffd0 !important;
+  text-shadow: 0 0 8px rgba(0, 255, 208, .32);
+}
+.command-panel-toggle {
+  border-color: rgba(0, 217, 255, .58) !important;
+  border-radius: 4px 8px 4px 8px !important;
+  background: rgba(0, 27, 42, .9) !important;
+  color: #00efff !important;
+}
+@media (max-width: 800px) {
+  .aj-sidebar { left: 8px !important; top: 12px !important; bottom: 12px !important; width: min(236px, 78vw) !important; }
+  .sidebar-nav { padding: 8px 7px !important; }
+  .sidebar-item { min-height: 42px !important; height: 42px !important; font-size: 13px !important; }
+  .nav-icon { font-size: 22px !important; }
+  .command-panel { width: min(260px, calc(100vw - 24px)) !important; }
+}
+</style>
+<style id="aj-compact-topbar-response-title-only">
+/* Requested changes only: shorter top bar and smaller AJ RESPONSE heading. */
+.topbar { height: 48px !important; min-height: 48px !important; padding-top: 0 !important; padding-bottom: 0 !important; box-sizing: border-box !important; }
+.hud { inset: 48px 0 0 !important; }
+.response-title { font-size: 12px !important; line-height: 1.2 !important; letter-spacing: .5px !important; }
+@media (max-width: 1000px) { .topbar { height: 46px !important; min-height: 46px !important; padding-left: 10px !important; padding-right: 10px !important; } .hud { inset: 46px 0 0 !important; } .response-title { font-size: 11px !important; } }
+@media (max-width: 700px) { .topbar { height: 44px !important; min-height: 44px !important; padding-left: 8px !important; padding-right: 8px !important; } .hud { inset: 44px 0 0 !important; } .response-title { font-size: 10px !important; } }
+</style>
+<style id="approved-compact-topbar-response-font">
+/* Final approved refinements only: compact top bar and smaller response heading. */
+.topbar { height: 44px !important; min-height: 44px !important; padding: 0 12px !important; }
+.hud { inset: 44px 0 0 !important; }
+.topbar .brand-mark { width: 34px !important; height: 34px !important; font-size: 15px !important; }
+.topbar .sidebar-toggle { display: none !important; }
+.response-title { font-size: 10px !important; letter-spacing: .5px !important; line-height: 1.2 !important; }
+@media (max-width: 1000px) {
+  .topbar { height: 44px !important; min-height: 44px !important; padding: 0 10px !important; }
+  .hud { inset: 44px 0 0 !important; }
+}
+@media (max-width: 700px) {
+  .topbar { height: 48px !important; min-height: 48px !important; padding: 0 8px !important; }
+  .hud { inset: 48px 0 0 !important; }
+  .response-title { font-size: 9px !important; }
+}
+</style>
+<style id="aj-mobile-layout-fix-2026">
+/* Mobile-only layout repair: desktop design and application logic remain unchanged. */
+@media (max-width: 700px) {
+  html, body { width:100%; min-width:0; overflow-x:hidden; }
+  .app { min-height:100dvh; height:100dvh; overflow:hidden; }
+  .topbar { position:absolute!important; top:0!important; left:0!important; right:0!important; height:48px!important; min-height:48px!important; padding:0 10px!important; z-index:80!important; }
+  .hud { position:absolute!important; inset:48px 0 0!important; height:calc(100dvh - 48px)!important; min-height:0!important; overflow:hidden!important; }
+  /* Keep navigation available through the edge tab without covering the dashboard on load. */
+  .aj-sidebar { position:absolute!important; top:10px!important; bottom:10px!important; left:8px!important; width:min(245px,82vw)!important; max-height:calc(100% - 20px)!important; z-index:70!important; }
+  .app:not(.sidebar-collapsed) .aj-sidebar { transform:translateX(calc(-100% - 16px))!important; opacity:0!important; pointer-events:none!important; }
+  .sidebar-edge-toggle { position:absolute!important; top:12px!important; left:8px!important; z-index:75!important; }
+  .core-system { position:absolute!important; left:50%!important; top:24%!important; width:min(225px,56vw)!important; transform:translate(-50%,-50%)!important; }
+  .creator { position:absolute!important; left:50%!important; top:calc(24% + min(124px,30vw))!important; width:145px!important; transform:translateX(-50%)!important; }
+  .creator img { width:min(88px,24vw)!important; max-width:100%!important; }
+  .creator-label { font-size:7px!important; letter-spacing:1.5px!important; margin-top:3px!important; }
+  .response-panel { position:absolute!important; left:8%!important; right:8%!important; top:57%!important; width:auto!important; height:21%!important; min-height:0!important; transform:none!important; overflow:hidden!important; }
+  .response-header { height:24px!important; }
+  .response-title { font-size:10px!important; }
+  .response-content { padding:8px 0!important; overflow:auto!important; }
+  .response-empty { gap:5px!important; font-size:11px!important; line-height:1.45!important; }
+  .response-empty p { margin:4px 0 0!important; }
+  .response-waveform { height:27px!important; max-width:100%!important; }
+  .command-panel { display:none!important; }
+  .command-bar { position:absolute!important; left:50%!important; right:auto!important; bottom:12px!important; top:auto!important; width:calc(100% - 28px)!important; max-width:none!important; height:46px!important; min-height:46px!important; transform:translateX(-50%)!important; z-index:40!important; padding:3px 5px 3px 10px!important; border-radius:24px!important; }
+  .command-bar #messageInput { min-width:0!important; width:100%!important; height:38px!important; padding:0 48px 0 7px!important; font-size:12px!important; }
+  .command-bar #sendButton { right:4px!important; top:4px!important; width:36px!important; height:36px!important; }
+  .command-button.voice { position:absolute!important; left:50%!important; right:auto!important; top:auto!important; bottom:76px!important; width:52px!important; height:52px!important; transform:translateX(-50%)!important; z-index:45!important; }
+  .command-button.voice::before { font-size:22px!important; }
+  .main-voice-waveform { position:absolute!important; top:auto!important; bottom:89px!important; height:22px!important; width:calc(50% - 43px)!important; max-width:calc(50% - 43px)!important; z-index:35!important; }
+  .main-voice-waveform.wave-left { left:10px!important; right:auto!important; }
+  .main-voice-waveform.wave-right { right:10px!important; left:auto!important; }
+  .voice-status { top:7px!important; left:50%!important; width:calc(100% - 100px)!important; transform:translateX(-50%)!important; font-size:7px!important; letter-spacing:1px!important; white-space:nowrap!important; overflow:hidden!important; text-overflow:ellipsis!important; }
+  .app.sidebar-collapsed .core-system,.app.sidebar-collapsed .creator { left:50%!important; }
+}
+@media (max-width:380px) {
+  .core-system { width:190px!important; }
+  .response-panel { top:55%!important; height:22%!important; }
+  .command-button.voice { width:48px!important; height:48px!important; bottom:76px!important; }
+  .main-voice-waveform { bottom:88px!important; }
+  .command-bar { width:calc(100% - 20px)!important; }
+}
+</style>
+<style id="aj-mobile-overlap-final-fix">
+/* Mobile-only repair: prevent the sidebar/status card, mic, waveforms and input from stacking on top of one another. */
+@media (max-width:700px) {
+  html, body { width:100% !important; min-width:0 !important; overflow-x:hidden !important; }
+  .app { width:100% !important; min-width:0 !important; height:100dvh !important; min-height:100dvh !important; overflow:hidden !important; }
+  .topbar { position:fixed !important; top:0 !important; left:0 !important; right:0 !important; height:48px !important; min-height:48px !important; z-index:100 !important; }
+  .hud { position:fixed !important; top:48px !important; left:0 !important; right:0 !important; bottom:0 !important; height:auto !important; overflow:hidden !important; }
+  /* On phones, keep navigation tucked away until the hamburger/edge control is used. */
+  .aj-sidebar { z-index:110 !important; max-height:calc(100dvh - 72px) !important; }
+  .app:not(.sidebar-collapsed) .aj-sidebar { transform:translateX(calc(-100% - 18px)) !important; opacity:0 !important; pointer-events:none !important; }
+  .sidebar-edge-toggle { z-index:115 !important; }
+  .core-system { top:24% !important; left:50% !important; width:min(210px,54vw) !important; transform:translate(-50%,-50%) !important; }
+  .creator { top:calc(24% + min(118px,29vw)) !important; left:50% !important; width:132px !important; transform:translateX(-50%) !important; z-index:20 !important; }
+  .creator img { max-width:78px !important; max-height:44px !important; object-fit:contain !important; }
+  .creator-label { font-size:7px !important; margin-top:2px !important; }
+  .response-panel { top:55% !important; left:7% !important; right:7% !important; width:auto !important; height:22% !important; z-index:10 !important; }
+  .response-title { font-size:9px !important; }
+  .response-state { font-size:10px !important; }
+  .response-empty { font-size:11px !important; line-height:1.4 !important; }
+  .response-waveform { height:24px !important; }
+  /* Hide the separate desktop status card on mobile; it was overlapping the composer. */
+  .command-panel { display:none !important; }
+  .command-bar { position:fixed !important; left:50% !important; right:auto !important; top:auto !important; bottom:calc(12px + env(safe-area-inset-bottom, 0px)) !important; transform:translateX(-50%) !important; width:calc(100% - 24px) !important; max-width:none !important; height:48px !important; min-height:48px !important; z-index:120 !important; }
+  .command-bar #messageInput { width:100% !important; min-width:0 !important; height:40px !important; padding:0 48px 0 10px !important; font-size:13px !important; }
+  .command-bar #sendButton { top:5px !important; right:5px !important; width:36px !important; height:36px !important; }
+  .command-bar .command-button.voice { position:fixed !important; left:50% !important; right:auto !important; top:auto !important; bottom:calc(74px + env(safe-area-inset-bottom, 0px)) !important; transform:translateX(-50%) !important; width:58px !important; height:58px !important; min-width:58px !important; min-height:58px !important; z-index:125 !important; pointer-events:auto !important; }
+  .command-bar .command-button.voice::before { font-size:24px !important; }
+  .command-bar .main-voice-waveform { position:fixed !important; top:auto !important; bottom:calc(91px + env(safe-area-inset-bottom, 0px)) !important; height:26px !important; width:calc(50% - 48px) !important; max-width:calc(50% - 48px) !important; z-index:121 !important; pointer-events:none !important; }
+  .command-bar .main-voice-waveform.wave-left { left:12px !important; right:auto !important; }
+  .command-bar .main-voice-waveform.wave-right { right:12px !important; left:auto !important; }
+  .voice-status { top:6px !important; left:50% !important; width:calc(100% - 90px) !important; transform:translateX(-50%) !important; font-size:7px !important; white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important; }
+}
+
+/* MOBILE VOICE BUTTON INTERACTION FIX: keep the mic above overlapping bars/panels */
+@media (max-width: 700px) {
+  #micButton.command-button.voice {
+    position: fixed !important;
+    z-index: 99999 !important;
+    pointer-events: auto !important;
+    touch-action: manipulation !important;
+    cursor: pointer !important;
+  }
+  #micButton.command-button.voice::before,
+  #micButton.command-button.voice::after { pointer-events: none !important; }
+}
+</style>
+<style>
+/* AJ CORE — glowing cyan energy effect */
+.core-system {
+    isolation: isolate;
+}
+
+.ai-core {
+    box-shadow:
+        0 0 12px rgba(0, 234, 255, 0.85),
+        0 0 30px rgba(0, 170, 255, 0.55),
+        0 0 60px rgba(0, 170, 255, 0.25);
+    animation: ajCorePulse 2.8s ease-in-out infinite;
+}
+
+.ai-core::before {
+    box-shadow:
+        0 0 12px #00eaff,
+        0 0 28px rgba(0, 234, 255, 0.7);
+    animation: ajCoreSpin 6s linear infinite;
+}
+
+.ai-core::after {
+    box-shadow: 0 0 22px rgba(0, 234, 255, 0.7);
+    animation: ajCoreSpin 4s linear infinite reverse;
+}
+
+.ring.one {
+    animation: ajRingSpin 12s linear infinite;
+}
+
+.ring.two {
+    animation: ajRingSpin 18s linear infinite reverse;
+}
+
+.ring.three {
+    animation: ajRingSpin 24s linear infinite;
+}
+
+.ring.four {
+    animation: ajRingSpin 30s linear infinite reverse;
+}
+
+@keyframes ajCorePulse {
+    0%, 100% {
+        filter: brightness(0.9);
+        transform: scale(1);
+    }
+    50% {
+        filter: brightness(1.35);
+        transform: scale(1.035);
+    }
+}
+
+@keyframes ajCoreSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+@keyframes ajRingSpin {
+    from { rotate: 0deg; }
+    to   { rotate: 360deg; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ai-core,
+    .ai-core::before,
+    .ai-core::after,
+    .ring.one,
+    .ring.two,
+    .ring.three,
+    .ring.four {
+        animation: none !important;
+    }
+}
+</style>
+<style id="aj-final-mobile-sidebar-toggle-fix">
+/* Restore the existing mobile sidebar toggle; do not add another button. */
+.sidebar-edge-toggle {
+  display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  position: absolute !important;
+  z-index: 9999 !important;
+  touch-action: manipulation !important;
+  -webkit-tap-highlight-color: transparent;
+}
+@media (max-width: 800px) {
+  .aj-sidebar {
+    transition: transform .22s ease, opacity .22s ease !important;
+    z-index: 9998 !important;
+    pointer-events: auto;
+  }
+  /* In the expanded state, show the sidebar; collapsed means hidden. */
+  .app:not(.sidebar-collapsed) .aj-sidebar {
+    transform: translateX(0) !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
+  .app.sidebar-collapsed .aj-sidebar {
+    transform: translateX(calc(-100% - 18px)) !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+  }
+  .sidebar-edge-toggle {
+    top: 25px !important;
+    left: auto;
+    width: 36px !important;
+    height: 42px !important;
+    min-width: 36px !important;
+    border-left: 1px solid rgba(0,217,255,.48) !important;
+    border-radius: 0 8px 8px 0 !important;
+  }
+  .app.sidebar-collapsed .sidebar-edge-toggle {
+    left: 8px !important;
+    border-radius: 8px !important;
+  }
+  .app:not(.sidebar-collapsed) .sidebar-edge-toggle {
+    left: min(232px, calc(80vw - 4px)) !important;
+  }
+}
+</style>
+<style id="aj-mobile-sidebar-overlay-reliability">
+@media (max-width: 800px) {
+  .aj-sidebar { z-index: 10020 !important; }
+  .sidebar-edge-toggle { z-index: 10030 !important; touch-action: manipulation !important; }
+  .app.sidebar-collapsed .aj-sidebar { visibility: hidden !important; pointer-events: none !important; }
+  .app:not(.sidebar-collapsed) .aj-sidebar { visibility: visible !important; pointer-events: auto !important; }
+}
+</style>
+
 
 </style>
 
@@ -2851,7 +3399,7 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 }
 </style>
 
-</head>
+
 
 
 <style>
@@ -2930,6 +3478,14 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 }
 </style>
 
+
+
+<style id="aj-hands-free-no-voice-buttons">
+/* AJ hands-free mode: keep the typing bar and Send button; remove manual voice controls. */
+#micButton, #stopVoiceButton, .main-voice-waveform, .main-voice-waveform.wave-left, .main-voice-waveform.wave-right { display:none !important; visibility:hidden !important; pointer-events:none !important; }
+#messageInput { pointer-events:auto !important; }
+</style>
+</head>
 
 <body>
 
@@ -3339,6 +3895,7 @@ let speaking = false;
 let processing = false;
 let shouldKeepListening = false;
 let voiceActive = false;
+let ajWakeArmed = false;
 let restartTimer = null;
 let microphoneStream = null;
 
@@ -4840,21 +5397,22 @@ function setupRecognition() {
         // Keep direct voice commands working too, so this patch does not break the current workflow.
         const wakeNormalized = normalizeVoiceText(transcript)
             .replace(/[.,!?]+/g, " ")
-            .replace(/\\s+/g, " ")
+            .replace(/\s+/g, " ")
             .trim();
         const wakePatterns = [
-            /^hey\\s+a?j$/,
-            /^hey\\s+aj$/,
-            /^okay\\s+aj$/,
-            /^ok\\s+aj$/,
-            /^hey\\s+jay$/
+            /^hey\s+a?j$/,
+            /^hey\s+aj$/,
+            /^okay\s+aj$/,
+            /^ok\s+aj$/,
+            /^hey\s+jay$/
         ];
-        const wakePrefix = /^(?:hey\\s+(?:a\\s*j|aj|jay)|okay\\s+aj|ok\\s+aj)[,\\s.!?-]*/i;
+        const wakePrefix = /^(?:hey\s+(?:a\s*j|aj|jay)|okay\s+aj|ok\s+aj)[,\s.!?-]*/i;
         const isWakeOnly = wakePatterns.some(function(pattern) {
             return pattern.test(wakeNormalized);
         });
 
         if (isWakeOnly) {
+            ajWakeArmed = true;
             setVoiceStatus("YES, BOSS — I'M LISTENING", "listening");
             setVoicePanelState("LISTENING");
             setStatus("LISTENING");
@@ -4863,12 +5421,22 @@ function setupRecognition() {
             return;
         }
 
+        // Hands-free mode: ignore background speech unless the user has said
+        // the wake phrase, or includes it at the start of the same utterance.
+        const hasWakePrefix = wakePrefix.test(transcript);
+        if (!hasWakePrefix && !ajWakeArmed) {
+            setVoiceStatus("ALWAYS LISTENING — SAY “HEY AJ”", "listening");
+            return;
+        }
+
         const commandTranscript = transcript.replace(wakePrefix, "").trim();
         if (!commandTranscript) {
+            ajWakeArmed = true;
             setVoiceStatus("YES, BOSS — I'M LISTENING", "listening");
             return;
         }
 
+        ajWakeArmed = false;
         listening = false;
         try { recognition.stop(); } catch (error) {}
         sendVoiceMessage(commandTranscript);
@@ -5643,7 +6211,7 @@ function initializeAJ() {
     resetModeHUD();
     setVoicePanelState("READY");
     syncVoiceButton();
-    setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ", "");
+    setVoiceStatus("SAY “HEY AJ” TO TALK", "");
 
     const supported =
         setupRecognition();
@@ -5653,14 +6221,17 @@ function initializeAJ() {
         return;
     }
 
-    setVoiceStatus("VOICE READY");
-
-    /* Microphone starts only after the user presses VOICE.
-       This avoids Chrome blocking speech recognition before
-       a user gesture/permission has been granted. */
-    shouldKeepListening = false;
-    voiceActive = false;
-    setVoiceStatus("PRESS VOICE TO START • SAY HEY AJ");
+    // Hands-free mode: attempt to start listening automatically. Chrome may
+    // require microphone permission to be granted for this site first.
+    shouldKeepListening = true;
+    voiceActive = true;
+    ajWakeArmed = false;
+    setVoiceStatus("STARTING HANDS-FREE MODE…", "listening");
+    window.setTimeout(function() {
+        if (voiceActive && shouldKeepListening && !listening && !recognitionStarting) {
+            startListening();
+        }
+    }, 1200);
 }
 
 
@@ -5729,61 +6300,3 @@ html, body { background:#020407 !important; }
 </style>
 </body>
 </html>
-
-<style id="aj-final-mobile-sidebar-toggle-fix">
-/* Restore the existing mobile sidebar toggle; do not add another button. */
-.sidebar-edge-toggle {
-  display: flex !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  pointer-events: auto !important;
-  position: absolute !important;
-  z-index: 9999 !important;
-  touch-action: manipulation !important;
-  -webkit-tap-highlight-color: transparent;
-}
-@media (max-width: 800px) {
-  .aj-sidebar {
-    transition: transform .22s ease, opacity .22s ease !important;
-    z-index: 9998 !important;
-    pointer-events: auto;
-  }
-  /* In the expanded state, show the sidebar; collapsed means hidden. */
-  .app:not(.sidebar-collapsed) .aj-sidebar {
-    transform: translateX(0) !important;
-    opacity: 1 !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-  }
-  .app.sidebar-collapsed .aj-sidebar {
-    transform: translateX(calc(-100% - 18px)) !important;
-    opacity: 0 !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-  }
-  .sidebar-edge-toggle {
-    top: 25px !important;
-    left: auto;
-    width: 36px !important;
-    height: 42px !important;
-    min-width: 36px !important;
-    border-left: 1px solid rgba(0,217,255,.48) !important;
-    border-radius: 0 8px 8px 0 !important;
-  }
-  .app.sidebar-collapsed .sidebar-edge-toggle {
-    left: 8px !important;
-    border-radius: 8px !important;
-  }
-  .app:not(.sidebar-collapsed) .sidebar-edge-toggle {
-    left: min(232px, calc(80vw - 4px)) !important;
-  }
-}
-</style>
-<style id="aj-mobile-sidebar-overlay-reliability">
-@media (max-width: 800px) {
-  .aj-sidebar { z-index: 10020 !important; }
-  .sidebar-edge-toggle { z-index: 10030 !important; touch-action: manipulation !important; }
-  .app.sidebar-collapsed .aj-sidebar { visibility: hidden !important; pointer-events: none !important; }
-  .app:not(.sidebar-collapsed) .aj-sidebar { visibility: visible !important; pointer-events: auto !important; }
-}
-</style>
