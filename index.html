@@ -3896,6 +3896,8 @@ let processing = false;
 let shouldKeepListening = false;
 let voiceActive = false;
 let ajWakeArmed = false;
+let ajConversationMode = false;
+let ajGreetingIndex = 0;
 let restartTimer = null;
 let microphoneStream = null;
 
@@ -5415,53 +5417,69 @@ function setupRecognition() {
             return;
         }
 
-        // Wake phrase support (while voice mode is armed by tapping the existing mic).
-        // Keep direct voice commands working too, so this patch does not break the current workflow.
+        // Sleep phrases return AJ to wake-word-only mode without disabling the microphone.
+        const sleepNormalized = normalizeVoiceText(transcript);
+        if (/^(?:(?:hey|hello|hi)\s+)?(?:a\s*j|aj|jay)[, ]*(?:please )?(?:go to sleep|sleep|stop listening|lock mode)$/.test(sleepNormalized)
+            || /^(?:go to sleep|sleep|stop listening|lock mode)$/.test(sleepNormalized)) {
+            ajConversationMode = false;
+            ajWakeArmed = false;
+            input.value = "";
+            setVoiceStatus("WAKE MODE — SAY “HEY AJ”", "listening");
+            setVoicePanelState("LISTENING");
+            speak("Okay. I’ll wait for you to say Hey AJ.");
+            return;
+        }
+
+        // Wake phrase support. After waking, stay in conversation mode until AJ is told to sleep.
         const wakeNormalized = normalizeVoiceText(transcript)
             .replace(/[.,!?]+/g, " ")
             .replace(/\s+/g, " ")
             .trim();
         const wakePatterns = [
-            /^hey\s+a?j$/,
-            /^hey\s+aj$/,
-            /^okay\s+aj$/,
-            /^ok\s+aj$/,
-            /^hey\s+jay$/
+            /^(?:hey|hello|hi)\s+(?:a\s*j|aj|jay)$/,
+            /^(?:okay|ok)\s+(?:a\s*j|aj|jay)$/,
+            /^(?:a\s*j|aj)[, ]*hello$/
         ];
-        const wakePrefix = /^(?:hey\s+(?:a\s*j|aj|jay)|okay\s+aj|ok\s+aj)[,\s.!?-]*/i;
+        const wakePrefix = /^(?:(?:hey|hello|hi)\s+(?:a\s*j|aj|jay)|(?:okay|ok)\s+(?:a\s*j|aj|jay))[ ,.!?-]*/i;
         const isWakeOnly = wakePatterns.some(function(pattern) {
             return pattern.test(wakeNormalized);
         });
 
         if (isWakeOnly) {
             ajWakeArmed = true;
+            ajConversationMode = true;
             input.value = "";
-            setVoiceStatus("YES, AJAY. BOSS?", "listening");
+            const greetings = ["Hey Ajay, I’m here. What do you need?", "Hi Ajay. Go ahead, I’m listening.", "Hello Ajay. What can I help you with?", "I’m here, Ajay. Tell me."];
+            const greeting = greetings[ajGreetingIndex % greetings.length];
+            ajGreetingIndex++;
+            setVoiceStatus("CONVERSATION MODE — SAY “AJ, GO TO SLEEP” TO LOCK", "listening");
             setVoicePanelState("LISTENING");
             setStatus("LISTENING");
-            // Speak a short acknowledgement locally; do not send the wake
-            // phrase to the backend as a normal question. Keep wake mode armed
-            // so the user's next spoken sentence is handled as their command.
-            speak("Yes, Ajay. Boss?");
+            speak(greeting);
             return;
         }
 
         // Hands-free mode: ignore background speech unless the user has said
         // the wake phrase, or includes it at the start of the same utterance.
         const hasWakePrefix = wakePrefix.test(transcript);
-        if (!hasWakePrefix && !ajWakeArmed) {
-            setVoiceStatus("ALWAYS LISTENING — SAY “HEY AJ”", "listening");
+        if (!hasWakePrefix && !ajConversationMode && !ajWakeArmed) {
+            setVoiceStatus("WAKE MODE — SAY “HEY AJ”", "listening");
             return;
         }
 
-        const commandTranscript = transcript.replace(wakePrefix, "").trim();
+        let commandTranscript = hasWakePrefix ? transcript.replace(wakePrefix, "").trim() : transcript.trim();
         if (!commandTranscript) {
             ajWakeArmed = true;
-            setVoiceStatus("YES, AJAY. BOSS?", "listening");
-            speak("Yes, Ajay. Boss?");
+            ajConversationMode = true;
+            const greetings = ["Hey Ajay, I’m here. What do you need?", "Hi Ajay. Go ahead, I’m listening.", "Hello Ajay. What can I help you with?"];
+            const greeting = greetings[ajGreetingIndex % greetings.length];
+            ajGreetingIndex++;
+            setVoiceStatus("CONVERSATION MODE", "listening");
+            speak(greeting);
             return;
         }
 
+        // Stay in conversation mode after each spoken request; only a sleep command locks AJ again.
         ajWakeArmed = false;
         listening = false;
         try { recognition.stop(); } catch (error) {}
@@ -6261,7 +6279,8 @@ function initializeAJ() {
     shouldKeepListening = true;
     voiceActive = true;
     ajWakeArmed = false;
-    setVoiceStatus("STARTING HANDS-FREE MODE…", "listening");
+    ajConversationMode = false;
+    setVoiceStatus("WAKE MODE — SAY “HEY AJ”", "listening");
     window.setTimeout(function() {
         if (voiceActive && shouldKeepListening && !listening && !recognitionStarting) {
             startListening();
