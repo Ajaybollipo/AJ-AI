@@ -3485,6 +3485,31 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
 #micButton, #stopVoiceButton, .main-voice-waveform, .main-voice-waveform.wave-left, .main-voice-waveform.wave-right { display:none !important; visibility:hidden !important; pointer-events:none !important; }
 #messageInput { pointer-events:auto !important; }
 </style>
+
+<style id="aj-reference-dashboard-v2">
+:root{--cyan:#00eaff;--blue:#168cff;--green:#00ffd0;--panel:rgba(0,8,14,.9)}
+.app{background:radial-gradient(ellipse at 44% 57%,rgba(0,115,160,.22),transparent 34%),radial-gradient(ellipse at 42% 45%,rgba(0,70,115,.16),transparent 48%),#02070b!important}
+.app:before{content:"";position:absolute;inset:70px 0 0 0;pointer-events:none;opacity:.48;background:repeating-linear-gradient(128deg,transparent 0 115px,rgba(0,211,255,.055) 116px 117px,transparent 118px 230px),linear-gradient(90deg,transparent 0 12%,rgba(0,210,255,.10) 12.1%,transparent 12.3% 100%);z-index:0}
+.topbar{height:82px!important;min-height:82px!important;padding:0 26px!important;border-bottom:1px solid rgba(0,234,255,.55)!important;background:linear-gradient(90deg,rgba(0,7,12,.96),rgba(0,20,30,.74),rgba(0,5,10,.95))!important;box-shadow:0 5px 24px rgba(0,190,255,.08)}
+.hud{inset:82px 0 0!important}
+.brand{gap:18px!important}.brand-mark{width:150px!important;height:auto!important;justify-content:flex-start!important;border:0!important;background:transparent!important;color:#00eaff!important;font-family:Arial,sans-serif;font-style:italic;font-weight:300!important;font-size:48px!important;letter-spacing:-5px;text-shadow:0 0 15px #00bfff;flex:none}
+.brand-copy{display:flex;flex-direction:column;gap:5px}.brand-title{font-size:17px;font-weight:700;letter-spacing:5px;color:#00eaff;white-space:nowrap}.brand-subtitle{font-size:9px;letter-spacing:3px;color:#c7f7ff}
+.topbar-motto{position:absolute;left:54%;transform:translateX(-50%);color:#00eaff;font-size:13px;font-weight:700;letter-spacing:4px;white-space:nowrap}.topbar-motto span{padding:0 7px;color:#48f8ff}
+.topbar-meta{margin-left:auto;display:flex;align-items:center;gap:14px;color:#d6faff;font-size:12px;white-space:nowrap}.meta-lock{color:#00eaff;font-size:16px}.meta-time{border:1px solid rgba(0,234,255,.5);padding:8px 18px;border-radius:8px;color:#00eaff;font-weight:700;font-size:16px;letter-spacing:2px;min-width:125px;text-align:center}
+.aj-sidebar{left:18px!important;top:12px!important;bottom:22px!important;width:184px!important;border:1px solid rgba(0,234,255,.5);border-radius:20px 20px 8px 8px;background:linear-gradient(180deg,rgba(0,10,17,.92),rgba(0,5,10,.86));box-shadow:0 0 22px rgba(0,205,255,.14);padding-top:55px!important;overflow:hidden}
+.aj-sidebar:before{content:"☰";position:absolute;top:15px;left:23px;font-size:27px;color:#00eaff}.sidebar-nav{border:0!important;border-radius:0!important;background:transparent!important;padding:0!important;gap:5px!important}.sidebar-item{height:47px!important;border-radius:0!important;font-size:14px!important;color:#aeeeff!important;padding-left:22px!important}.sidebar-item.active{background:linear-gradient(90deg,rgba(0,220,255,.40),rgba(0,110,180,.2))!important;border-left:4px solid #00eaff!important;color:#fff!important}.nav-icon{font-size:23px!important;width:27px;text-align:center;color:#d7faff}.sidebar-edge-toggle{z-index:40!important}
+.command-panel{display:none!important}
+.core-system{left:43.2%!important;top:42%!important;width:min(490px,39vw)!important;filter:drop-shadow(0 0 18px rgba(0,205,255,.35))}.ring{border-color:rgba(0,222,255,.42)!important;box-shadow:inset 0 0 13px rgba(0,165,255,.08),0 0 9px rgba(0,185,255,.09)}.ring.one{border-width:3px!important;border-top-color:#00eaff!important;border-bottom-color:#00eaff!important}.ring.two{border-width:5px!important;border-style:dashed!important;border-color:rgba(0,220,255,.8)!important}.ring.three{border-width:2px!important;border-color:rgba(0,190,255,.8)!important}.ring.four{border-width:1px!important;border-style:dotted!important;border-color:#00eaff!important}.ai-core{box-shadow:0 0 20px #00cfff,inset 0 0 30px rgba(0,196,255,.55)!important;border:3px solid #00eaff!important;background:radial-gradient(circle,rgba(0,220,255,.42),rgba(0,25,50,.95) 72%)!important}.core-name{font-size:clamp(46px,6vw,78px)!important;text-shadow:0 0 22px #00cfff!important}
+.creator{left:43.2%!important;top:calc(42% + min(245px,20vw))!important}.creator img{width:125px!important;max-width:18vw!important}.creator-label{font-size:10px!important;color:#c6faff!important;letter-spacing:3px!important}
+.voice-status{left:43.2%!important;top:7%!important;font-size:10px!important;letter-spacing:2px!important;color:#c8faff!important}
+.response-panel{right:18px!important;top:20px!important;width:min(490px,31vw)!important;height:calc(100% - 185px)!important;min-height:280px!important;border:2px solid rgba(0,225,255,.78)!important;border-radius:22px!important;background:linear-gradient(180deg,rgba(0,8,13,.92),rgba(0,6,11,.82))!important;box-shadow:0 0 20px rgba(0,206,255,.2),inset 0 0 25px rgba(0,145,200,.06)!important;overflow:hidden;padding:10px 8px!important}.response-header{height:45px!important;padding:0 14px!important;border-bottom:1px solid rgba(0,220,255,.4)!important}.response-title{font-size:16px!important;letter-spacing:2px!important;color:#e7fcff!important}.response-state{color:#00ffd0!important;font-size:12px!important}.response-content{padding:12px 8px!important;overflow-y:auto!important}.response-empty p{font-size:14px!important}.response-waveform{color:#00eaff!important}
+.command-bar{left:50%!important;bottom:6.5%!important;transform:translateX(-50%)!important;width:calc(100% - 350px)!important;max-width:1070px!important;gap:0!important;padding:0 14px!important;border:2px solid #00eaff!important;border-radius:26px!important;background:rgba(0,7,12,.95)!important;box-shadow:0 0 14px rgba(0,210,255,.12)!important;min-height:56px!important;align-items:center!important}.command-bar #messageInput{height:52px!important;border:0!important;background:transparent!important;font-size:16px!important;color:#eaffff!important;padding:0 10px!important}.command-bar #messageInput::placeholder{color:#8ed5ed!important}.command-bar #sendButton{width:42px!important;height:42px!important;border:0!important;background:transparent!important;color:#00eaff!important;box-shadow:none!important}.command-bar #fileButton,.command-bar #stopVoiceButton,.command-bar #historyButton,.command-bar #taskButton{display:none!important}.selected-file-name{display:none!important}
+#micButton{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+.target-info-card{position:absolute;z-index:15;width:220px;min-height:88px;padding:14px 16px;border:1px solid rgba(0,225,255,.78);border-radius:0 14px 0 14px;background:linear-gradient(120deg,rgba(0,17,26,.92),rgba(0,8,14,.82));box-shadow:0 0 13px rgba(0,210,255,.08);color:#e4fcff}.target-card-kicker{font-size:12px;letter-spacing:1px;color:#a6eaff;margin-bottom:9px}.target-card-main{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:#00f4e9}.target-card-sub{font-size:12px;color:#d1f4ff;margin:6px 0 0 24px}.status-dot{width:13px;height:13px;border-radius:50%;background:#00ffd0;box-shadow:0 0 12px #00ffd0;display:inline-block}.mini-wave{margin-left:auto;font-size:22px;color:#00eaff}.target-line-icon{font-size:26px;line-height:1;color:#00eaff}.target-status-card{left:14.2%;top:19%}.target-mode-card{left:14.2%;top:35.5%;width:220px}.target-voice-card{left:14.2%;top:52.5%;width:228px}.target-wake-card{left:56.8%;top:19%;width:182px}.target-stop-card{left:56.8%;top:35.5%;width:182px}.target-sleep-card{left:56.8%;top:52.5%;width:182px}
+@media(max-width:1100px){.topbar{height:64px!important;min-height:64px!important;padding:0 12px!important}.hud{inset:64px 0 0!important}.brand-mark{width:44px!important;font-size:36px!important;letter-spacing:-3px}.brand-title{font-size:11px;letter-spacing:2px}.brand-subtitle{font-size:7px;letter-spacing:1px}.topbar-motto{display:none}.topbar-meta{gap:6px;font-size:9px}.meta-time{font-size:11px;min-width:75px;padding:6px}.aj-sidebar{width:150px!important;left:8px!important}.core-system{left:46%!important;top:42%!important;width:min(360px,42vw)!important}.creator{left:46%!important;top:calc(42% + min(180px,21vw))!important}.response-panel{right:8px!important;width:31vw!important}.target-info-card{width:155px!important;padding:8px;min-height:70px}.target-card-kicker{font-size:9px;margin-bottom:5px}.target-card-main{font-size:11px;gap:5px}.target-card-sub{font-size:9px;margin-left:18px}.target-line-icon{font-size:18px}.target-status-card,.target-mode-card,.target-voice-card{left:17%;}.target-wake-card,.target-stop-card,.target-sleep-card{left:59%;}.command-bar{width:calc(100% - 230px)!important;left:calc(50% + 75px)!important;bottom:3%!important}}
+@media(max-width:700px){.topbar{height:56px!important;min-height:56px!important}.hud{inset:56px 0 0!important}.topbar-meta .meta-date,.meta-lock{display:none}.brand{gap:8px!important}.brand-mark{font-size:31px!important;width:35px!important}.brand-title{font-size:9px;letter-spacing:1px}.brand-subtitle{font-size:6px}.aj-sidebar{top:8px!important;bottom:8px!important;width:170px!important;transform:translateX(-110%);z-index:35}.app.mobile-sidebar-open .aj-sidebar{transform:translateX(0)}.core-system{left:50%!important;top:35%!important;width:min(260px,65vw)!important}.creator{left:50%!important;top:calc(35% + min(130px,33vw))!important}.creator img{width:88px!important}.creator-label{font-size:8px!important}.voice-status{left:50%!important;top:3%!important}.response-panel{left:10px!important;right:10px!important;top:auto!important;bottom:90px!important;width:auto!important;height:31%!important;min-height:150px!important;border-radius:14px!important}.response-title{font-size:11px!important}.response-header{height:30px!important}.response-content{padding:5px!important}.target-info-card{display:none!important}.command-bar{left:10px!important;right:10px!important;bottom:15px!important;transform:none!important;width:auto!important;min-height:48px!important;padding:0 8px!important}.command-bar #messageInput{height:44px!important;font-size:13px!important}.command-bar #sendButton{width:34px!important;height:34px!important}.sidebar-edge-toggle{display:block!important;top:8px!important;left:8px!important}}
+</style>
+
 </head>
 
 <body>
@@ -3494,10 +3519,10 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
     <div class="topbar">
         <div class="brand">
             <div class="brand-mark">AJ</div>
+            <div class="brand-copy"><div class="brand-title">AJ COMMAND CENTRE</div><div class="brand-subtitle">YOUR AI ASSISTANT</div></div>
         </div>
-
-
-
+        <div class="topbar-motto">TALK <span>·</span> THINK <span>·</span> GET IT DONE</div>
+        <div class="topbar-meta"><span class="meta-lock">♙</span><span class="meta-date">Mon, 27 Oct 2026</span><span class="meta-time" id="ajHeaderClock">11:24 AM</span></div>
     </div>
 
     <div class="hud">
@@ -3506,13 +3531,14 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
         <aside class="aj-sidebar" id="ajSidebar" aria-label="AJ navigation">
             <nav class="sidebar-nav">
                 <button class="sidebar-item active" type="button" data-nav="home"><span class="nav-icon">⌂</span><span>Home</span></button>
-                <button class="sidebar-item" type="button" data-nav="study"><span class="nav-icon">▤</span><span>Study</span></button>
-                <button class="sidebar-item" type="button" data-nav="coding"><span class="nav-icon">‹/›</span><span>Coding</span></button>
-                <button class="sidebar-item" type="button" data-nav="search"><span class="nav-icon">⌕</span><span>Search</span></button>
+                <button class="sidebar-item" type="button" data-nav="chat"><span class="nav-icon">▣</span><span>Chat</span></button>
+                <button class="sidebar-item" type="button" data-nav="tasks"><span class="nav-icon">☷</span><span>Tasks</span></button>
+                <button class="sidebar-item" type="button" data-nav="notes"><span class="nav-icon">▤</span><span>Notes</span></button>
                 <button class="sidebar-item" type="button" data-nav="files"><span class="nav-icon">▱</span><span>Files</span></button>
+                <button class="sidebar-item" type="button" data-nav="projects"><span class="nav-icon">▦</span><span>Projects</span></button>
                 <button class="sidebar-item" type="button" data-nav="tools"><span class="nav-icon">⚒</span><span>Tools</span></button>
                 <button class="sidebar-item" type="button" data-nav="memory"><span class="nav-icon">◉</span><span>Memory</span></button>
-                <button class="sidebar-item" type="button" data-nav="tasks"><span class="nav-icon">☑</span><span>Tasks</span></button>
+                <button class="sidebar-item" type="button" data-nav="settings"><span class="nav-icon">⚙</span><span>Settings</span></button>
             </nav>
         </aside>
 
@@ -3546,8 +3572,15 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
         </div>
 
         <div class="voice-status" id="voiceStatus">
-            PRESS VOICE TO START • VOICE • SEARCH • MEMORY • TOOLS
+            VOICE READY
         </div>
+
+        <div class="target-info-card target-status-card"><div class="target-card-kicker">STATUS</div><div class="target-card-main"><i class="status-dot"></i><span>LISTENING</span><b class="mini-wave">▂▅▃▇▅▂</b></div><div class="target-card-sub">(Conversation Mode)</div></div>
+        <div class="target-info-card target-mode-card"><div class="target-card-kicker">MODE</div><div class="target-card-main"><span class="target-line-icon">☏</span><span>ACTIVE</span></div><div class="target-card-sub">You can speak naturally</div></div>
+        <div class="target-info-card target-voice-card"><div class="target-card-kicker">VOICE</div><div class="target-card-main"><span class="target-line-icon">▥</span><span>READY</span></div><div class="target-card-sub">No button required</div></div>
+        <div class="target-info-card target-wake-card"><div class="target-card-kicker">WAKE WORD</div><div class="target-card-main"><span class="target-line-icon">♙</span><span>“Hey AJ”</span></div><div class="target-card-sub">(to start)</div></div>
+        <div class="target-info-card target-stop-card"><div class="target-card-kicker">STOP</div><div class="target-card-main"><span class="target-line-icon">♧</span><span>“Stop”</span></div><div class="target-card-sub">(to interrupt)</div></div>
+        <div class="target-info-card target-sleep-card"><div class="target-card-kicker">SLEEP</div><div class="target-card-main"><span class="target-line-icon">☾</span><span>“Hey AJ, sleep”</span></div><div class="target-card-sub">(to lock again)</div></div>
 
         <!-- CENTRAL AJ CORE -->
         <div class="core-system">
@@ -3602,7 +3635,7 @@ html,body,.app{width:100%;height:100%;min-height:100%;}
             <input
                 id="messageInput"
                 type="text"
-                placeholder="Talk to AJ • study mode / coding mode / search..."
+                placeholder="Type your message here..."
                 autocomplete="off"
             >
 
@@ -6352,5 +6385,6 @@ html, body { background:#020407 !important; }
 }
 .app::after { background:none !important; background-image:none !important; opacity:0 !important; }
 </style>
+<script id="aj-header-clock-script">(function(){const el=document.getElementById('ajHeaderClock');if(!el)return;function tick(){const d=new Date();el.textContent=d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});}tick();setInterval(tick,30000);})();</script>
 </body>
 </html>
